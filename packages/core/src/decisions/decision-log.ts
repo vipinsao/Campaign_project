@@ -29,6 +29,12 @@ export type DecisionInput = {
   readonly contactId?: string | undefined;
   readonly orderId?: string | undefined;
   readonly messageQueueId?: string | undefined;
+  /**
+   * When the decision was made, from the caller's Clock. Omitting it falls back to
+   * the column DEFAULT, which is correct for a real request but wrong under a
+   * FakeClock - and the decision log is the timeline the demo replays.
+   */
+  readonly decidedAt?: Date | undefined;
 };
 
 export async function recordDecision(
@@ -38,8 +44,8 @@ export async function recordDecision(
   await db.query(
     `INSERT INTO send_decisions
        (tenant_id, campaign_id, campaign_message_id, contact_id, order_id,
-        message_queue_id, stage, decision, reason_code, reason_detail, inputs)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        message_queue_id, stage, decision, reason_code, reason_detail, inputs, decided_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, COALESCE($12::timestamptz, now()))`,
     [
       input.tenantId,
       input.campaignId ?? null,
@@ -52,6 +58,7 @@ export async function recordDecision(
       input.reasonCode,
       input.detail ?? reasonSentence(input.reasonCode),
       JSON.stringify(input.inputs ?? {}),
+      input.decidedAt ?? null,
     ],
   );
 }
@@ -67,7 +74,7 @@ export async function recordDecisions(
   if (inputs.length === 0) return;
   const values: unknown[] = [];
   const tuples = inputs.map((input, i) => {
-    const b = i * 11;
+    const b = i * 12;
     values.push(
       input.tenantId,
       input.campaignId ?? null,
@@ -80,13 +87,17 @@ export async function recordDecisions(
       input.reasonCode,
       input.detail ?? reasonSentence(input.reasonCode),
       JSON.stringify(input.inputs ?? {}),
+      input.decidedAt ?? null,
     );
-    return `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10},$${b + 11})`;
+    return (
+      `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},` +
+      `$${b + 7},$${b + 8},$${b + 9},$${b + 10},$${b + 11},COALESCE($${b + 12}::timestamptz, now()))`
+    );
   });
   await db.query(
     `INSERT INTO send_decisions
        (tenant_id, campaign_id, campaign_message_id, contact_id, order_id,
-        message_queue_id, stage, decision, reason_code, reason_detail, inputs)
+        message_queue_id, stage, decision, reason_code, reason_detail, inputs, decided_at)
      VALUES ${tuples.join(', ')}`,
     values,
   );

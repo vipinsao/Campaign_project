@@ -10,3 +10,6 @@ export * from './delivery/orchestrator.ts';
 export * from './audience/index.ts';
 export * from './rendering/renderer.ts';
 export * from './metrics/denominators.ts';
+export * from './triggers/enrolment.ts';
+export * from './triggers/trigger-evaluator.ts';
+export * from './triggers/time-triggers.ts';
