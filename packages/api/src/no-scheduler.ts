@@ -64,7 +64,7 @@ export function armSchedulerTrap(): void {
   if (armed) return;
   armed = true;
   original = globalThis.setInterval;
-  const wrapped = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+  const wrapped = ((handler: unknown, timeout?: number, ...args: unknown[]) => {
     const frames = callSite();
     if (isForbidden(frames)) {
       observed.push(frames);
@@ -74,7 +74,7 @@ export function armSchedulerTrap(): void {
           `packages/worker.\n${frames}`,
       );
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-non-null-assertion -- forwarding the untouched arguments of the primitive we wrapped
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- `original` is assigned on the line that set `armed`, and only this closure reads it
     return original!(handler as never, timeout, ...(args as never[]));
   }) as unknown as IntervalFn;
 
@@ -116,3 +116,17 @@ export function assertNoSchedulerRegistered(): void {
 export function schedulerCensus(): readonly string[] {
   return observed;
 }
+
+/**
+ * Armed as a side effect of importing this module, and NOT from a call at the top
+ * of index.ts.
+ *
+ * ES module imports are hoisted and every dependency is fully evaluated before a
+ * single statement of the importing module runs. An `armSchedulerTrap()` call
+ * written as the first line of index.ts would therefore execute AFTER every other
+ * module in the graph had already been evaluated — after a module-scope
+ * `cron.schedule(...)` had run. Arming here, from a module that index.ts imports
+ * first, is the only placement where the trap exists before the code it is
+ * watching.
+ */
+armSchedulerTrap();

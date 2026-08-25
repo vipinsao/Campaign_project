@@ -1,0 +1,338 @@
+{
+  "reply-classification/v1/00c139a64cdce939483edd8c985064c6897e0d78a086dcdc5d120a6bc9ffea13": {
+    "raw": "{\"label\":\"positive\",\"confidence\":0.95,\"summary\":\"positive: Brilliant service, told my sister about you.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 431,
+    "outputTokens": 48,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/08f7c3df264ad08781e09885a6b81450f640ed60b3f1fd3a8c03c07bb4fde6a9": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.88,\"summary\":\"question: quick q - do the trainers come in a wide fit?\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 432,
+    "outputTokens": 48,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/0b27877b51f315f3a56e4a79405ff6bc0fd96b5463e69d3be5d87a4e956fb80a": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.93,\"summary\":\"complaint: Order ORD-88120 turned up damaged AND the invoice is wrong. Two problems, one email, sorry.\",\"urgency\":\"high\",\"entities\":{\"order_number_mentioned\":\"ORD-88120\",\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 443,
+    "outputTokens": 62,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/24eca66929296f0c768b631aad6498559ff94a6395b94261e232770053b03b66": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.95,\"summary\":\"complaint: The jumper arrived with a hole in the sleeve. Really disappointed, this was a gift.\",\"urgency\":\"high\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 441,
+    "outputTokens": 58,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/2ce72f2e38d10d0071ecaee436e4027944b2194e2a5d70187196ce78c10279e2": {
+    "raw": "{\"label\":\"positive\",\"confidence\":0.85,\"summary\":\"positive: perfect, thanks\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 424,
+    "outputTokens": 40,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/37731b2a6b0c71f7da8331644d5d274cb21e349c1ba17346cd67b614f9051c17": {
+    "raw": "{\"label\":\"other\",\"confidence\":0.97,\"summary\":\"other: Automatic reply: I am out of the office until 3 September with limited access to email. For urgent matters contact reception.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 452,
+    "outputTokens": 66,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/3d12a31d076112b36c4a4a90e224de927226198f67331279aad7af48741697d4": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.94,\"summary\":\"question: Do you ship to the Republic of Ireland, and is there a customs charge?\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 438,
+    "outputTokens": 54,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/4237c4c75d0e3c17972072bcae1bcaee98a25be3460a247b6f432c14711b8184": {
+    "raw": "{\"label\":\"opt_out\",\"confidence\":0.93,\"summary\":\"opt out: Please take me off this list, I don't want any more of these emails.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 437,
+    "outputTokens": 54,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/4297b229a0a07284f94673ec09867e0381f2bda1b1d7166e1a97b1cf6d56184f": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.97,\"summary\":\"complaint: You have charged me twice for order #10041. Please refund one of them today or I am going to my bank.\",\"urgency\":\"high\",\"entities\":{\"order_number_mentioned\":\"#10041\",\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 446,
+    "outputTokens": 64,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/4df017a03d5897041be9a5c6b4112728be665058c36591b24a0386b43b9b1a2c": {
+    "raw": "{\"label\":\"positive\",\"confidence\":0.89,\"summary\":\"positive: Got it, cheers. Will order the other colour next month.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 434,
+    "outputTokens": 50,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/660bc11f55e7a782ce200e73146f19fb637818b42ab141d926a02bad816c4c23": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.62,\"summary\":\"question: still waiting on a reply from last week about the wrong size. anyone there?\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 439,
+    "outputTokens": 55,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/761d67b6c6efa95ec36e45e40325bb433d37216b624b3be304dc06d786456be7": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.66,\"summary\":\"complaint: Please cancel my order #10041, but keep sending me the newsletter — I like it.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":\"#10041\",\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 440,
+    "outputTokens": 58,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/8a4a05a41920e0d13e7d73f0d2bd8a9c2628e9efbd7ee0bbe83cd967668acea2": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.71,\"summary\":\"complaint: Third email this week. This is too much, I did not sign up for a daily newsletter.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 441,
+    "outputTokens": 58,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/acca13469e6aa16ef8d75511615f62eb9c737f19c792164c0d75e8d45aabfc55": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.86,\"summary\":\"complaint: Hi — where is my order? It said delivered on Tuesday but nothing has arrived and the tracking hasn't moved since Monday.\",\"urgency\":\"high\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 450,
+    "outputTokens": 67,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/c16aaf0cde3b87a418a3c271614a2fb0c5fdd9d6e2b46a346c56a2758a655d02": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.92,\"summary\":\"question: Is the sale price still on if I order tomorrow?\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 432,
+    "outputTokens": 48,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/cd7ba7b734216b4e9c9fcd451c54d8c2578ebcdc763efaf80bea69999a55901f": {
+    "raw": "{\"label\":\"other\",\"confidence\":0.96,\"summary\":\"other: Delivery Status Notification (Failure). The following recipient could not be reached.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 442,
+    "outputTokens": 56,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/d68813b806da5f75fe25f213d0f392e3018444875159d29a93d6b271360a3767": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.81,\"summary\":\"question: What's your returns window? I might want to send the boots back but I haven't decided.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 442,
+    "outputTokens": 58,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/dcdc33d7a3be892d0c52a4bbb4c770eebfa2dc9f5828510939a11e0e2bf717a2": {
+    "raw": "{\"label\":\"other\",\"confidence\":0.88,\"summary\":\"other: Your order has shipped! Track it here. wrong number mate\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 435,
+    "outputTokens": 49,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/de6b6fc0959420e2ead6600de8e0ddc1183d18861850c48e36b42d5106aad27d": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.58,\"summary\":\"complaint: I'd rather not get the promo texts any more but the order updates are fine.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 439,
+    "outputTokens": 57,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/e3e259de44c4214fdd2f75128c5402c0a9b8527dcace6dd7acee0f36af174750": {
+    "raw": "{\"label\":\"other\",\"confidence\":0.93,\"summary\":\"other: sdfjkl\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 422,
+    "outputTokens": 37,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/e6227d40a50156a5bcf970374e1a7e6453d2f0416a79ebd7f44e07b94f150cf5": {
+    "raw": "{\"label\":\"positive\",\"confidence\":0.9,\"summary\":\"positive: No complaints at all, second time ordering and both were spot on.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 437,
+    "outputTokens": 53,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/e788435b1f6cf7746adafddad4f2d2841ca67d56a5440bf2cb045fd44d6e861a": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.9,\"summary\":\"question: Can I change the delivery address on #10041? Moving house on Friday.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":\"#10041\",\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 437,
+    "outputTokens": 55,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/f1ce59e800658ee9cd775a1a9f683fa9cfc650f6f265c413d961297dcc42b75b": {
+    "raw": "{\"label\":\"positive\",\"confidence\":0.96,\"summary\":\"positive: Just wanted to say the packaging was lovely and it arrived a day early. Thank you!\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 441,
+    "outputTokens": 57,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v1/f60dbdf9ed45d4cbb3897640bbfc29b3cfc24f63891366c3afd94cb53fe183cb": {
+    "raw": "{\"label\":\"opt_out\",\"confidence\":0.94,\"summary\":\"opt out: remove me from your mailing list please\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 430,
+    "outputTokens": 47,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/00c139a64cdce939483edd8c985064c6897e0d78a086dcdc5d120a6bc9ffea13": {
+    "raw": "{\"label\":\"positive\",\"confidence\":0.98,\"summary\":\"positive: Brilliant service, told my sister about you.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 431,
+    "outputTokens": 48,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/08f7c3df264ad08781e09885a6b81450f640ed60b3f1fd3a8c03c07bb4fde6a9": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.96,\"summary\":\"question: quick q - do the trainers come in a wide fit?\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 432,
+    "outputTokens": 48,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/0b27877b51f315f3a56e4a79405ff6bc0fd96b5463e69d3be5d87a4e956fb80a": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.97,\"summary\":\"complaint: Order ORD-88120 turned up damaged AND the invoice is wrong. Two problems, one email, sorry.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":\"ORD-88120\",\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 443,
+    "outputTokens": 62,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/24eca66929296f0c768b631aad6498559ff94a6395b94261e232770053b03b66": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.97,\"summary\":\"complaint: The jumper arrived with a hole in the sleeve. Really disappointed, this was a gift.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 441,
+    "outputTokens": 59,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/2ce72f2e38d10d0071ecaee436e4027944b2194e2a5d70187196ce78c10279e2": {
+    "raw": "{\"label\":\"other\",\"confidence\":0.94,\"summary\":\"other: perfect, thanks\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 424,
+    "outputTokens": 39,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/37731b2a6b0c71f7da8331644d5d274cb21e349c1ba17346cd67b614f9051c17": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.92,\"summary\":\"question: Automatic reply: I am out of the office until 3 September with limited access to email. For urgent matters contact reception.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 452,
+    "outputTokens": 69,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/3d12a31d076112b36c4a4a90e224de927226198f67331279aad7af48741697d4": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.98,\"summary\":\"question: Do you ship to the Republic of Ireland, and is there a customs charge?\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 438,
+    "outputTokens": 54,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/4237c4c75d0e3c17972072bcae1bcaee98a25be3460a247b6f432c14711b8184": {
+    "raw": "{\"label\":\"opt_out\",\"confidence\":0.97,\"summary\":\"opt out: Please take me off this list, I don't want any more of these emails.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 437,
+    "outputTokens": 53,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/4297b229a0a07284f94673ec09867e0381f2bda1b1d7166e1a97b1cf6d56184f": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.98,\"summary\":\"complaint: You have charged me twice for order #10041. Please refund one of them today or I am going to my bank.\",\"urgency\":\"high\",\"entities\":{\"order_number_mentioned\":\"10041\",\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 446,
+    "outputTokens": 63,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/4df017a03d5897041be9a5c6b4112728be665058c36591b24a0386b43b9b1a2c": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.93,\"summary\":\"question: Got it, cheers. Will order the other colour next month.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 434,
+    "outputTokens": 50,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/660bc11f55e7a782ce200e73146f19fb637818b42ab141d926a02bad816c4c23": {
+    "raw": "{\"label\":\"other\",\"confidence\":0.93,\"summary\":\"other: still waiting on a reply from last week about the wrong size. anyone there?\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 439,
+    "outputTokens": 54,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/761d67b6c6efa95ec36e45e40325bb433d37216b624b3be304dc06d786456be7": {
+    "raw": "{\"label\":\"opt_out\",\"confidence\":0.96,\"summary\":\"opt out: Please cancel my order #10041, but keep sending me the newsletter — I like it.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":\"10041\",\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 440,
+    "outputTokens": 56,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/8a4a05a41920e0d13e7d73f0d2bd8a9c2628e9efbd7ee0bbe83cd967668acea2": {
+    "raw": "{\"label\":\"opt_out\",\"confidence\":0.95,\"summary\":\"opt out: Third email this week. This is too much, I did not sign up for a daily newsletter.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 441,
+    "outputTokens": 57,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/acca13469e6aa16ef8d75511615f62eb9c737f19c792164c0d75e8d45aabfc55": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.96,\"summary\":\"question: Hi — where is my order? It said delivered on Tuesday but nothing has arrived and the tracking hasn't moved since Monday.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 450,
+    "outputTokens": 67,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/c16aaf0cde3b87a418a3c271614a2fb0c5fdd9d6e2b46a346c56a2758a655d02": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.97,\"summary\":\"question: Is the sale price still on if I order tomorrow?\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 432,
+    "outputTokens": 48,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/cd7ba7b734216b4e9c9fcd451c54d8c2578ebcdc763efaf80bea69999a55901f": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.94,\"summary\":\"complaint: Delivery Status Notification (Failure). The following recipient could not be reached.\",\"urgency\":\"high\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 442,
+    "outputTokens": 59,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/d68813b806da5f75fe25f213d0f392e3018444875159d29a93d6b271360a3767": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.94,\"summary\":\"complaint: What's your returns window? I might want to send the boots back but I haven't decided.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 442,
+    "outputTokens": 59,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/dcdc33d7a3be892d0c52a4bbb4c770eebfa2dc9f5828510939a11e0e2bf717a2": {
+    "raw": "{\"label\":\"positive\",\"confidence\":0.91,\"summary\":\"positive: Your order has shipped! Track it here. wrong number mate\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 435,
+    "outputTokens": 51,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/de6b6fc0959420e2ead6600de8e0ddc1183d18861850c48e36b42d5106aad27d": {
+    "raw": "{\"label\":\"opt_out\",\"confidence\":0.95,\"summary\":\"opt out: I'd rather not get the promo texts any more but the order updates are fine.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 439,
+    "outputTokens": 55,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/e3e259de44c4214fdd2f75128c5402c0a9b8527dcace6dd7acee0f36af174750": {
+    "raw": "{\"label\":\"other\",\"confidence\":0.96,\"summary\":\"other: sdfjkl\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 422,
+    "outputTokens": 37,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/e6227d40a50156a5bcf970374e1a7e6453d2f0416a79ebd7f44e07b94f150cf5": {
+    "raw": "{\"label\":\"complaint\",\"confidence\":0.95,\"summary\":\"complaint: No complaints at all, second time ordering and both were spot on.\",\"urgency\":\"normal\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 437,
+    "outputTokens": 54,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/e788435b1f6cf7746adafddad4f2d2841ca67d56a5440bf2cb045fd44d6e861a": {
+    "raw": "{\"label\":\"question\",\"confidence\":0.97,\"summary\":\"question: Can I change the delivery address on #10041? Moving house on Friday.\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":\"10041\",\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 437,
+    "outputTokens": 54,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/f1ce59e800658ee9cd775a1a9f683fa9cfc650f6f265c413d961297dcc42b75b": {
+    "raw": "{\"label\":\"positive\",\"confidence\":0.98,\"summary\":\"positive: Just wanted to say the packaging was lovely and it arrived a day early. Thank you!\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 441,
+    "outputTokens": 57,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  },
+  "reply-classification/v2/f60dbdf9ed45d4cbb3897640bbfc29b3cfc24f63891366c3afd94cb53fe183cb": {
+    "raw": "{\"label\":\"opt_out\",\"confidence\":0.97,\"summary\":\"opt out: remove me from your mailing list please\",\"urgency\":\"low\",\"entities\":{\"order_number_mentioned\":null,\"product_mentioned\":null}}",
+    "modelId": "claude-sonnet-5",
+    "inputTokens": 430,
+    "outputTokens": 46,
+    "recordedFrom": "hand-authored demo fixture (no live capture) — re-record with RecordingModelClient"
+  }
+}

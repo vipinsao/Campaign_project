@@ -207,7 +207,7 @@ export async function optIn(
   tenantId: string,
   contactId: string,
   channel: 'email' | 'sms' = 'email',
-  occurredAt: string = '2020-01-01T00:00:00Z',
+  occurredAt = '2020-01-01T00:00:00Z',
 ): Promise<void> {
   await db.query(
     `INSERT INTO contact_consents (tenant_id, contact_id, channel, state, source, occurred_at)

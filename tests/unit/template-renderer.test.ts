@@ -169,7 +169,7 @@ describe('SMS segment counting', () => {
 
     const result = validateTemplate({ channel: 'sms', body }, 'transactional');
     expect(result.smsSegments!).toBeGreaterThan(1);
-    expect(result.warnings.some((w) => /segments/.test(w.message))).toBe(true);
+    expect(result.warnings.some((w) => w.message.includes('segments'))).toBe(true);
   });
 });
 

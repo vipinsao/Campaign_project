@@ -43,7 +43,7 @@ export function tenantOf(c: AppContext): string {
 
 export function operatorOf(c: AppContext): OperatorClaims {
   const principal = c.get('principal') as AuthPrincipal | undefined;
-  if (principal === undefined || principal.kind !== 'operator') {
+  if (principal?.kind !== 'operator') {
     throw unauthorized('This route requires an operator session token.');
   }
   return principal.claims;

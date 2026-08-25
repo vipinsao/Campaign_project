@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { MiddlewareHandler } from 'hono';
+import { routePath } from 'hono/route';
 import type { Logger } from 'pino';
 import type { HttpMetrics } from '../observability/metrics.ts';
 import type { AppEnv } from './context.ts';
@@ -31,9 +32,11 @@ export function requestLogger(logger: Logger, metrics: HttpMetrics): MiddlewareH
       await next();
     } finally {
       const seconds = Number(process.hrtime.bigint() - started) / 1e9;
-      // The matched pattern, not the path. See the note in observability/metrics.ts:
-      // labelling by path makes every campaign id its own time series.
-      const route = c.req.routePath;
+      // The matched PATTERN, not the path. See the note in observability/metrics.ts:
+      // labelling by path makes every campaign id its own time series. The `-1`
+      // asks for the last route that matched — the handler — rather than this
+      // middleware's own '*', which would label every request identically.
+      const route = routePath(c, -1);
       const method = c.req.method;
       const status = c.res.status;
 

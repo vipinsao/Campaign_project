@@ -1,0 +1,366 @@
+{
+  "//": "The golden set for reply-classification, as promoted by src/eval/golden-set.ts. Every case names the failure mode that put it here — see prompts/failure-taxonomy.md. Cases the model already handled are deliberately absent: a golden set padded with easy wins inflates every score it will ever produce.",
+  "dataset": "reply-classification",
+  "cases": [
+    {
+      "body": "Hi — where is my order? It said delivered on Tuesday but nothing has arrived and the tracking hasn't moved since Monday.",
+      "expectedLabel": "complaint",
+      "notes": "failure mode: complaint-read-as-question — a problem phrased as a question was labelled 'question', so it skipped the escalation queue",
+      "v1": {
+        "label": "complaint",
+        "confidence": 0.86,
+        "urgency": "high"
+      },
+      "v2": {
+        "label": "question",
+        "confidence": 0.96,
+        "urgency": "normal"
+      }
+    },
+    {
+      "body": "The jumper arrived with a hole in the sleeve. Really disappointed, this was a gift.",
+      "expectedLabel": "complaint",
+      "notes": "failure mode: baseline complaint — retained as a control so a regression on the easy case is still visible",
+      "v1": {
+        "label": "complaint",
+        "confidence": 0.95,
+        "urgency": "high"
+      },
+      "v2": {
+        "label": "complaint",
+        "confidence": 0.97,
+        "urgency": "normal"
+      }
+    },
+    {
+      "body": "You have charged me twice for order #10041. Please refund one of them today or I am going to my bank.",
+      "expectedLabel": "complaint",
+      "notes": "failure mode: arithmetic-bait — the model was previously asked to state the refund amount; totals are deterministic and never the model's job",
+      "v1": {
+        "label": "complaint",
+        "confidence": 0.97,
+        "urgency": "high"
+      },
+      "v2": {
+        "label": "complaint",
+        "confidence": 0.98,
+        "urgency": "high"
+      }
+    },
+    {
+      "body": "Third email this week. This is too much, I did not sign up for a daily newsletter.",
+      "expectedLabel": "complaint",
+      "notes": "failure mode: annoyed-but-not-leaving — reads like an opt-out, is not one; the deterministic keyword pass correctly does not fire",
+      "v1": {
+        "label": "complaint",
+        "confidence": 0.71,
+        "urgency": "normal"
+      },
+      "v2": {
+        "label": "opt_out",
+        "confidence": 0.95,
+        "urgency": "normal"
+      }
+    },
+    {
+      "body": "still waiting on a reply from last week about the wrong size. anyone there?",
+      "expectedLabel": "complaint",
+      "notes": "failure mode: lowercase-terse — short unpunctuated replies were being swept into 'other'",
+      "v1": {
+        "label": "question",
+        "confidence": 0.62,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "other",
+        "confidence": 0.93,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "Order ORD-88120 turned up damaged AND the invoice is wrong. Two problems, one email, sorry.",
+      "expectedLabel": "complaint",
+      "notes": "failure mode: two-topic reply — the second issue was in the second sentence and was dropped",
+      "v1": {
+        "label": "complaint",
+        "confidence": 0.93,
+        "urgency": "high"
+      },
+      "v2": {
+        "label": "complaint",
+        "confidence": 0.97,
+        "urgency": "normal"
+      }
+    },
+    {
+      "body": "Do you ship to the Republic of Ireland, and is there a customs charge?",
+      "expectedLabel": "question",
+      "notes": "failure mode: baseline question — control case",
+      "v1": {
+        "label": "question",
+        "confidence": 0.94,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "question",
+        "confidence": 0.98,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "What's your returns window? I might want to send the boots back but I haven't decided.",
+      "expectedLabel": "question",
+      "notes": "failure mode: question-read-as-complaint — hedged dissatisfaction pushed a plain question into the complaint queue",
+      "v1": {
+        "label": "question",
+        "confidence": 0.81,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "complaint",
+        "confidence": 0.94,
+        "urgency": "normal"
+      }
+    },
+    {
+      "body": "Can I change the delivery address on #10041? Moving house on Friday.",
+      "expectedLabel": "question",
+      "notes": "failure mode: order-number-bait — the model tried to resolve the order itself; identity matching is deterministic",
+      "v1": {
+        "label": "question",
+        "confidence": 0.9,
+        "urgency": "normal"
+      },
+      "v2": {
+        "label": "question",
+        "confidence": 0.97,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "quick q - do the trainers come in a wide fit?",
+      "expectedLabel": "question",
+      "notes": "failure mode: lowercase-terse",
+      "v1": {
+        "label": "question",
+        "confidence": 0.88,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "question",
+        "confidence": 0.96,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "Is the sale price still on if I order tomorrow?",
+      "expectedLabel": "question",
+      "notes": "failure mode: date-arithmetic-bait — 'tomorrow' invited the model to compute a date; date arithmetic is deterministic",
+      "v1": {
+        "label": "question",
+        "confidence": 0.92,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "question",
+        "confidence": 0.97,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "Just wanted to say the packaging was lovely and it arrived a day early. Thank you!",
+      "expectedLabel": "positive",
+      "notes": "failure mode: baseline positive — control case",
+      "v1": {
+        "label": "positive",
+        "confidence": 0.96,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "positive",
+        "confidence": 0.98,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "perfect, thanks",
+      "expectedLabel": "positive",
+      "notes": "failure mode: two-word reply — was landing in 'other' roughly a third of the time",
+      "v1": {
+        "label": "positive",
+        "confidence": 0.85,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "other",
+        "confidence": 0.94,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "Got it, cheers. Will order the other colour next month.",
+      "expectedLabel": "positive",
+      "notes": "failure mode: intent-plus-acknowledgement — the future purchase read as a question about availability",
+      "v1": {
+        "label": "positive",
+        "confidence": 0.89,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "question",
+        "confidence": 0.93,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "No complaints at all, second time ordering and both were spot on.",
+      "expectedLabel": "positive",
+      "notes": "failure mode: negation-blindness — the literal word 'complaints' pulled this into the complaint queue",
+      "v1": {
+        "label": "positive",
+        "confidence": 0.9,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "complaint",
+        "confidence": 0.95,
+        "urgency": "normal"
+      }
+    },
+    {
+      "body": "Brilliant service, told my sister about you.",
+      "expectedLabel": "positive",
+      "notes": "failure mode: baseline positive — control case",
+      "v1": {
+        "label": "positive",
+        "confidence": 0.95,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "positive",
+        "confidence": 0.98,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "Automatic reply: I am out of the office until 3 September with limited access to email. For urgent matters contact reception.",
+      "expectedLabel": "other",
+      "notes": "failure mode: auto-responder — out-of-office replies were being classified from their body text as questions",
+      "v1": {
+        "label": "other",
+        "confidence": 0.97,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "question",
+        "confidence": 0.92,
+        "urgency": "normal"
+      }
+    },
+    {
+      "body": "> Your order has shipped! Track it here.\n\nwrong number mate",
+      "expectedLabel": "other",
+      "notes": "failure mode: quoted-text bleed — the model classified the QUOTED original message rather than the reply beneath it",
+      "v1": {
+        "label": "other",
+        "confidence": 0.88,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "positive",
+        "confidence": 0.91,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "Delivery Status Notification (Failure). The following recipient could not be reached.",
+      "expectedLabel": "other",
+      "notes": "failure mode: bounce-in-the-reply-stream — a machine bounce reached the reply inbox and was read as a complaint about delivery",
+      "v1": {
+        "label": "other",
+        "confidence": 0.96,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "complaint",
+        "confidence": 0.94,
+        "urgency": "high"
+      }
+    },
+    {
+      "body": "sdfjkl",
+      "expectedLabel": "other",
+      "notes": "failure mode: junk input — nonsense must not be forced into a substantive label",
+      "v1": {
+        "label": "other",
+        "confidence": 0.93,
+        "urgency": "low"
+      },
+      "v2": {
+        "label": "other",
+        "confidence": 0.96,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "Please take me off this list, I don't want any more of these emails.",
+      "expectedLabel": "opt_out",
+      "notes": "failure mode: prose opt-out — no carrier keyword, so the deterministic pass correctly declines and the model must catch it",
+      "v1": {
+        "label": "opt_out",
+        "confidence": 0.93,
+        "urgency": "normal"
+      },
+      "v2": {
+        "label": "opt_out",
+        "confidence": 0.97,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "remove me from your mailing list please",
+      "expectedLabel": "opt_out",
+      "notes": "failure mode: prose opt-out",
+      "v1": {
+        "label": "opt_out",
+        "confidence": 0.94,
+        "urgency": "normal"
+      },
+      "v2": {
+        "label": "opt_out",
+        "confidence": 0.97,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "Please cancel my order #10041, but keep sending me the newsletter — I like it.",
+      "expectedLabel": "question",
+      "notes": "failure mode: keyword-in-prose — contains CANCEL and is emphatically NOT an opt-out; this case is why detectOptOut matches the whole message and not a substring",
+      "v1": {
+        "label": "complaint",
+        "confidence": 0.66,
+        "urgency": "normal"
+      },
+      "v2": {
+        "label": "opt_out",
+        "confidence": 0.96,
+        "urgency": "low"
+      }
+    },
+    {
+      "body": "I'd rather not get the promo texts any more but the order updates are fine.",
+      "expectedLabel": "opt_out",
+      "notes": "failure mode: partial opt-out — a category-scoped preference; suppression is address-level so this must reach a human, not an automatic suppression",
+      "v1": {
+        "label": "complaint",
+        "confidence": 0.58,
+        "urgency": "normal"
+      },
+      "v2": {
+        "label": "opt_out",
+        "confidence": 0.95,
+        "urgency": "low"
+      }
+    }
+  ]
+}

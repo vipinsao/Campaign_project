@@ -109,6 +109,80 @@ export type RenderedError = {
  * a row, so the generic arm says nothing — the detail goes to the log, where the
  * request id ties it back.
  */
+/**
+ * Postgres error codes this layer is willing to translate.
+ *
+ * The schema does a great deal of the product's validation — CHECK constraints on
+ * order-status/timestamp agreement, an EXCLUDE on overlapping consent pauses, a
+ * trigger that refuses UPDATE on the consent ledger. Those are real answers, and
+ * letting them surface as a bare 500 wastes them: the operator learns that
+ * "something went wrong" when the database said precisely what was wrong and
+ * named the constraint.
+ *
+ * `22P02` is here for a different reason. A malformed id in a path — a truncated
+ * UUID pasted from a chat message — is a client mistake, not a server fault, and a
+ * 500 for it puts a page of noise in the error log every time somebody mistypes.
+ */
+const PG_CODES: Readonly<Record<string, { status: ErrorStatus; code: string; message: string }>> = {
+  '22P02': {
+    status: 400,
+    code: 'malformed_identifier',
+    message: 'One of the identifiers in this request is not a valid UUID.',
+  },
+  '23503': {
+    status: 409,
+    code: 'reference_missing',
+    message: 'This request refers to a row that does not exist.',
+  },
+  '23505': {
+    status: 409,
+    code: 'already_exists',
+    message: 'A row with these identifying values already exists.',
+  },
+  '23514': {
+    status: 422,
+    code: 'constraint_violated',
+    message: 'The database rejected this write: it violates a rule the schema enforces.',
+  },
+  '23P01': {
+    status: 409,
+    code: 'range_overlaps',
+    message: 'This period overlaps one that already exists.',
+  },
+  '2BP01': {
+    status: 409,
+    code: 'append_only',
+    message: 'This table is append-only. Record a new row instead of changing an existing one.',
+  },
+};
+
+type PgErrorish = { code?: unknown; constraint?: unknown; detail?: unknown; table?: unknown };
+
+function asPostgresError(error: unknown): RenderedError | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const candidate = error as PgErrorish;
+  if (typeof candidate.code !== 'string') return undefined;
+  const mapped = PG_CODES[candidate.code];
+  if (mapped === undefined) return undefined;
+
+  return {
+    status: mapped.status,
+    body: {
+      error: {
+        code: mapped.code,
+        message: mapped.message,
+        // The constraint name is the diagnosis. `contacts_phone_is_e164` tells the
+        // operator exactly which rule they broke; "constraint violated" does not.
+        details: {
+          pgCode: candidate.code,
+          constraint: typeof candidate.constraint === 'string' ? candidate.constraint : null,
+          table: typeof candidate.table === 'string' ? candidate.table : null,
+        },
+      },
+    },
+  };
+}
+
 export function renderError(error: unknown): RenderedError {
   if (error instanceof ApiError) {
     return {
@@ -134,6 +208,9 @@ export function renderError(error: unknown): RenderedError {
       },
     };
   }
+
+  const pg = asPostgresError(error);
+  if (pg !== undefined) return pg;
 
   return {
     status: 500,

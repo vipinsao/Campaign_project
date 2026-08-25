@@ -104,7 +104,7 @@ describe('I8 — terminal is terminal', () => {
     expect(provider.sent).toHaveLength(2);
   });
 
-  it('classifies from a table rather than from string matching', async () => {
+  it('classifies from a table rather than from string matching', () => {
     // Table-driven, because a classification chain of if/includes is exactly how a
     // provider's "Blocked" and a framework's "blocked connection" end up in the
     // same branch.

@@ -116,7 +116,7 @@ describe('I14 — every outcome leaves a reason behind', () => {
     ).toBeDefined();
   });
 
-  it('has a declared reason code for every gate in the chain', async () => {
+  it('has a declared reason code for every gate in the chain', () => {
     // Guards against a gate being added that skips with an undeclared string. The
     // decision log is only groupable if the vocabulary is closed.
     const codes = Object.keys(REASON_CODES);

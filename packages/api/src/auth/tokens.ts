@@ -139,7 +139,11 @@ export function issueApiKey(tenantId: string, secret: Uint8Array): string {
 export function verifyApiKey(key: string, secret: Uint8Array): string | undefined {
   if (!key.startsWith(API_KEY_PREFIX)) return undefined;
   const body = key.slice(API_KEY_PREFIX.length);
-  const split = body.lastIndexOf('_');
+  // The FIRST underscore, not the last. A UUID contains no underscore, but the MAC
+  // is base64url and routinely does — splitting on the last one truncates the MAC
+  // and every key containing an underscore is rejected, intermittently, in a way
+  // that looks like a client bug.
+  const split = body.indexOf('_');
   if (split <= 0) return undefined;
 
   const tenantId = body.slice(0, split);
