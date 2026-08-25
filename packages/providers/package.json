@@ -1,0 +1,19 @@
+{
+  "name": "@campaign/providers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Provider adapters. The only package permitted to import a vendor SDK.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "//boundary": "the ONLY package permitted to import nodemailer/postmark/twilio. Enforced by tests/unit/architecture.test.ts",
+  "dependencies": {
+    "nodemailer": "^9.0.5"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.1"
+  }
+}

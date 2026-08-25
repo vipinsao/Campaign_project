@@ -1,0 +1,16 @@
+{
+  "name": "@campaign/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The only process that schedules anything.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "node-cron": "^4.6.0",
+    "pino": "^10.3.1"
+  }
+}

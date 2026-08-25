@@ -1,0 +1,17 @@
+{
+  "name": "@campaign/triage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The AI layer: deterministic/model boundary, versioned prompts, eval harness.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "//boundary": "the ONLY package permitted to import @anthropic-ai/sdk. Deterministic paths must never reach it (V1).",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
+    "zod": "^4.4.3"
+  }
+}

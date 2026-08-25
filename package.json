@@ -1,0 +1,54 @@
+{
+  "name": "campaign-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-channel campaign & lifecycle messaging engine that can prove why it did not send.",
+  "license": "MIT",
+  "author": "Vipin Chandra Sao",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vipinsao/campaign-engine.git"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "db:start": "tsx scripts/db.ts start",
+    "db:stop": "tsx scripts/db.ts stop",
+    "migrate": "tsx scripts/migrate.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "demo:simulate": "tsx scripts/simulate.ts",
+    "rollups:rebuild": "tsx scripts/rollups-rebuild.ts",
+    "check:env": "tsx scripts/check-env.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:verify": "tsx scripts/verify-typecheck-gate.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:compliance": "vitest run tests/invariants",
+    "test:e2e": "playwright test",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.3.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "dotenv": "^17.4.2",
+    "embedded-postgres": "^18.4.0-beta.17",
+    "eslint": "^10.9.1",
+    "eslint-plugin-boundaries": "^7.2.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.12",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^4.1.11"
+  }
+}

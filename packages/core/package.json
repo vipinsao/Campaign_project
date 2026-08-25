@@ -1,0 +1,22 @@
+{
+  "name": "@campaign/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The domain. No express, no react, no provider SDKs, no new Date().",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "//boundary": "core may not import from api, worker, web, providers or triage. Enforced by eslint-plugin-boundaries and tests/unit/architecture.test.ts",
+  "dependencies": {
+    "luxon": "^3.7.2",
+    "pg": "^8.23.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.7.5",
+    "@types/pg": "^8.23.1"
+  }
+}
