@@ -1,10 +1,5 @@
-import { AUDIENCE_FIELDS, ATTRIBUTE_PREFIX } from '@campaign/shared';
-import type {
-  AudienceDefinition,
-  AudienceOperator,
-  AudienceRule,
-  CompiledAudience,
-} from '@campaign/shared';
+import { AUDIENCE_FIELDS, ATTRIBUTE_PREFIX, AudienceOperator } from '@campaign/shared';
+import type { AudienceDefinition, AudienceRule, CompiledAudience } from '@campaign/shared';
 import type { Clock } from '../clock.ts';
 
 /**
@@ -38,6 +33,12 @@ import type { Clock } from '../clock.ts';
  */
 
 const MS_PER_DAY = 86_400_000;
+
+/**
+ * The operator allowlist, taken from the shared enum rather than restated, so a new
+ * operator cannot be added to the DSL and quietly reach this file without a branch.
+ */
+const OPERATORS = new Set<string>(AudienceOperator.options);
 
 /** JSONB keys real customer data actually uses. Deliberately narrower than JSON allows. */
 const ATTRIBUTE_KEY_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$/;
@@ -76,9 +77,15 @@ class ParamBag {
   }
 }
 
-/** Bounded so a hostile 4KB field path cannot turn an error log into the payload. */
-function excerpt(value: string): string {
-  return value.length > 60 ? `${value.slice(0, 60)}...` : value;
+/**
+ * Bounded so a hostile 4KB field path cannot turn an error message into the payload.
+ * Takes `unknown` because the DSL arrives over HTTP: a client that sends a number
+ * where a field path belongs must produce a readable rejection, not a TypeError.
+ */
+function excerpt(value: unknown): string {
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  if (typeof text !== 'string') return '(unrepresentable)';
+  return text.length > 60 ? `${text.slice(0, 60)}...` : text;
 }
 
 function fieldNames(): string {
@@ -148,7 +155,10 @@ function requireNumber(leaf: Leaf, at: string): number {
 function requireText(leaf: Leaf, at: string): string {
   const value = requireValue(leaf, at);
   if (Array.isArray(value)) {
-    throw new AudienceCompileError(at, `'${leaf.op}' on '${leaf.field}' takes a single value, not a list.`);
+    throw new AudienceCompileError(
+      at,
+      `'${leaf.op}' on '${leaf.field}' takes a single value, not a list.`,
+    );
   }
   return typeof value === 'string' ? value : String(value);
 }
@@ -170,12 +180,18 @@ function requireTimestamp(leaf: Leaf, at: string): string {
 function requireList(leaf: Leaf, at: string): (string | number)[] {
   const value = requireValue(leaf, at);
   if (!Array.isArray(value)) {
-    throw new AudienceCompileError(at, `'${leaf.op}' on '${leaf.field}' requires an array of values.`);
+    throw new AudienceCompileError(
+      at,
+      `'${leaf.op}' on '${leaf.field}' requires an array of values.`,
+    );
   }
   if (value.length === 0) {
     // An empty list would compile to a predicate matching nobody, which reads as a
     // broken segment rather than as the empty list it is. Say so at compile time.
-    throw new AudienceCompileError(at, `'${leaf.op}' on '${leaf.field}' requires a non-empty array.`);
+    throw new AudienceCompileError(
+      at,
+      `'${leaf.op}' on '${leaf.field}' requires a non-empty array.`,
+    );
   }
   return value;
 }
@@ -198,6 +214,18 @@ const ORDERING: Record<'gt' | 'gte' | 'lt' | 'lte', string> = {
 };
 
 function compileLeaf(leaf: Leaf, params: ParamBag, clock: Clock, at: string): string {
+  // Checked before anything else. Without this the switch below falls through to the
+  // ordering table, `ORDERING[op]` is undefined, and an unrecognised operator
+  // compiles to `c.email undefined $1` — a syntax error at query time rather than a
+  // readable rejection at compile time, and one that only shows up for the operator
+  // who typed it.
+  if (!OPERATORS.has(leaf.op)) {
+    throw new AudienceCompileError(
+      at,
+      `unknown operator '${excerpt(leaf.op)}'. ` +
+        `Supported operators are ${AudienceOperator.options.join(', ')}.`,
+    );
+  }
   const field = resolveField(leaf.field, params, at);
   const op = leaf.op;
 
@@ -270,7 +298,10 @@ function compileLeaf(leaf: Leaf, params: ParamBag, clock: Clock, at: string): st
     if (field.kind === 'number') {
       const nums = list.map((v) => {
         if (typeof v !== 'number') {
-          throw new AudienceCompileError(at, `'${op}' on the number field '${leaf.field}' takes numbers.`);
+          throw new AudienceCompileError(
+            at,
+            `'${op}' on the number field '${leaf.field}' takes numbers.`,
+          );
         }
         return v;
       });
@@ -388,8 +419,10 @@ export function compileAudience(definition: AudienceDefinition, clock: Clock): C
   const groups = definition as DefinitionGroups;
   const parts: string[] = [];
 
-  if (groups.all !== undefined) parts.push(combine(groups.all, 'AND', 'TRUE', params, clock, 'all'));
-  if (groups.any !== undefined) parts.push(combine(groups.any, 'OR', 'FALSE', params, clock, 'any'));
+  if (groups.all !== undefined)
+    parts.push(combine(groups.all, 'AND', 'TRUE', params, clock, 'all'));
+  if (groups.any !== undefined)
+    parts.push(combine(groups.any, 'OR', 'FALSE', params, clock, 'any'));
   if (groups.none !== undefined) {
     parts.push(`NOT ${combine(groups.none, 'OR', 'FALSE', params, clock, 'none')}`);
   }

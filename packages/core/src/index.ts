@@ -5,3 +5,4 @@ export * from './queue/message-queue.ts';
 export * from './consent/consent.ts';
 export * from './decisions/decision-log.ts';
 export * from './delivery/orchestrator.ts';
+export * from './audience/index.ts';
