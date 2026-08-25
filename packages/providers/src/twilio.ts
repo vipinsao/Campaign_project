@@ -89,10 +89,19 @@ export function twilioConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Twili
  * guarding a route that does not exist.
  */
 export function twilioSignature(url: string, params: Iterable<readonly [string, string]>, authToken: string): string {
-  const sorted = [...params].sort((a, b) => (a[0] === b[0] ? a[1].localeCompare(b[1]) : a[0].localeCompare(b[0])));
+  // Code-point order, not `localeCompare`. Locale collation is case-insensitive at
+  // the primary level, so it sorts `Caller` before `CallSid` where a byte-wise sort
+  // does the opposite -- and the two orderings produce different signed strings.
+  // The failure that causes is total (every callback rejected) and entirely silent
+  // until it reaches a real Twilio account.
+  const sorted = [...params].sort((a, b) => compare(a[0], b[0]) || compare(a[1], b[1]));
   let payload = url;
   for (const [key, value] of sorted) payload += key + value;
   return createHmac('sha1', authToken).update(Buffer.from(payload, 'utf8')).digest('base64');
+}
+
+function compare(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 const TwilioStatusCallbackSchema = z.object({

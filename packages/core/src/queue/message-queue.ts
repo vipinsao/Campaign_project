@@ -85,7 +85,7 @@ export async function enqueue(
   db: Db | PoolClient,
   input: EnqueueInput,
 ): Promise<{ id: string; dedupKey: string } | undefined> {
-  const scheduledAt = input.scheduledAt === null ? ANCHOR_PARKED : input.scheduledAt;
+  const scheduledAt = input.scheduledAt ?? ANCHOR_PARKED;
   return queryOne<{ id: string; dedup_key: string }>(
     db,
     `INSERT INTO message_queue

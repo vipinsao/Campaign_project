@@ -16,7 +16,7 @@ import type { Pool, PoolClient } from 'pg';
  * adapter reading the wall clock would stamp webhook events and rate-limit
  * refills with real time in the middle of simulated time.
  */
-export interface Clock {
+export type Clock = {
   now(): Date;
 }
 

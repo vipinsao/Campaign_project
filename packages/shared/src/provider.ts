@@ -32,7 +32,7 @@ export type ProviderEvent = {
   readonly metadata?: Record<string, unknown> | undefined;
 };
 
-export interface MessageProvider {
+export type MessageProvider = {
   readonly name: string;
   readonly channel: Channel;
   send(msg: OutboundMessage): Promise<ProviderResult>;

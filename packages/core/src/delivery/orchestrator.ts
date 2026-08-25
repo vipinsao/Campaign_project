@@ -98,9 +98,14 @@ export type SendContext = {
   readonly clock: Clock;
 };
 
+/**
+ * A gate may be synchronous. Three of the eight need no I/O at all, and forcing
+ * them to be `async` just to satisfy one signature would be ceremony that hides
+ * which gates actually touch the database.
+ */
 type Gate = {
   readonly name: string;
-  evaluate(ctx: SendContext): Promise<GateResult>;
+  evaluate(ctx: SendContext): GateResult | Promise<GateResult>;
 };
 
 const pass: GateResult = { pass: true };
@@ -123,7 +128,7 @@ function fail(
 
 const campaignStillActive: Gate = {
   name: 'campaignStillActive',
-  evaluate: async (ctx) => {
+  evaluate: (ctx) => {
     if (ctx.campaign.status === 'active') return pass;
     // Deliberately RETRYABLE. A paused campaign is "not now", not "not ever" — an
     // operator who pauses to fix a typo and resumes an hour later should not
@@ -144,7 +149,7 @@ const campaignStillActive: Gate = {
 
 const enrollmentStillActive: Gate = {
   name: 'enrollmentStillActive',
-  evaluate: async (ctx) => {
+  evaluate: (ctx) => {
     if (ctx.enrollment.status === 'active') return pass;
     return fail(
       'enrollment_stopped',
@@ -223,7 +228,7 @@ const notSuppressed: Gate = {
 
 const withinQuietHours: Gate = {
   name: 'withinQuietHours',
-  evaluate: async (ctx) => {
+  evaluate: (ctx) => {
     if (isQuietHoursExempt(ctx.campaign.category)) return pass;
 
     const decision = resolveSendTime({
@@ -289,7 +294,7 @@ const underFrequencyCap: Gate = {
 
 const hasValidRecipientAddress: Gate = {
   name: 'hasValidRecipientAddress',
-  evaluate: async (ctx) => {
+  evaluate: (ctx) => {
     const address = ctx.message.recipient_address.trim();
     const valid =
       ctx.message.channel === 'sms'

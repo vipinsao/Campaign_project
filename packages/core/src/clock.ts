@@ -11,7 +11,7 @@
  * days of campaign behaviour in about a minute, which is the thing that makes this
  * repository reviewable in the sixty seconds a reviewer will actually give it.
  */
-export interface Clock {
+export type Clock = {
   now(): Date;
 }
 

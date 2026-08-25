@@ -96,11 +96,11 @@ async function seed(): Promise<void> {
     // string. The last one is what makes an unguarded `::numeric` cast abort the
     // whole estimate query, and it must behave identically in matches.
     const attributes: Record<string, unknown> = {};
-    if (rand() < 0.85) attributes.plan = PLANS[Math.floor(rand() * PLANS.length)];
+    if (rand() < 0.85) attributes['plan'] = PLANS[Math.floor(rand() * PLANS.length)];
     const scoreRoll = rand();
-    if (scoreRoll < 0.7) attributes.score = Math.floor(rand() * 100);
-    else if (scoreRoll < 0.8) attributes.score = 'n/a';
-    if (rand() < 0.5) attributes.region = rand() < 0.5 ? 'emea' : 'amer';
+    if (scoreRoll < 0.7) attributes['score'] = Math.floor(rand() * 100);
+    else if (scoreRoll < 0.8) attributes['score'] = 'n/a';
+    if (rand() < 0.5) attributes['region'] = rand() < 0.5 ? 'emea' : 'amer';
 
     const row: Record<string, unknown> = {
       tenant_id: tenantId,

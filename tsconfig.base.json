@@ -23,6 +23,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "declaration": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "noPropertyAccessFromIndexSignature": true
   }
 }

@@ -64,6 +64,15 @@ export function smtpConfigFromEnv(env: NodeJS.ProcessEnv = process.env): SmtpCon
   };
 }
 
+/**
+ * The one field of nodemailer's send result this adapter uses.
+ *
+ * Naming it, rather than accepting the library's default `any`, keeps the message
+ * id from flowing untyped into `message_queue.provider_message_id` -- the column
+ * every later delivery receipt is joined on.
+ */
+type SentInfo = { readonly messageId: string };
+
 /** The shape nodemailer errors actually arrive in, none of which is guaranteed. */
 type SmtpErrorLike = {
   readonly responseCode?: unknown;
@@ -78,7 +87,7 @@ export class SmtpProvider implements MessageProvider {
   readonly channel: Channel = 'email';
 
   readonly #config: SmtpConfig;
-  #transporter: Transporter | undefined;
+  #transporter: Transporter<SentInfo> | undefined;
 
   constructor(config: SmtpConfig) {
     this.#config = config;
@@ -92,15 +101,22 @@ export class SmtpProvider implements MessageProvider {
    * not going to send for is both wasteful and a source of confusing connection
    * errors at startup rather than at send time, where they belong.
    */
-  #transport(): Transporter {
-    this.#transporter ??= nodemailer.createTransport({
-      host: this.#config.host,
-      port: this.#config.port,
-      secure: this.#config.secure,
-      ...(this.#config.user !== undefined && this.#config.pass !== undefined
-        ? { auth: { user: this.#config.user, pass: this.#config.pass } }
-        : {}),
-    });
+  #transport(): Transporter<SentInfo> {
+    if (this.#transporter === undefined) {
+      // Annotated rather than inferred. `createTransport` is typed to return
+      // nodemailer's full result object, and letting that flow onwards puts an
+      // `any`-typed message id into provider_message_id, which is the column every
+      // later delivery receipt is joined on.
+      const transporter: Transporter<SentInfo> = nodemailer.createTransport({
+        host: this.#config.host,
+        port: this.#config.port,
+        secure: this.#config.secure,
+        ...(this.#config.user !== undefined && this.#config.pass !== undefined
+          ? { auth: { user: this.#config.user, pass: this.#config.pass } }
+          : {}),
+      });
+      this.#transporter = transporter;
+    }
     return this.#transporter;
   }
 
@@ -119,7 +135,7 @@ export class SmtpProvider implements MessageProvider {
       });
       return { ok: true, providerMessageId: info.messageId };
     } catch (error) {
-      const smtpError: SmtpErrorLike = (error ?? {}) as SmtpErrorLike;
+      const smtpError = (error ?? {}) as SmtpErrorLike;
       // The SMTP reply code is preferred over nodemailer's string code because it
       // is the receiving server's own verdict, and I8 wants the provider's truth
       // rather than the client library's summary of it. The string code is the
@@ -154,11 +170,11 @@ export class SmtpProvider implements MessageProvider {
    * honest answer: anything claiming to be an SMTP webhook did not come from SMTP,
    * and a `return true` here would be a signature check that accepts everything.
    */
-  verifyWebhook(_headers: Record<string, string>, _rawBody: Buffer, _secret: string): boolean {
+  verifyWebhook(): boolean {
     return false;
   }
 
-  parseWebhook(_payload: unknown): ProviderEvent[] {
+  parseWebhook(): ProviderEvent[] {
     return [];
   }
 }

@@ -49,6 +49,7 @@ export async function teardown() {
 }
 
 declare module 'vitest' {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- module augmentation works by declaration merging, and only an interface merges.
   interface ProvidedContext {
     databaseUrl: string;
   }

@@ -1,5 +1,6 @@
 // @ts-check
 import js from '@eslint/js';
+import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import boundaries from 'eslint-plugin-boundaries';
 
@@ -16,7 +17,7 @@ import boundaries from 'eslint-plugin-boundaries';
  *     `Clock`. That is what makes "three days after the order is delivered"
  *     assertable in milliseconds instead of three days.
  */
-export default tseslint.config(
+export default defineConfig(
   { ignores: ['**/dist/**', '**/node_modules/**', 'coverage/**', 'packages/web/**'] },
 
   js.configs.recommended,
@@ -25,7 +26,15 @@ export default tseslint.config(
 
   {
     languageOptions: {
-      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+      parserOptions: {
+        // allowDefaultProject covers the build-config files, which deliberately
+        // sit outside the application tsconfig: widening that tsconfig to reach
+        // them would weaken the type-check gate this config exists to enforce.
+        projectService: {
+          allowDefaultProject: ['eslint.config.js', 'vitest.config.ts', '*.config.ts'],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     plugins: { boundaries },
     settings: {
@@ -42,25 +51,84 @@ export default tseslint.config(
       ],
     },
     rules: {
-      'boundaries/element-types': [
+      'boundaries/dependencies': [
         'error',
         {
           default: 'disallow',
-          rules: [
+          policies: [
             // The domain depends on nothing but shared types. This is the whole point.
-            { from: 'shared', allow: ['shared'] },
-            { from: 'core', allow: ['shared', 'core'] },
-            { from: 'providers', allow: ['shared', 'providers'] },
-            { from: 'triage', allow: ['shared', 'triage', 'core'] },
+            { from: [{ element: { type: 'shared' } }], allow: [{ to: { element: { type: 'shared' } } }] },
+            {
+              from: [{ element: { type: 'core' } }],
+              allow: [{ to: { element: { type: 'shared' } } }, { to: { element: { type: 'core' } } }],
+            },
+            {
+              from: [{ element: { type: 'providers' } }],
+              allow: [{ to: { element: { type: 'shared' } } }, { to: { element: { type: 'providers' } } }],
+            },
+            {
+              from: [{ element: { type: 'triage' } }],
+              allow: [
+                { to: { element: { type: 'shared' } } },
+                { to: { element: { type: 'triage' } } },
+                { to: { element: { type: 'core' } } },
+              ],
+            },
             // Edges compose the domain with the outside world.
-            { from: 'api', allow: ['shared', 'core', 'providers', 'triage', 'api'] },
-            { from: 'worker', allow: ['shared', 'core', 'providers', 'triage', 'worker'] },
-            { from: 'scripts', allow: ['shared', 'core', 'providers', 'triage', 'api', 'worker'] },
-            { from: 'tests', allow: ['shared', 'core', 'providers', 'triage', 'api', 'worker'] },
+            {
+              from: [{ element: { type: 'api' } }],
+              allow: [
+                { to: { element: { type: 'shared' } } },
+                { to: { element: { type: 'core' } } },
+                { to: { element: { type: 'providers' } } },
+                { to: { element: { type: 'triage' } } },
+                { to: { element: { type: 'api' } } },
+              ],
+            },
+            {
+              from: [{ element: { type: 'worker' } }],
+              allow: [
+                { to: { element: { type: 'shared' } } },
+                { to: { element: { type: 'core' } } },
+                { to: { element: { type: 'providers' } } },
+                { to: { element: { type: 'triage' } } },
+                { to: { element: { type: 'worker' } } },
+              ],
+            },
+            {
+              from: [{ element: { type: 'scripts' } }],
+              allow: [
+                { to: { element: { type: 'shared' } } },
+                { to: { element: { type: 'core' } } },
+                { to: { element: { type: 'providers' } } },
+                { to: { element: { type: 'triage' } } },
+                { to: { element: { type: 'api' } } },
+                { to: { element: { type: 'worker' } } },
+              ],
+            },
+            // The test harness deliberately runs the PRODUCT's migration runner
+            // rather than a copy of it, so a migration that breaks in CI breaks
+            // the same way it would break on deploy.
+            {
+              from: [{ element: { type: 'tests' } }],
+              allow: [
+                { to: { element: { type: 'shared' } } },
+                { to: { element: { type: 'core' } } },
+                { to: { element: { type: 'providers' } } },
+                { to: { element: { type: 'triage' } } },
+                { to: { element: { type: 'api' } } },
+                { to: { element: { type: 'worker' } } },
+                { to: { element: { type: 'scripts' } } },
+              ],
+            },
           ],
         },
       ],
       '@typescript-eslint/consistent-type-imports': 'error',
+      // `type` over `interface` throughout, deliberately: interfaces merge across
+      // declarations, and a domain vocabulary that can be silently extended from
+      // another file is harder to reason about than one that cannot.
+      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
       eqeqeq: ['error', 'always'],
@@ -124,5 +192,15 @@ export default tseslint.config(
     },
   },
 
-  { files: ['tests/**/*.ts', 'scripts/**/*.ts'], rules: { 'no-console': 'off' } },
+  {
+    files: ['tests/**/*.ts', 'scripts/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+      // In a test, `rows[0]!.id` is the correct assertion: if the row is missing,
+      // the test SHOULD throw loudly at that line rather than be written to
+      // tolerate it. In packages/ the rule stays on, and there are no violations
+      // there - which is the part that matters.
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
 );

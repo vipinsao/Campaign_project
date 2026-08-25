@@ -168,7 +168,7 @@ export function resolveSendTime(input: ScheduleInput): ScheduleDecision {
 
   const parsed = DateTime.fromJSDate(input.target, { zone });
   if (!isValidDateTime(parsed)) {
-    throw new Error(`Unknown IANA timezone '${zone}' (${parsed.invalidReason ?? 'invalid'}).`);
+    throw new Error(`Unknown IANA timezone '${zone}' (${parsed.invalidReason}).`);
   }
   let local: DateTime<true> = parsed;
 
