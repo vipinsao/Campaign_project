@@ -79,11 +79,23 @@ export const AudienceRule: z.ZodType<AudienceRule> = z.lazy(() =>
   ]),
 );
 
-/** An empty audience matches everyone; that is stated, not implied. */
-export const AudienceDefinition = z.union([
-  z.object({}).strict(),
-  z.object({ all: z.array(AudienceRule).optional(), any: z.array(AudienceRule).optional(), none: z.array(AudienceRule).optional() }),
-]);
+/**
+ * An empty audience matches everyone; that is stated, not implied.
+ *
+ * `.strict()` on BOTH members is load-bearing and was a real bug here before a
+ * test caught it. Without it, a typo in a segment key — `{ alll: [...] }` — is a
+ * valid definition with no recognised combinators, which compiles to `TRUE` and
+ * sends the campaign to every contact in the tenant. A segmentation mistake should
+ * be a validation error, never a full-tenant blast, and the difference is one
+ * method call.
+ */
+export const AudienceDefinition = z
+  .object({
+    all: z.array(AudienceRule).optional(),
+    any: z.array(AudienceRule).optional(),
+    none: z.array(AudienceRule).optional(),
+  })
+  .strict();
 export type AudienceDefinition = z.infer<typeof AudienceDefinition>;
 
 export type CompiledAudience = {
