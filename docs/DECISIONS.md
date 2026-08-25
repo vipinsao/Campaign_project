@@ -318,3 +318,162 @@ imagination; a derived one measures the system.
 
 This ordering is slower and is the part almost nobody does, which is precisely why
 it is worth doing here.
+
+---
+
+## D19 — An adversarial QA pass, and what it found
+
+**2026-08-25.** Four reviewers were pointed at the queue, the consent and
+scheduling logic, the HTTP layer and the AI invariants, each required to prove a
+finding with a **failing test** rather than an opinion. Every finding below was
+verified independently before anything was changed.
+
+Recording this because the interesting part is not the count. It is that **four of
+the six confirmed bugs were in the guards themselves** — the code whose entire
+purpose is to be correct. A guard that is wrong is worse than no guard, because
+the system reports that it is protected.
+
+The single most valuable result was the one that found nothing: **V9 held.** The
+reviewer drove hostile payloads carrying `resubscribe: true`,
+`suppression: {action: 'remove'}` and SQL in the extracted fields through the
+first-call, repair-retry, cache-hit and escalation branches at confidence 1.0.
+Nothing reached anything that removes, weakens or shortens a suppression.
+
+---
+
+## D20 — Opt-out detection matched the whole message, and that was wrong twice
+
+**The false negative.** `detectOptOut` required the entire normalised body to
+equal a keyword. A person replying "STOP" from a phone sends
+`"STOP\n\nSent from my iPhone"`. A person replying from a desktop client sends
+"STOP" followed by the whole quoted thread. **Both of the two most common physical
+shapes of an emailed opt-out fell through to the model** — where a vendor outage,
+the budget ceiling or a schema violation drops the opt-out entirely. Under a
+throwing model client the pipeline wrote zero suppressions.
+
+`"STOP"` was an opt-out. `"STOP STOP STOP"` — what an annoyed person sends on the
+second attempt — was not.
+
+**The false positive.** `CANCEL`, `END`, `QUIT` and `REVOKE` are **SMS carrier**
+keywords, and were being applied to email. A one-word `"Cancel"` reply to "reply
+CANCEL to cancel your order" wrote a permanent, never-expiring suppression against
+that address, which then blocked the person's own refund and shipping notices —
+the suppression gate has no transactional exemption. On SMS the recovery is worse:
+an `sms_stop` suppression is not something the preference centre can undo.
+
+**Decision.** Keywords are channel-scoped, and matching runs on the **first line of
+the human-typed portion** after signatures, quoted replies and forwarded headers
+are stripped. A line whose every token is a keyword is an opt-out.
+
+That line-level rule is what separates the two cases that look alike:
+
+- `"UNSUBSCRIBE\nThanks"` — the instruction, then a courtesy. An opt-out.
+- `"unsubscribe me"` — a sentence. Ambiguous prose, so it goes to the model.
+
+Trailing pleasantries are extremely common on a genuine opt-out and must not
+defeat it; a keyword buried mid-sentence must not trigger it.
+
+---
+
+## D21 — `ON CONFLICT DO NOTHING` silently discarded hard bounces
+
+Suppressions are keyed on `(tenant, channel, address)`, and a soft bounce writes a
+row with an expiry. Once that row lapsed it was invisible to the send gate but
+**still occupied the unique key** — so the next hard bounce, unsubscribe or spam
+complaint for that address hit the conflict clause and was thrown away. The
+address then kept receiving mail, permanently, with no error anywhere.
+
+The comment defending `DO NOTHING` — "the first reason is the one with the
+evidence" — was only true while the first row was still active, and nothing said
+so.
+
+Two cases now take the write, stated as SQL predicates rather than left to a
+comment: the existing row has lapsed, or the new suppression is permanent and the
+existing one was temporary. An active permanent suppression still wins.
+
+---
+
+## D22 — One misconfigured campaign aborted the entire queue batch
+
+A campaign whose send window does not overlap the tenant quiet-hours floor is a
+**legal** configuration — the CHECK constraint only compares the window to itself,
+and nothing compares it to the tenant.
+
+`effectiveWindow` threw, correctly, rather than returning an unsatisfiable range.
+But the throw escaped `runGates`, `deliverClaimed` and `processQueue`, which
+abandoned **every other message claimed in the same batch**, left them in
+`processing` with an incremented attempt count, and repeated every minute until
+`reclaim-stale` burned them to permanent failure.
+
+Messages on entirely unrelated campaigns died because one campaign was
+misconfigured.
+
+Fixed at both ends, deliberately:
+
+1. The quiet-hours gate catches the configuration error and returns a
+   non-retryable `campaign_window_unsatisfiable`, so the affected message fails
+   with an accurate reason an operator can act on.
+2. `processQueue` wraps each `deliverClaimed`, so **no single message can ever
+   abort a batch** — whatever the cause. The first fix addresses this bug; the
+   second addresses the class.
+
+---
+
+## D23 — Withdrawing marketing consent was cancelling order receipts
+
+`optOut` cancelled queued messages filtered on `(tenant, contact, channel)` and
+nothing else. Two consequences, both live:
+
+- A **category-scoped** opt-out ("stop sending me promotions") cancelled every
+  queued message on the channel, including categories the contact had said nothing
+  about.
+- **Any** opt-out cancelled queued `transactional` messages. Clicking "unsubscribe"
+  in a marketing email killed the order receipt already queued for you — the exact
+  message class the send-time gate deliberately exempts from consent.
+
+Transactional messages are now never cancelled by an opt-out. They do not ride on
+marketing consent, so withdrawing marketing consent cannot withdraw them.
+
+---
+
+## D24 — Removing a suppression must not rewrite consent
+
+`DELETE /suppressions` wrote a category-less `opted_in` on the reasoning that
+lifting a block is a consent event. But consent resolves by **most recent intent
+across wildcard and category rows** (D6), so that wildcard row silently reversed
+**every per-category opt-out the contact had ever made**. An operator tidying up a
+bounce list re-subscribed people to categories they had deliberately switched off.
+
+The two tables answer different questions, and this route was letting an answer to
+one overwrite the other:
+
+- `suppressions` — is this **address** deliverable?
+- `contact_consents` — what did this **person** say?
+
+Removing a hard-bounce suppression asserts the address works again. It says nothing
+about what the person wants. The route no longer writes consent at all, and it now
+refuses with `409` to remove a suppression whose reason records the person's own
+decision (`unsubscribe`, `sms_stop`, `complaint`) unless the caller passes
+`?acknowledgeConsent=true`.
+
+---
+
+## D25 — Three claims in the strongest comment in the repository were false
+
+The reviewer checked `protection.ts`'s own assertions and found three that do not
+survive a grep:
+
+- *"Note what does NOT cross this boundary: `db`."* It does. `TriageDeps.db` is a
+  full unrestricted pool in the adjacent field of the same object.
+- *"There is no `removeSuppression` anywhere in the codebase to expose."* No
+  function by that name — but `DELETE FROM suppressions` appears in three files.
+- The V9 test asserted `imports).not.toContain('@campaign/core/consent/consent.ts')`,
+  which **could never fail**, because nothing imports that specifier; packages
+  import the barrel.
+
+All three corrected, and the comment now separates **what holds** (one guarded call
+site, plus the tests that pin it) from **what does not** (this is not a capability
+system, and the compiler does not enforce it).
+
+This is the file making the strongest claim in the project. An overstated guarantee
+there costs more than a missing one, because it invites a reader to stop checking.
