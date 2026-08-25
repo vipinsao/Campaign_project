@@ -13,3 +13,4 @@ export * from './metrics/denominators.ts';
 export * from './triggers/enrolment.ts';
 export * from './triggers/trigger-evaluator.ts';
 export * from './triggers/time-triggers.ts';
+export * from './campaigns/flow.ts';
