@@ -3,31 +3,30 @@
   "compilerOptions": {
     "noEmit": true,
     "types": ["node"],
-    "baseUrl": ".",
     "paths": {
-      "@campaign/shared": ["packages/shared/src/index.ts"],
-      "@campaign/shared/*": ["packages/shared/src/*"],
-      "@campaign/core": ["packages/core/src/index.ts"],
-      "@campaign/core/*": ["packages/core/src/*"],
-      "@campaign/providers": ["packages/providers/src/index.ts"],
-      "@campaign/providers/*": ["packages/providers/src/*"],
-      "@campaign/triage": ["packages/triage/src/index.ts"],
-      "@campaign/triage/*": ["packages/triage/src/*"],
-      "@campaign/api": ["packages/api/src/index.ts"],
-      "@campaign/api/*": ["packages/api/src/*"],
-      "@campaign/worker": ["packages/worker/src/index.ts"],
-      "@campaign/worker/*": ["packages/worker/src/*"]
+      "@campaign/shared": ["./packages/shared/src/index.ts"],
+      "@campaign/shared/*": ["./packages/shared/src/*"],
+      "@campaign/core": ["./packages/core/src/index.ts"],
+      "@campaign/core/*": ["./packages/core/src/*"],
+      "@campaign/providers": ["./packages/providers/src/index.ts"],
+      "@campaign/providers/*": ["./packages/providers/src/*"],
+      "@campaign/triage": ["./packages/triage/src/index.ts"],
+      "@campaign/triage/*": ["./packages/triage/src/*"],
+      "@campaign/api": ["./packages/api/src/index.ts"],
+      "@campaign/api/*": ["./packages/api/src/*"],
+      "@campaign/worker": ["./packages/worker/src/index.ts"],
+      "@campaign/worker/*": ["./packages/worker/src/*"]
     }
   },
   "include": [
-    "packages/shared/src/**/*.ts",
-    "packages/core/src/**/*.ts",
-    "packages/providers/src/**/*.ts",
-    "packages/triage/src/**/*.ts",
-    "packages/api/src/**/*.ts",
-    "packages/worker/src/**/*.ts",
+    "./packages/shared/src/**/*.ts",
+    "./packages/core/src/**/*.ts",
+    "./packages/providers/src/**/*.ts",
+    "./packages/triage/src/**/*.ts",
+    "./packages/api/src/**/*.ts",
+    "./packages/worker/src/**/*.ts",
     "scripts/**/*.ts",
     "tests/**/*.ts"
   ],
-  "exclude": ["node_modules", "**/dist", "packages/web"]
+  "exclude": ["node_modules", "**/dist", "./packages/web"]
 }
