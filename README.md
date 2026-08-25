@@ -140,8 +140,8 @@ npm install
 npm test          # boots a real Postgres, migrates it, runs everything
 ```
 
-A `docker-compose.yml` ships too, for reviewers who would rather use it. Neither is
-required.
+There is deliberately no `docker-compose.yml` yet — it is listed under "not built
+yet" below rather than mentioned as though it exists.
 
 ```bash
 npm run typecheck   # tsc, and a test proves this gate is not a no-op
@@ -167,10 +167,20 @@ Knowing what was left out matters as much as the list above.
 
 ## Not built *yet*
 
-Distinct from the above, and tracked honestly in [TRACKER.md](TRACKER.md): the
-trigger engine, journey canvas, analytics rollups, the web UI, and the seeded demo.
-Three of the fourteen invariants above are still in progress. I would rather this
-list be accurate than short.
+Distinct from the above, and tracked in [TRACKER.md](TRACKER.md):
+
+- **The web UI is incomplete and does not currently build.** Seven pages exist
+  (login, campaign list, overview, audience, messages); the journey canvas,
+  schedule, analytics, queue, `/inspect` and contact timeline do not.
+- **No `demo:simulate`.** `seed:demo` is written but has not been run end to end,
+  so there is no click-through demo yet.
+- **No CI workflow**, so the badges this README would like to show do not exist.
+- **No deployment** — no Dockerfile, no `render.yaml`, no live URL.
+- **I12's byte-identical rollup-rebuild test** is not written; the denominators and
+  the rebuild itself are.
+
+The backend is complete and tested end to end. The parts above are not, and saying
+so is cheaper than having a reviewer discover it.
 
 ---
 
