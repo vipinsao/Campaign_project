@@ -1,0 +1,179 @@
+@import 'tailwindcss';
+
+/*
+ * One accent, a dark ground, and a spacing scale that is a multiple of 4 all the
+ * way down. Tailwind 4's default scale is already 4px-based, so the only things
+ * declared here are the colours and the two type ramps the product actually uses.
+ *
+ * The semantic colours are named for what they MEAN, not for what they are.
+ * `--color-held` rather than `--color-amber` is the difference between a redesign
+ * that changes a hue and a redesign that quietly makes "deferred" look like
+ * "failed" — which, on a queue screen, is the difference between an operator
+ * waiting and an operator paging somebody.
+ */
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --color-ground: #0a0c10;
+  --color-surface: #101319;
+  --color-raised: #161a22;
+  --color-hover: #1b202a;
+  --color-line: #222833;
+  --color-line-strong: #2e3646;
+
+  --color-ink: #e7ebf3;
+  --color-ink-dim: #9aa4b6;
+  --color-ink-faint: #6b7488;
+
+  --color-accent: #6e8bff;
+  --color-accent-dim: #3d4f9e;
+  --color-accent-wash: #151a2e;
+
+  --color-ok: #3fd08a;
+  --color-ok-wash: #0f2018;
+  --color-held: #e8b44a;
+  --color-held-wash: #221a0c;
+  --color-bad: #f8716a;
+  --color-bad-wash: #24110f;
+  --color-info: #63b3ed;
+  --color-info-wash: #0e1c28;
+  --color-quiet: #8b93a1;
+  --color-quiet-wash: #171b22;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+::selection {
+  background: var(--color-accent-dim);
+  color: #fff;
+}
+
+/* Scrollbars that do not shout. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* Keyboard focus is visible everywhere. A dense operator tool that cannot be
+   driven from the keyboard is a dense operator tool nobody drives. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-md border border-line bg-surface;
+  }
+  .panel-head {
+    @apply flex items-center justify-between gap-3 border-b border-line px-4 py-2.5;
+  }
+  .panel-title {
+    @apply text-[12px] font-semibold tracking-wide text-ink uppercase;
+  }
+
+  .btn {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded border border-line-strong bg-raised px-2.5 py-1.5 text-[12px] font-medium text-ink transition-colors select-none;
+  }
+  .btn:hover:not(:disabled) {
+    @apply border-accent-dim bg-hover;
+  }
+  .btn:disabled {
+    @apply cursor-not-allowed opacity-45;
+  }
+  .btn-primary {
+    @apply border-accent-dim bg-accent-dim text-white;
+  }
+  .btn-primary:hover:not(:disabled) {
+    @apply border-accent bg-accent text-ground;
+  }
+  .btn-danger {
+    @apply border-bad/35 text-bad;
+  }
+  .btn-danger:hover:not(:disabled) {
+    @apply border-bad bg-bad-wash;
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-ink-dim;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    @apply border-line bg-raised text-ink;
+  }
+
+  .input {
+    @apply w-full rounded border border-line bg-ground px-2.5 py-1.5 text-[13px] text-ink transition-colors placeholder:text-ink-faint;
+  }
+  .input:focus {
+    @apply border-accent-dim outline-none;
+  }
+  .label {
+    @apply mb-1 block text-[11px] font-medium tracking-wide text-ink-dim uppercase;
+  }
+
+  .cell {
+    @apply px-3 py-2 align-middle;
+  }
+  .th {
+    @apply px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-ink-faint uppercase select-none;
+  }
+  .num {
+    @apply font-mono text-[12px] tabular-nums;
+  }
+  .kbd {
+    @apply rounded border border-line-strong bg-raised px-1 py-px font-mono text-[10px] text-ink-dim;
+  }
+}
+
+/* React Flow, retinted. Its stylesheet ships light-first. */
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__edge-path {
+  stroke: var(--color-line-strong);
+  stroke-width: 1.5;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-accent);
+}
+.react-flow__handle {
+  width: 7px;
+  height: 7px;
+  background: var(--color-line-strong);
+  border: 1px solid var(--color-ground);
+}
+.react-flow__controls-button {
+  background: var(--color-raised);
+  border-bottom: 1px solid var(--color-line);
+  fill: var(--color-ink-dim);
+}
+.react-flow__controls-button:hover {
+  background: var(--color-hover);
+}

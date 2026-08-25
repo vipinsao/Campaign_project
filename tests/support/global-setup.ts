@@ -16,8 +16,19 @@ import { rm } from 'node:fs/promises';
 import type { TestProject } from 'vitest/node';
 import { migrate } from '../../scripts/migrate.ts';
 
-const DATA_DIR = fileURLToPath(new URL('../../.pgdata-test', import.meta.url));
-const PORT = Number(process.env['TEST_PG_PORT'] ?? 55432);
+/**
+ * Port AND data directory are both derived from the process id.
+ *
+ * Deriving only the port is not enough, and that was a real failure: two
+ * concurrent `vitest run` invocations bound different ports but shared
+ * `.pgdata-test`, and the second run's `rm -rf` deleted the first run's live
+ * database out from under it. The symptom was a scatter of unrelated failures in
+ * whichever run was slower, which is close to the worst possible way to discover
+ * a test-isolation bug.
+ */
+const RUN_ID = process.env['TEST_PG_RUN_ID'] ?? String(process.pid);
+const DATA_DIR = fileURLToPath(new URL(`../../.pgdata-test-${RUN_ID}`, import.meta.url));
+const PORT = Number(process.env['TEST_PG_PORT'] ?? 0) || 49152 + (process.pid % 12000);
 const URL_ = `postgresql://ce_test:ce_test@127.0.0.1:${PORT}/postgres`;
 
 let pg: EmbeddedPostgres | undefined;
