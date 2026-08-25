@@ -85,11 +85,7 @@ export function resolveProvider(
     case 'smtp':
       return new SmtpProvider(smtpConfigFromEnv(env));
     case 'postmark':
-      return new PostmarkProvider(
-        postmarkConfigFromEnv(env),
-        deps.clock,
-        deps.fetchImpl ?? fetch,
-      );
+      return new PostmarkProvider(postmarkConfigFromEnv(env), deps.clock, deps.fetchImpl ?? fetch);
     case 'twilio':
       return new TwilioProvider(twilioConfigFromEnv(env), deps.clock, deps.fetchImpl ?? fetch);
   }

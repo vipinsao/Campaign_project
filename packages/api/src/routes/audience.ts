@@ -66,12 +66,7 @@ export function audienceRoutes(deps: ApiDeps): Hono<AppEnv> {
     const audience = await definitionFor(tenantId, body);
 
     try {
-      const estimate = await resolver.estimate(
-        deps.db,
-        tenantId,
-        audience,
-        body.sampleSize ?? 25,
-      );
+      const estimate = await resolver.estimate(deps.db, tenantId, audience, body.sampleSize ?? 25);
       return c.json({
         count: estimate.count,
         sample: estimate.sample,

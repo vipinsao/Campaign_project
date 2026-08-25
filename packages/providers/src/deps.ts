@@ -18,7 +18,7 @@ import type { Pool, PoolClient } from 'pg';
  */
 export type Clock = {
   now(): Date;
-}
+};
 
 /**
  * A pool or a checked-out client. Accepting both matters because the send path

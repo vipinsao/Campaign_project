@@ -109,7 +109,10 @@ export function detectOptOut(body: string): OptOutDetection {
  * conflated them would serve the wrong answer for free, forever.
  */
 export function contentHash(body: string): string {
-  const canonical = body.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim();
+  const canonical = body
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+$/gm, '')
+    .trim();
   return createHash('sha256').update(canonical, 'utf8').digest('hex');
 }
 
@@ -195,7 +198,11 @@ export async function extractOrderNumber(
  */
 export async function findDuplicateReply(
   db: Db,
-  opts: { readonly tenantId: string; readonly contentHash: string; readonly excludeReplyId?: string },
+  opts: {
+    readonly tenantId: string;
+    readonly contentHash: string;
+    readonly excludeReplyId?: string;
+  },
 ): Promise<{ id: string } | undefined> {
   const rows = await query<{ id: string }>(
     db,

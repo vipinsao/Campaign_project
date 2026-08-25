@@ -44,7 +44,15 @@ export function queueRoutes(deps: ApiDeps): Hono<AppEnv> {
           AND ($5::text IS NULL OR q.channel = $5::text)
         ORDER BY q.scheduled_at DESC, q.id
         LIMIT $6 OFFSET $7`,
-      [tenantId, status ?? null, campaignId ?? null, contactId ?? null, channel ?? null, limit, offset],
+      [
+        tenantId,
+        status ?? null,
+        campaignId ?? null,
+        contactId ?? null,
+        channel ?? null,
+        limit,
+        offset,
+      ],
     );
 
     const counts = await query<{ status: string; n: string }>(
@@ -76,7 +84,12 @@ export function queueRoutes(deps: ApiDeps): Hono<AppEnv> {
     const operator = operatorOf(c);
     const id = c.req.param('id');
 
-    const existing = await queryOne<{ id: string; status: string; campaign_id: string; contact_id: string }>(
+    const existing = await queryOne<{
+      id: string;
+      status: string;
+      campaign_id: string;
+      contact_id: string;
+    }>(
       deps.db,
       `SELECT id, status, campaign_id, contact_id FROM message_queue
         WHERE tenant_id = $1 AND id = $2`,

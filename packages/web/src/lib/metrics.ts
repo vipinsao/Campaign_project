@@ -20,7 +20,11 @@ export {
   metricsForChannel,
   isMetricValidForChannel,
 } from '@campaign/core/metrics/denominators';
-export type { MetricDefinition, MetricInputs, MetricKey } from '@campaign/core/metrics/denominators';
+export type {
+  MetricDefinition,
+  MetricInputs,
+  MetricKey,
+} from '@campaign/core/metrics/denominators';
 
 import type { MetricInputs } from '@campaign/core/metrics/denominators';
 

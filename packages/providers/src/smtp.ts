@@ -1,6 +1,12 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
-import type { Channel, MessageProvider, OutboundMessage, ProviderEvent, ProviderResult } from '@campaign/shared';
+import type {
+  Channel,
+  MessageProvider,
+  OutboundMessage,
+  ProviderEvent,
+  ProviderResult,
+} from '@campaign/shared';
 
 /**
  * SMTP delivery through nodemailer.
@@ -33,10 +39,9 @@ export type SmtpConfig = {
 export function smtpConfigFromEnv(env: NodeJS.ProcessEnv = process.env): SmtpConfig {
   const host = env['SMTP_HOST'];
   const from = env['SMTP_FROM'];
-  const missing = [
-    host ? undefined : 'SMTP_HOST',
-    from ? undefined : 'SMTP_FROM',
-  ].filter((name): name is string => name !== undefined);
+  const missing = [host ? undefined : 'SMTP_HOST', from ? undefined : 'SMTP_FROM'].filter(
+    (name): name is string => name !== undefined,
+  );
   if (!host || !from) {
     throw new Error(
       `SMTP is not configured: ${missing.join(', ')} missing. ` +

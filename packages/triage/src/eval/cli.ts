@@ -37,9 +37,12 @@ export async function main(argv: readonly string[]): Promise<number> {
   const clock = new SystemClock();
   await syncPrompts(db);
 
-  const prompt = version === undefined ? await getLatestPrompt(db, name) : await getPrompt(db, name, version);
+  const prompt =
+    version === undefined ? await getLatestPrompt(db, name) : await getPrompt(db, name, version);
   if (!prompt) {
-    console.error(`No prompt '${name}'${version === undefined ? '' : ` v${version}`} on disk or in the prompts table.`);
+    console.error(
+      `No prompt '${name}'${version === undefined ? '' : ` v${version}`} on disk or in the prompts table.`,
+    );
     return 2;
   }
 

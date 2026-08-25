@@ -1,4 +1,10 @@
-import type { Channel, MessageProvider, OutboundMessage, ProviderEvent, ProviderResult } from '@campaign/shared';
+import type {
+  Channel,
+  MessageProvider,
+  OutboundMessage,
+  ProviderEvent,
+  ProviderResult,
+} from '@campaign/shared';
 import type { Clock, Db, Rng } from '../deps.ts';
 import { defaultRng } from '../deps.ts';
 import { parseMockWebhook, verifyMockWebhook } from './webhook.ts';
@@ -204,7 +210,11 @@ export class MockProvider implements MessageProvider {
           errorCode === 'mock_invalid_recipient'
             ? `Simulated permanent rejection of ${msg.to}.`
             : 'Simulated rate limiting; the message was not accepted.',
-        raw: { outboxId: inserted.rows[0]?.id ?? null, providerMessageId, simulatedOutcome: outcome },
+        raw: {
+          outboxId: inserted.rows[0]?.id ?? null,
+          providerMessageId,
+          simulatedOutcome: outcome,
+        },
       };
     }
 

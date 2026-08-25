@@ -61,7 +61,9 @@ export const ATTRIBUTE_PREFIX = 'attributes.';
 const RuleLeaf = z.object({
   field: z.string().min(1),
   op: AudienceOperator,
-  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number()]))]).optional(),
+  value: z
+    .union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number()]))])
+    .optional(),
 });
 
 export type AudienceRule =

@@ -165,12 +165,12 @@ function safeJson(text: string): unknown {
 }
 
 export const api = {
-  get: <T,>(path: string, query?: RequestOptions['query'], accept?: readonly number[]) =>
+  get: <T>(path: string, query?: RequestOptions['query'], accept?: readonly number[]) =>
     request<T>(path, { method: 'GET', ...(query ? { query } : {}), ...(accept ? { accept } : {}) }),
-  post: <T,>(path: string, body?: unknown, accept?: readonly number[]) =>
+  post: <T>(path: string, body?: unknown, accept?: readonly number[]) =>
     request<T>(path, { method: 'POST', body: body ?? {}, ...(accept ? { accept } : {}) }),
-  patch: <T,>(path: string, body: unknown) => request<T>(path, { method: 'PATCH', body }),
-  del: <T,>(path: string, query?: RequestOptions['query']) =>
+  patch: <T>(path: string, body: unknown) => request<T>(path, { method: 'PATCH', body }),
+  del: <T>(path: string, query?: RequestOptions['query']) =>
     request<T>(path, { method: 'DELETE', ...(query ? { query } : {}) }),
 };
 

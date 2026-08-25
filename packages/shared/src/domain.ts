@@ -123,9 +123,7 @@ export type SuppressionReason = z.infer<typeof SuppressionReason>;
  * order details to a different customer.
  */
 export type RecipientResolution<T> =
-  | { kind: 'none' }
-  | { kind: 'single'; match: T }
-  | { kind: 'ambiguous'; candidates: T[] };
+  { kind: 'none' } | { kind: 'single'; match: T } | { kind: 'ambiguous'; candidates: T[] };
 
 // ─── Send-time gate results ──────────────────────────────────────────────────
 
@@ -151,12 +149,7 @@ export type GateResult =
     };
 
 export type SendOutcome =
-  | 'SENT'
-  | 'FAILED'
-  | 'SKIPPED'
-  | 'DEFERRED'
-  | 'ALREADY_CLAIMED'
-  | 'SKIPPED_WITHOUT_CLAIM';
+  'SENT' | 'FAILED' | 'SKIPPED' | 'DEFERRED' | 'ALREADY_CLAIMED' | 'SKIPPED_WITHOUT_CLAIM';
 
 // ─── Provider contracts ─────────────────────────────────────────────────────
 

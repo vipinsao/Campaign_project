@@ -24,7 +24,8 @@
 
 type IntervalFn = typeof globalThis.setInterval;
 
-const SCHEDULER_MODULE_PATTERN = /node-cron|node_modules[/\\](cron|croner|agenda|bree|bull|toad-scheduler)[/\\]/i;
+const SCHEDULER_MODULE_PATTERN =
+  /node-cron|node_modules[/\\](cron|croner|agenda|bree|bull|toad-scheduler)[/\\]/i;
 const OWN_SOURCE_PATTERN = /packages[/\\]api[/\\]src[/\\]/;
 
 /** Registrations observed before the guard could refuse them. Read by the assertion. */

@@ -91,7 +91,9 @@ function toMinutes(hm: string): number {
 export function effectiveWindow(config: QuietHoursConfig): { start: number; end: number } {
   const floorStart = toMinutes(config.floorStart);
   const floorEnd = toMinutes(config.floorEnd);
-  const start = config.windowStart ? Math.max(floorStart, toMinutes(config.windowStart)) : floorStart;
+  const start = config.windowStart
+    ? Math.max(floorStart, toMinutes(config.windowStart))
+    : floorStart;
   const end = config.windowEnd ? Math.min(floorEnd, toMinutes(config.windowEnd)) : floorEnd;
 
   if (start >= end) {

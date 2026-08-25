@@ -1,8 +1,20 @@
 import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import type { Channel, MessageProvider, OutboundMessage, ProviderEvent, ProviderResult } from '@campaign/shared';
+import type {
+  Channel,
+  MessageProvider,
+  OutboundMessage,
+  ProviderEvent,
+  ProviderResult,
+} from '@campaign/shared';
 import type { Clock } from './deps.ts';
-import { DEFAULT_PROVIDER_TIMEOUT_MS, basicAuth, readHeader, readJson, transportFailure } from './http.ts';
+import {
+  DEFAULT_PROVIDER_TIMEOUT_MS,
+  basicAuth,
+  readHeader,
+  readJson,
+  transportFailure,
+} from './http.ts';
 
 /**
  * Postmark transactional email over the REST API, with no SDK.
@@ -129,16 +141,23 @@ export class PostmarkProvider implements MessageProvider {
     // Postmark answers 200 with `ErrorCode: 0` on success and puts the real verdict
     // in the body. Trusting the HTTP status alone would record an inactive-recipient
     // rejection as a successful send.
-    if (response.ok && parsed.success && parsed.data.MessageID && (parsed.data.ErrorCode ?? 0) === 0) {
+    if (
+      response.ok &&
+      parsed.success &&
+      parsed.data.MessageID &&
+      (parsed.data.ErrorCode ?? 0) === 0
+    ) {
       return { ok: true, providerMessageId: parsed.data.MessageID };
     }
 
     const bodyCode = parsed.success ? parsed.data.ErrorCode : undefined;
     return {
       ok: false,
-      errorCode: bodyCode !== undefined && bodyCode !== 0 ? String(bodyCode) : `HTTP_${response.status}`,
+      errorCode:
+        bodyCode !== undefined && bodyCode !== 0 ? String(bodyCode) : `HTTP_${response.status}`,
       errorMessage:
-        (parsed.success ? parsed.data.Message : undefined) ?? `Postmark responded ${response.status}.`,
+        (parsed.success ? parsed.data.Message : undefined) ??
+        `Postmark responded ${response.status}.`,
       raw: body,
     };
   }

@@ -111,8 +111,9 @@ export function contactRoutes(deps: ApiDeps): Hono<AppEnv> {
       Channel.options.map(async (channel) => ({
         channel,
         until:
-          (await activePause(deps.db, { contactId, channel, clock: deps.clock }))?.upper.toISOString() ??
-          null,
+          (
+            await activePause(deps.db, { contactId, channel, clock: deps.clock })
+          )?.upper.toISOString() ?? null,
       })),
     );
 
@@ -161,7 +162,11 @@ export function contactRoutes(deps: ApiDeps): Hono<AppEnv> {
   return app;
 }
 
-async function loadContact(deps: ApiDeps, tenantId: string, contactId: string): Promise<ContactRow> {
+async function loadContact(
+  deps: ApiDeps,
+  tenantId: string,
+  contactId: string,
+): Promise<ContactRow> {
   const row = await queryOne<ContactRow>(
     deps.db,
     `SELECT id, external_id, email::text AS email, phone, first_name, last_name, timezone,

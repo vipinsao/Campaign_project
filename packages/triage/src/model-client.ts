@@ -213,7 +213,9 @@ export type ModelFixture = {
 /** Fixture key: prompt name + version + input hash. A fixture recorded against
  *  v1 must not be replayed for v2 — that would make prompt regressions invisible,
  *  which is the exact thing the eval harness exists to catch. */
-export function fixtureKey(request: Pick<ModelRequest, 'promptName' | 'promptVersion' | 'inputHash'>): string {
+export function fixtureKey(
+  request: Pick<ModelRequest, 'promptName' | 'promptVersion' | 'inputHash'>,
+): string {
   return `${request.promptName}/v${request.promptVersion}/${request.inputHash}`;
 }
 
@@ -221,7 +223,9 @@ export const DEFAULT_FIXTURE_PATH = fileURLToPath(
   new URL('../fixtures/model-responses.json', import.meta.url),
 );
 
-export async function loadFixtures(file = DEFAULT_FIXTURE_PATH): Promise<Record<string, ModelFixture>> {
+export async function loadFixtures(
+  file = DEFAULT_FIXTURE_PATH,
+): Promise<Record<string, ModelFixture>> {
   try {
     const text = await readFile(file, 'utf8');
     return JSON.parse(text) as Record<string, ModelFixture>;
@@ -361,7 +365,11 @@ export class RecordingModelClient implements ModelClient {
     this.name = `recording(${options.inner.name})`;
   }
 
-  static async wrap(inner: ModelClient, stamp: string, file = DEFAULT_FIXTURE_PATH): Promise<RecordingModelClient> {
+  static async wrap(
+    inner: ModelClient,
+    stamp: string,
+    file = DEFAULT_FIXTURE_PATH,
+  ): Promise<RecordingModelClient> {
     return new RecordingModelClient({ inner, file, existing: await loadFixtures(file), stamp });
   }
 

@@ -1,0 +1,68 @@
+# One-click blueprint. The two processes are deployed as separate services from the
+# same image, because the API must never run a scheduler: three API replicas would
+# otherwise mean every job firing three times, and a long job would block the
+# health check until the platform restarted the container mid-run.
+
+databases:
+  - name: campaign-engine-db
+    databaseName: campaign
+    user: campaign
+    plan: free
+    postgresMajorVersion: '18'
+
+services:
+  - type: web
+    name: campaign-engine-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /healthz
+    dockerCommand: node --import tsx packages/api/src/index.ts
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: {name: campaign-engine-db, property: connectionString}
+      # The public demo runs in mock mode. It never contacts a real recipient, and
+      # the UI says so on every page that can send.
+      - key: SEND_MODE
+        value: mock
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+
+  - type: worker
+    name: campaign-engine-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    dockerCommand: node --import tsx packages/worker/src/index.ts
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: {name: campaign-engine-db, property: connectionString}
+      - key: SEND_MODE
+        value: mock
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: WORKER_ID
+        value: render-worker
+      # A floor IS set here, so the win-back campaign can run. Unset it and the
+      # time-trigger job refuses to enrol anybody, which is the intended behaviour.
+      - key: TRIGGER_FLOOR_AT
+        value: '2026-01-01T00:00:00Z'
+
+  # Resets the demo nightly from seed, so a reviewer arriving at 3am sees the same
+  # dataset as one arriving at noon, and so nothing accumulates indefinitely.
+  - type: cron
+    name: campaign-engine-demo-reset
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    schedule: '0 4 * * *'
+    dockerCommand: sh -c "node --import tsx scripts/seed-demo.ts && node --import tsx scripts/simulate.ts"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: {name: campaign-engine-db, property: connectionString}
+      - key: SEND_MODE
+        value: mock

@@ -38,7 +38,7 @@ export type MessageProvider = {
   send(msg: OutboundMessage): Promise<ProviderResult>;
   verifyWebhook(headers: Record<string, string>, rawBody: Buffer, secret: string): boolean;
   parseWebhook(payload: unknown): ProviderEvent[];
-}
+};
 
 /**
  * Error classification is DATA, not a chain of `if`s  (I8).

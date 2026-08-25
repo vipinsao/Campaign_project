@@ -10,7 +10,12 @@ import {
   markSent,
   scheduleRetry,
 } from '../queue/message-queue.ts';
-import { activePause, activeSuppression, consentState, suppressionReasonCode } from '../consent/consent.ts';
+import {
+  activePause,
+  activeSuppression,
+  consentState,
+  suppressionReasonCode,
+} from '../consent/consent.ts';
 import { isQuietHoursExempt, resolveSendTime } from '../scheduling/quiet-hours.ts';
 import { recordDecision } from '../decisions/decision-log.ts';
 import type {
@@ -79,7 +84,11 @@ export type SendContext = {
     readonly send_window_end: string | null;
     readonly send_days: number[];
   };
-  readonly enrollment: { readonly id: string; readonly status: string; readonly stop_reason: string | null };
+  readonly enrollment: {
+    readonly id: string;
+    readonly status: string;
+    readonly stop_reason: string | null;
+  };
   readonly contact: { readonly id: string; readonly timezone: string | null };
   readonly tenant: {
     readonly id: string;
@@ -134,10 +143,14 @@ const campaignStillActive: Gate = {
     // operator who pauses to fix a typo and resumes an hour later should not
     // discover that pausing destroyed every message in flight.
     if (ctx.campaign.status === 'paused') {
-      return fail('campaign_not_active', 'Campaign is paused; the message is held, not cancelled.', {
-        retryable: true,
-        nextEligibleAt: new Date(ctx.clock.now().getTime() + 15 * 60_000),
-      });
+      return fail(
+        'campaign_not_active',
+        'Campaign is paused; the message is held, not cancelled.',
+        {
+          retryable: true,
+          nextEligibleAt: new Date(ctx.clock.now().getTime() + 15 * 60_000),
+        },
+      );
     }
     return fail(
       'campaign_not_active',
@@ -344,9 +357,13 @@ const messageConditionSatisfied: Gate = {
       // the last one") must not fire when there was no last one.
       const positive = condition === 'opened_previous' || condition === 'clicked_previous';
       return positive
-        ? fail('send_condition_unmet', `No previous message was sent, so '${condition}' cannot hold.`, {
-            retryable: false,
-          })
+        ? fail(
+            'send_condition_unmet',
+            `No previous message was sent, so '${condition}' cannot hold.`,
+            {
+              retryable: false,
+            },
+          )
         : pass;
     }
 
@@ -359,7 +376,10 @@ const messageConditionSatisfied: Gate = {
 
     const scope =
       eventType === 'replied'
-        ? { sql: 'e.contact_id = $1 AND e.campaign_id = $2', params: [ctx.contact.id, ctx.campaign.id] }
+        ? {
+            sql: 'e.contact_id = $1 AND e.campaign_id = $2',
+            params: [ctx.contact.id, ctx.campaign.id],
+          }
         : { sql: 'e.message_queue_id = $1', params: [previous?.id ?? null] };
 
     const observed = await queryOne<{ n: string }>(
@@ -371,7 +391,9 @@ const messageConditionSatisfied: Gate = {
     const happened = Number(observed?.n ?? '0') > 0;
 
     const wantHappened =
-      condition === 'opened_previous' || condition === 'clicked_previous' || condition === 'replied';
+      condition === 'opened_previous' ||
+      condition === 'clicked_previous' ||
+      condition === 'replied';
 
     if (happened === wantHappened) return pass;
     return fail('send_condition_unmet', `Send condition '${condition}' was not satisfied.`, {
@@ -419,10 +441,20 @@ export type DeliveryDeps = {
     tenantId: string,
     channel: Channel,
   ) => Promise<{ provider: string; fromAddress: string } | undefined>;
-  readonly classifyError: (provider: string, code: string) => { class: 'terminal' | 'transient'; maxAttempts: number };
+  readonly classifyError: (
+    provider: string,
+    code: string,
+  ) => { class: 'terminal' | 'transient'; maxAttempts: number };
   readonly backoffMs: (attempts: number) => number;
   readonly maxAttempts: number;
-  readonly onEvent?: (e: { messageId: string; type: string; tenantId: string; contactId: string; campaignId: string; channel: Channel }) => Promise<void>;
+  readonly onEvent?: (e: {
+    messageId: string;
+    type: string;
+    tenantId: string;
+    contactId: string;
+    campaignId: string;
+    channel: Channel;
+  }) => Promise<void>;
 };
 
 type LoadedContext = Omit<SendContext, 'db' | 'clock'>;
@@ -470,7 +502,10 @@ async function loadContext(db: Db, message: QueueRow): Promise<LoadedContext | u
       status: row['enrollment_status'] as string,
       stop_reason: row['stop_reason'] as string | null,
     },
-    contact: { id: row['contact_id'] as string, timezone: row['contact_timezone'] as string | null },
+    contact: {
+      id: row['contact_id'] as string,
+      timezone: row['contact_timezone'] as string | null,
+    },
     tenant: {
       id: row['tenant_id'] as string,
       default_timezone: row['default_timezone'] as string,
@@ -498,7 +533,11 @@ async function loadContext(db: Db, message: QueueRow): Promise<LoadedContext | u
 export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Promise<SendOutcome> {
   const loaded = await loadContext(deps.db, message);
   if (!loaded) {
-    await markCancelled(deps.db, { id: message.id, reasonCode: 'recipient_not_found', clock: deps.clock });
+    await markCancelled(deps.db, {
+      id: message.id,
+      reasonCode: 'recipient_not_found',
+      clock: deps.clock,
+    });
     return 'SKIPPED';
   }
 
@@ -551,7 +590,11 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
   // tenant holds more than one.
   const sender = await deps.resolveSender(ctx.tenant.id, message.channel);
   if (!sender) {
-    await markCancelled(deps.db, { id: message.id, reasonCode: 'no_recipient_address', clock: deps.clock });
+    await markCancelled(deps.db, {
+      id: message.id,
+      reasonCode: 'no_recipient_address',
+      clock: deps.clock,
+    });
     await recordDecision(deps.db, {
       tenantId: ctx.tenant.id,
       stage: 'send',
@@ -616,7 +659,8 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
   // three months later depend on having the code the provider actually returned.
   const classification = deps.classifyError(provider.name, result.errorCode);
   const isTerminal = classification.class === 'terminal';
-  const attemptsExhausted = message.attempts >= Math.min(classification.maxAttempts, deps.maxAttempts);
+  const attemptsExhausted =
+    message.attempts >= Math.min(classification.maxAttempts, deps.maxAttempts);
 
   if (isTerminal || attemptsExhausted) {
     await markFailed(deps.db, {

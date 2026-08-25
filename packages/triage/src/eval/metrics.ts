@@ -79,7 +79,10 @@ function divide(numerator: number, denominator: number): number {
   return denominator === 0 ? 0 : numerator / denominator;
 }
 
-export function computeMetrics(predictions: readonly Prediction[], labels: readonly string[]): EvalMetrics {
+export function computeMetrics(
+  predictions: readonly Prediction[],
+  labels: readonly string[],
+): EvalMetrics {
   const confusion: Record<string, Record<string, number>> = {};
   for (const expected of labels) {
     const row: Record<string, number> = {};
@@ -117,7 +120,15 @@ export function computeMetrics(predictions: readonly Prediction[], labels: reado
     const precision = divide(truePositives, truePositives + falsePositives);
     const recall = divide(truePositives, truePositives + falseNegatives);
     const f1 = divide(2 * precision * recall, precision + recall);
-    perLabel[label] = { support, truePositives, falsePositives, falseNegatives, precision, recall, f1 };
+    perLabel[label] = {
+      support,
+      truePositives,
+      falsePositives,
+      falseNegatives,
+      precision,
+      recall,
+      f1,
+    };
     f1Sum += f1;
   }
 
@@ -151,7 +162,9 @@ export function compareToBaseline(
   baseline: {
     readonly accuracy: number;
     readonly macroF1: number;
-    readonly perLabel?: Readonly<Record<string, { readonly precision?: number; readonly recall?: number }>>;
+    readonly perLabel?: Readonly<
+      Record<string, { readonly precision?: number; readonly recall?: number }>
+    >;
   },
 ): BaselineComparison {
   const failures: string[] = [];
@@ -170,7 +183,9 @@ export function compareToBaseline(
       continue;
     }
     if (floors.precision !== undefined && actual.precision < floors.precision) {
-      failures.push(`${label} precision ${round(actual.precision)} < baseline ${round(floors.precision)}`);
+      failures.push(
+        `${label} precision ${round(actual.precision)} < baseline ${round(floors.precision)}`,
+      );
     }
     if (floors.recall !== undefined && actual.recall < floors.recall) {
       failures.push(`${label} recall ${round(actual.recall)} < baseline ${round(floors.recall)}`);

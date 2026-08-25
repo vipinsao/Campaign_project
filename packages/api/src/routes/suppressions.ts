@@ -66,7 +66,8 @@ export function suppressionRoutes(deps: ApiDeps): Hono<AppEnv> {
       channel: body.channel,
       address: body.address,
       reason: body.reason ?? 'manual',
-      expiresAt: body.expiresAt === undefined || body.expiresAt === null ? null : new Date(body.expiresAt),
+      expiresAt:
+        body.expiresAt === undefined || body.expiresAt === null ? null : new Date(body.expiresAt),
       evidence: { ...(body.evidence ?? {}), addedBy: operator.userId },
     });
 
@@ -82,7 +83,10 @@ export function suppressionRoutes(deps: ApiDeps): Hono<AppEnv> {
     // not overwrite the original reason — the first reason is the one with the
     // evidence behind it. `addSuppression` does ON CONFLICT DO NOTHING; this
     // response tells the caller which of the two happened.
-    return c.json({ suppression: row, createdNow: row['reason'] === (body.reason ?? 'manual') }, 201);
+    return c.json(
+      { suppression: row, createdNow: row['reason'] === (body.reason ?? 'manual') },
+      201,
+    );
   });
 
   /**

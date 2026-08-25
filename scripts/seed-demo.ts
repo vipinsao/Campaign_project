@@ -18,7 +18,6 @@
  * decision log has proceed-but-do-not-send rows in it, and one of them is
  * transactional so the quiet-hours exemption is visible.
  */
-import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import argon2 from 'argon2';
 
@@ -52,13 +51,40 @@ const TIMEZONES = [
 ] as const;
 
 const FIRST_NAMES = [
-  'Ada', 'Grace', 'Alan', 'Edsger', 'Barbara', 'Ken', 'Margaret', 'Donald',
-  'Radia', 'Leslie', 'Katherine', 'Tim', 'Anita', 'Vint', 'Frances', 'Dennis',
+  'Ada',
+  'Grace',
+  'Alan',
+  'Edsger',
+  'Barbara',
+  'Ken',
+  'Margaret',
+  'Donald',
+  'Radia',
+  'Leslie',
+  'Katherine',
+  'Tim',
+  'Anita',
+  'Vint',
+  'Frances',
+  'Dennis',
 ] as const;
 const LAST_NAMES = [
-  'Lovelace', 'Hopper', 'Turing', 'Dijkstra', 'Liskov', 'Thompson', 'Hamilton',
-  'Knuth', 'Perlman', 'Lamport', 'Johnson', 'Berners-Lee', 'Borg', 'Cerf',
-  'Allen', 'Ritchie',
+  'Lovelace',
+  'Hopper',
+  'Turing',
+  'Dijkstra',
+  'Liskov',
+  'Thompson',
+  'Hamilton',
+  'Knuth',
+  'Perlman',
+  'Lamport',
+  'Johnson',
+  'Berners-Lee',
+  'Borg',
+  'Cerf',
+  'Allen',
+  'Ritchie',
 ] as const;
 
 const TAG_POOL = ['vip', 'newsletter', 'wholesale', 'returning', 'no_marketing'] as const;
@@ -147,7 +173,14 @@ async function main() {
     }
 
     // ── orders ───────────────────────────────────────────────────────────────
-    const orderStates = ['placed', 'shipped', 'delivered', 'delivered', 'delivered', 'cancelled'] as const;
+    const orderStates = [
+      'placed',
+      'shipped',
+      'delivered',
+      'delivered',
+      'delivered',
+      'cancelled',
+    ] as const;
     let delivered = 0;
     for (let i = 0; i < ORDERS; i++) {
       const contactId = pick(contactIds);
@@ -236,7 +269,11 @@ async function main() {
         [
           tenantId,
           contactId,
-          reason === 'complaint' ? 'complaint' : reason === 'hard_bounce' ? 'bounce' : 'unsubscribe_link',
+          reason === 'complaint'
+            ? 'complaint'
+            : reason === 'hard_bounce'
+              ? 'bounce'
+              : 'unsubscribe_link',
           new Date(start.getTime() + rng() * (now.getTime() - start.getTime())),
           JSON.stringify({ seeded: true, reason }),
         ],
@@ -378,7 +415,8 @@ async function seedCampaigns(db: Pool, tenantId: string): Promise<string[]> {
   //    This is the campaign that exercises the most machinery in one journey.
   await define({
     name: 'Post-purchase review request',
-    description: 'Three days after the order is delivered, ask for a review. SMS follow-up if unopened.',
+    description:
+      'Three days after the order is delivered, ask for a review. SMS follow-up if unopened.',
     category: 'lifecycle',
     trigger: 'order_delivered',
     status: 'active',
@@ -426,7 +464,8 @@ async function seedCampaigns(db: Pool, tenantId: string): Promise<string[]> {
   // 4. Win-back — the time trigger, with the floor and circuit breaker guarding it.
   await define({
     name: 'Win-back',
-    description: 'Sixty days since the last order. Guarded by the cutoff floor and the circuit breaker.',
+    description:
+      'Sixty days since the last order. Guarded by the cutoff floor and the circuit breaker.',
     category: 'promotional',
     trigger: 'days_since_last_order',
     triggerConfig: { days: 60 },

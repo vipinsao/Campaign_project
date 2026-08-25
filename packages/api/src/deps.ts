@@ -108,8 +108,7 @@ export function buildDeps(overrides: DepsOverrides = {}): ApiDeps {
     clock: overrides.clock ?? new SystemClock(),
     logger,
     metrics: overrides.metrics ?? buildRegistry(),
-    jwtSecret:
-      overrides.jwtSecret ?? new TextEncoder().encode(requiredEnv(env, 'JWT_SECRET')),
+    jwtSecret: overrides.jwtSecret ?? new TextEncoder().encode(requiredEnv(env, 'JWT_SECRET')),
     encryptionKey:
       overrides.encryptionKey ?? decodeEncryptionKey(requiredEnv(env, 'ENCRYPTION_KEY')),
     publicBaseUrl: (overrides.publicBaseUrl ?? requiredEnv(env, 'PUBLIC_BASE_URL')).replace(

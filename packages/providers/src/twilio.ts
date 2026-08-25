@@ -1,8 +1,20 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import type { Channel, MessageProvider, OutboundMessage, ProviderEvent, ProviderResult } from '@campaign/shared';
+import type {
+  Channel,
+  MessageProvider,
+  OutboundMessage,
+  ProviderEvent,
+  ProviderResult,
+} from '@campaign/shared';
 import type { Clock } from './deps.ts';
-import { DEFAULT_PROVIDER_TIMEOUT_MS, basicAuth, readHeader, readJson, transportFailure } from './http.ts';
+import {
+  DEFAULT_PROVIDER_TIMEOUT_MS,
+  basicAuth,
+  readHeader,
+  readJson,
+  transportFailure,
+} from './http.ts';
 
 /**
  * Twilio SMS over the REST API, with no SDK.
@@ -88,7 +100,11 @@ export function twilioConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Twili
  * form-encoded callbacks, so implementing the other path would be untested code
  * guarding a route that does not exist.
  */
-export function twilioSignature(url: string, params: Iterable<readonly [string, string]>, authToken: string): string {
+export function twilioSignature(
+  url: string,
+  params: Iterable<readonly [string, string]>,
+  authToken: string,
+): string {
   // Code-point order, not `localeCompare`. Locale collation is case-insensitive at
   // the primary level, so it sorts `Caller` before `CallSid` where a byte-wise sort
   // does the opposite -- and the two orderings produce different signed strings.
@@ -172,7 +188,12 @@ export class TwilioProvider implements MessageProvider {
     const body: unknown = await readJson(response);
     const parsed = TwilioResponseSchema.safeParse(body);
 
-    if (response.ok && parsed.success && parsed.data.sid && (parsed.data.error_code ?? null) === null) {
+    if (
+      response.ok &&
+      parsed.success &&
+      parsed.data.sid &&
+      (parsed.data.error_code ?? null) === null
+    ) {
       return { ok: true, providerMessageId: parsed.data.sid };
     }
 
@@ -182,7 +203,10 @@ export class TwilioProvider implements MessageProvider {
     const twilioCode = parsed.success ? (parsed.data.code ?? parsed.data.error_code) : undefined;
     return {
       ok: false,
-      errorCode: twilioCode !== undefined && twilioCode !== null ? String(twilioCode) : `HTTP_${response.status}`,
+      errorCode:
+        twilioCode !== undefined && twilioCode !== null
+          ? String(twilioCode)
+          : `HTTP_${response.status}`,
       errorMessage:
         (parsed.success ? (parsed.data.message ?? parsed.data.error_message) : undefined) ??
         `Twilio responded ${response.status}.`,

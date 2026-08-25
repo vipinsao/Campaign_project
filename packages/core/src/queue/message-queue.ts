@@ -303,7 +303,14 @@ export async function scheduleRetry(
             provider = $2, provider_error_code = $3, provider_error_message = $4,
             error_class = 'transient', next_attempt_at = $5, updated_at = $6
       WHERE id = $1`,
-    [opts.id, opts.provider, opts.errorCode, opts.errorMessage, new Date(now.getTime() + opts.delayMs), now],
+    [
+      opts.id,
+      opts.provider,
+      opts.errorCode,
+      opts.errorMessage,
+      new Date(now.getTime() + opts.delayMs),
+      now,
+    ],
   );
 }
 

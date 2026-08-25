@@ -210,7 +210,12 @@ export async function evaluateTrigger(
       continue;
     }
 
-    const audience = await resolver.matches(db, event.tenantId, subject.contactId, campaign.audience);
+    const audience = await resolver.matches(
+      db,
+      event.tenantId,
+      subject.contactId,
+      campaign.audience,
+    );
     if (!audience.matched) {
       await recordDecision(db, {
         ...base,

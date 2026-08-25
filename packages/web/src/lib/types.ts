@@ -59,7 +59,10 @@ export type CampaignMessage = {
 };
 
 export type CampaignListResponse = { readonly campaigns: Campaign[]; readonly page: Page };
-export type CampaignResponse = { readonly campaign: Campaign; readonly messages?: CampaignMessage[] };
+export type CampaignResponse = {
+  readonly campaign: Campaign;
+  readonly messages?: CampaignMessage[];
+};
 export type MessagesResponse = { readonly messages: CampaignMessage[] };
 
 // ── analytics ────────────────────────────────────────────────────────────────
@@ -105,7 +108,10 @@ export type MessageStat = {
   readonly uniqueClicks: number;
 };
 
-export type MessageStatsResponse = { readonly campaignId: string; readonly messages: MessageStat[] };
+export type MessageStatsResponse = {
+  readonly campaignId: string;
+  readonly messages: MessageStat[];
+};
 
 export type EnrollmentsResponse = {
   readonly campaignId: string;
@@ -147,7 +153,11 @@ export type ValidateResponse = {
 };
 
 export type MergeFieldsResponse = {
-  readonly fields: { readonly name: string; readonly description: string | null; readonly requiresOrder: boolean }[];
+  readonly fields: {
+    readonly name: string;
+    readonly description: string | null;
+    readonly requiresOrder: boolean;
+  }[];
 };
 
 export type PreviewResponse = {
@@ -249,7 +259,10 @@ export type OrderLookupResponse =
     };
 
 export type OrderJourneyResponse = {
-  readonly order: OrderSummary & { readonly shippedAt: string | null; readonly deliveredAt: string | null };
+  readonly order: OrderSummary & {
+    readonly shippedAt: string | null;
+    readonly deliveredAt: string | null;
+  };
   readonly enrollments: Record<string, unknown>[];
   readonly messages: Record<string, unknown>[];
   readonly decisions: DecisionRow[];
@@ -315,5 +328,10 @@ export type ConsentResponse = {
 export type LoginResponse = {
   readonly token: string;
   readonly expiresIn: number;
-  readonly user: { readonly id: string; readonly email: string; readonly role: string; readonly tenantId: string };
+  readonly user: {
+    readonly id: string;
+    readonly email: string;
+    readonly role: string;
+    readonly tenantId: string;
+  };
 };

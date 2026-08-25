@@ -39,12 +39,7 @@ export {
   type DepsOverrides,
   type RateLimitConfig,
 } from './deps.ts';
-export {
-  ApiError,
-  renderError,
-  type ErrorEnvelope,
-  type ErrorStatus,
-} from './errors.ts';
+export { ApiError, renderError, type ErrorEnvelope, type ErrorStatus } from './errors.ts';
 export {
   hashPassword,
   verifyPassword,
@@ -55,7 +50,11 @@ export {
   type OperatorClaims,
 } from './auth/tokens.ts';
 export { sealSecret, openSecret, type SealedSecret } from './auth/secrets.ts';
-export { renderCampaignMessage, mergeFieldCatalogue, type PreviewResult } from './services/preview.ts';
+export {
+  renderCampaignMessage,
+  mergeFieldCatalogue,
+  type PreviewResult,
+} from './services/preview.ts';
 export {
   mintUnsubscribeToken,
   unsubscribeUrl,
@@ -83,7 +82,11 @@ export function startServer(): { close: () => void } {
   const port = Number(process.env['PORT'] ?? 3001);
   const server = serve({ fetch: app.fetch, port });
   deps.logger.info({ port }, 'campaign-engine api listening');
-  return { close: () => { server.close(); } };
+  return {
+    close: () => {
+      server.close();
+    },
+  };
 }
 
 // Only when run directly. Importing this module — which the test suite does, to

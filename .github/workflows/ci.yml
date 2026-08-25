@@ -1,0 +1,105 @@
+name: CI
+
+# Six jobs, and `compliance` is deliberately its own. The README badge for it is
+# specifically about the invariant suite rather than about tests in general, and a
+# badge that says "some tests pass" is worth very little.
+#
+# Note there is no `services: postgres:` block anywhere in this file. The test
+# harness starts a real PostgreSQL 18 as a child process via `embedded-postgres`,
+# so CI needs no service container, no health-check polling, and no connection
+# string to keep in sync. The database under test is the same one a developer gets
+# from `npm test` on a laptop with no Docker installed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # I2: nothing in CI is permitted to send. This is the default everywhere, and
+  # setting it explicitly here means a change to the default cannot silently arm
+  # the test suite.
+  SEND_MODE: 'off'
+  FORCE_COLOR: '1'
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Proves the gate above is not a no-op by planting a broken file inside the
+      # project's own include globs and asserting tsc fails. A tsc that checks
+      # nothing exits 0 and is indistinguishable from a passing check.
+      - name: Prove the typecheck gate actually checks
+        run: npx vitest run tests/unit/typecheck-gate-actually-checks.test.ts
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:integration
+
+  # The job the README badge points at. Make this a REQUIRED check in branch
+  # protection: it is the one that says the guarantees still hold.
+  compliance:
+    name: compliance (the invariant suite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Run the 14 messaging and 10 AI invariants
+        run: npm run test:compliance
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w @campaign/web

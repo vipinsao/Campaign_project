@@ -94,7 +94,10 @@ export function analyticsRoutes(deps: ApiDeps): Hono<AppEnv> {
     );
 
     const byEvent = Object.fromEntries(
-      events.map((e) => [e.event_type, { total: Number(e.total), uniqueContacts: Number(e.uniques) }]),
+      events.map((e) => [
+        e.event_type,
+        { total: Number(e.total), uniqueContacts: Number(e.uniques) },
+      ]),
     );
 
     const clickable = await queryOne<{ n: string }>(

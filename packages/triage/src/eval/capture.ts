@@ -86,12 +86,17 @@ export function traceOf(args: {
 /** JSONL, appended. A trace file you can `grep`, `wc -l` and `tail -f` while the
  *  worker runs is one that actually gets read; a database table you have to write
  *  a query against is one that gets read once, on the day it is built. */
-export async function appendTrace(trace: Trace, file = path.join(DEFAULT_TRACE_DIR, 'traces.jsonl')): Promise<void> {
+export async function appendTrace(
+  trace: Trace,
+  file = path.join(DEFAULT_TRACE_DIR, 'traces.jsonl'),
+): Promise<void> {
   await mkdir(path.dirname(file), { recursive: true });
   await appendFile(file, `${JSON.stringify(trace)}\n`, 'utf8');
 }
 
-export async function loadTraces(file = path.join(DEFAULT_TRACE_DIR, 'traces.jsonl')): Promise<Trace[]> {
+export async function loadTraces(
+  file = path.join(DEFAULT_TRACE_DIR, 'traces.jsonl'),
+): Promise<Trace[]> {
   let text: string;
   try {
     text = await readFile(file, 'utf8');

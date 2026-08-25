@@ -74,7 +74,10 @@ export type Batch = {
 export function openCode(
   traces: readonly Trace[],
   notes: readonly OpenCode[],
-): { readonly coded: readonly (Trace & { note: OpenCode })[]; readonly orphaned: readonly OpenCode[] } {
+): {
+  readonly coded: readonly (Trace & { note: OpenCode })[];
+  readonly orphaned: readonly OpenCode[];
+} {
   const byHash = new Map(traces.map((trace) => [trace.bodyHash, trace]));
   const coded: (Trace & { note: OpenCode })[] = [];
   const orphaned: OpenCode[] = [];
@@ -95,7 +98,11 @@ export function openCode(
  */
 export function axialCode(
   notes: readonly OpenCode[],
-  definitions: readonly { readonly id: string; readonly name: string; readonly definition: string }[],
+  definitions: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly definition: string;
+  }[],
   assign: (note: OpenCode) => string | undefined,
   datasetVersion: string,
 ): FailureTaxonomy {

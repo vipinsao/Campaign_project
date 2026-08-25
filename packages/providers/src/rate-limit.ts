@@ -71,7 +71,14 @@ export async function tryAcquire(
        (tenant_id, provider, channel, tokens, capacity, refill_per_second, updated_at)
      VALUES ($1, $2, $3, $4::numeric, $4::numeric, $5::numeric, $6)
      ON CONFLICT (tenant_id, provider, channel) DO NOTHING`,
-    [config.tenantId, config.provider, config.channel, config.capacity, config.refillPerSecond, now],
+    [
+      config.tenantId,
+      config.provider,
+      config.channel,
+      config.capacity,
+      config.refillPerSecond,
+      now,
+    ],
   );
 
   // The decision itself is one statement. Refill and decrement happen inside a
@@ -97,7 +104,14 @@ export async function tryAcquire(
                          * $5::numeric
             ) >= 1
       RETURNING b.tokens`,
-    [config.tenantId, config.provider, config.channel, config.capacity, config.refillPerSecond, now],
+    [
+      config.tenantId,
+      config.provider,
+      config.channel,
+      config.capacity,
+      config.refillPerSecond,
+      now,
+    ],
   );
 
   if (acquired.rows.length > 0) return { allowed: true };

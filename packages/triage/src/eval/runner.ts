@@ -117,7 +117,10 @@ export async function runEval(
     } catch (error) {
       // A case that threw is counted as a WRONG ANSWER, not excluded. Excluding it
       // means a prompt that crashes on 10% of inputs scores 100% on the 90% left.
-      errored.push({ caseId: golden.id, error: error instanceof Error ? error.message : String(error) });
+      errored.push({
+        caseId: golden.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
       predictions.push({ expected: golden.expectedLabel, predicted: null });
     }
   }
@@ -129,7 +132,10 @@ export async function runEval(
     : // No recorded baseline means this is the first version of a prompt. It passes
       // and says so, rather than passing silently — "no baseline" and "cleared the
       // baseline" must not look identical in CI output.
-      { passed: true, failures: ['no baseline recorded for this prompt lineage; nothing to regress against'] };
+      {
+        passed: true,
+        failures: ['no baseline recorded for this prompt lineage; nothing to regress against'],
+      };
 
   const version = datasetVersion(cases);
   const runId = await recordEvalRun(deps, {

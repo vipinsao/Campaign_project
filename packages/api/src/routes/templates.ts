@@ -50,9 +50,7 @@ export function templateRoutes(): Hono<AppEnv> {
         html: body.htmlTemplate ?? null,
       },
       body.category,
-      body.longestMergeValues === undefined
-        ? {}
-        : { longestMergeValues: body.longestMergeValues },
+      body.longestMergeValues === undefined ? {} : { longestMergeValues: body.longestMergeValues },
     );
 
     return c.json({

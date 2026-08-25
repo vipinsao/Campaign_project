@@ -339,7 +339,8 @@ export const ERROR_TABLE: readonly ErrorRule[] = [
     provider: 'twilio',
     code: '21212',
     class: 'transient',
-    meaning: 'The configured sending number is not valid. A configuration fault, not a recipient one.',
+    meaning:
+      'The configured sending number is not valid. A configuration fault, not a recipient one.',
     maxAttempts: CONFIG_MAX_ATTEMPTS,
   },
   {

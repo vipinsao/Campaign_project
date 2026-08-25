@@ -69,7 +69,9 @@ export type PromptRecord = PromptFile & {
 export type BaselineMetrics = {
   readonly accuracy: number;
   readonly macroF1: number;
-  readonly perLabel?: Readonly<Record<string, { readonly precision?: number; readonly recall?: number }>>;
+  readonly perLabel?: Readonly<
+    Record<string, { readonly precision?: number; readonly recall?: number }>
+  >;
 };
 
 export class PromptEditedInPlaceError extends Error {
@@ -93,7 +95,10 @@ export class PromptEditedInPlaceError extends Error {
  * different prompt, and pinning them together means an eval_runs row identifies
  * both at once.
  */
-function parseFrontMatter(raw: string, file: string): { fields: Record<string, string>; body: string } {
+function parseFrontMatter(
+  raw: string,
+  file: string,
+): { fields: Record<string, string>; body: string } {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(raw);
   if (!match?.[1]) {
     throw new Error(`${file}: missing front matter. Expected '---' then 'model:' and 'schema:'.`);
@@ -106,7 +111,12 @@ function parseFrontMatter(raw: string, file: string): { fields: Record<string, s
   return { fields, body: raw.slice(match[0].length).trim() };
 }
 
-export function parsePromptFile(name: string, version: number, raw: string, file: string): PromptFile {
+export function parsePromptFile(
+  name: string,
+  version: number,
+  raw: string,
+  file: string,
+): PromptFile {
   const { fields, body } = parseFrontMatter(raw, file);
   const modelId = fields['model'];
   const schemaName = fields['schema'];
@@ -183,7 +193,12 @@ function toRecord(row: PromptRow, file: PromptFile): PromptRecord {
  */
 function hydrate(row: PromptRow | undefined, dir: string): PromptRecord | undefined {
   if (!row) return undefined;
-  const file = parsePromptFile(row.name, row.version, row.content, `${dir}/${row.name}/v${row.version}.md`);
+  const file = parsePromptFile(
+    row.name,
+    row.version,
+    row.content,
+    `${dir}/${row.name}/v${row.version}.md`,
+  );
   return toRecord(row, file);
 }
 
@@ -242,18 +257,38 @@ export async function getPrompt(
   version: number,
   dir = PROMPTS_DIR,
 ): Promise<PromptRecord | undefined> {
-  return hydrate(await queryOne<PromptRow>(db, `${SELECT_PROMPT} WHERE name = $1 AND version = $2`, [name, version]), dir);
-}
-
-export async function getLatestPrompt(db: Db, name: string, dir = PROMPTS_DIR): Promise<PromptRecord | undefined> {
   return hydrate(
-    await queryOne<PromptRow>(db, `${SELECT_PROMPT} WHERE name = $1 ORDER BY version DESC LIMIT 1`, [name]),
+    await queryOne<PromptRow>(db, `${SELECT_PROMPT} WHERE name = $1 AND version = $2`, [
+      name,
+      version,
+    ]),
     dir,
   );
 }
 
-export async function listPrompts(db: Db, name: string, dir = PROMPTS_DIR): Promise<PromptRecord[]> {
-  const rows = await query<PromptRow>(db, `${SELECT_PROMPT} WHERE name = $1 ORDER BY version ASC`, [name]);
+export async function getLatestPrompt(
+  db: Db,
+  name: string,
+  dir = PROMPTS_DIR,
+): Promise<PromptRecord | undefined> {
+  return hydrate(
+    await queryOne<PromptRow>(
+      db,
+      `${SELECT_PROMPT} WHERE name = $1 ORDER BY version DESC LIMIT 1`,
+      [name],
+    ),
+    dir,
+  );
+}
+
+export async function listPrompts(
+  db: Db,
+  name: string,
+  dir = PROMPTS_DIR,
+): Promise<PromptRecord[]> {
+  const rows = await query<PromptRow>(db, `${SELECT_PROMPT} WHERE name = $1 ORDER BY version ASC`, [
+    name,
+  ]);
   const out: PromptRecord[] = [];
   for (const row of rows) {
     const record = hydrate(row, dir);
@@ -279,7 +314,10 @@ export function promptSummary(record: PromptRecord): string {
  * v1 is the only version in this repository that declares a baseline. v2 is
  * deliberately worse, inherits v1's bar, and fails it — which is the demonstration.
  */
-export async function regressionBaseline(db: Db, prompt: PromptRecord): Promise<BaselineMetrics | undefined> {
+export async function regressionBaseline(
+  db: Db,
+  prompt: PromptRecord,
+): Promise<BaselineMetrics | undefined> {
   const earlier = await query<PromptRow>(
     db,
     `${SELECT_PROMPT} WHERE name = $1 AND version < $2 AND baseline_metrics IS NOT NULL

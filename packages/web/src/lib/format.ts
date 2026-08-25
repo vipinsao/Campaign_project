@@ -13,7 +13,10 @@ export function int(value: number | null | undefined): string {
   return value.toLocaleString();
 }
 
-export function money(amount: string | null | undefined, currency: string | null | undefined): string {
+export function money(
+  amount: string | null | undefined,
+  currency: string | null | undefined,
+): string {
   if (amount === null || amount === undefined) return DASH;
   const numeric = Number(amount);
   if (!Number.isFinite(numeric)) return DASH;
@@ -86,7 +89,11 @@ export function minutes(total: number | null | undefined): string {
   const days = Math.floor(total / 1440);
   const hours = Math.floor((total % 1440) / 60);
   const mins = total % 60;
-  return [days > 0 ? `${String(days)}d` : '', hours > 0 ? `${String(hours)}h` : '', mins > 0 ? `${String(mins)}m` : '']
+  return [
+    days > 0 ? `${String(days)}d` : '',
+    hours > 0 ? `${String(hours)}h` : '',
+    mins > 0 ? `${String(mins)}m` : '',
+  ]
     .filter(Boolean)
     .join(' ');
 }

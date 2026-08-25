@@ -80,7 +80,10 @@ export type TriageOutcome = {
 
 export const DEFAULT_MAX_OUTPUT_TOKENS = 1024;
 
-export async function loadTenantTriageSettings(db: Db, tenantId: string): Promise<TenantTriageSettings> {
+export async function loadTenantTriageSettings(
+  db: Db,
+  tenantId: string,
+): Promise<TenantTriageSettings> {
   const row = await queryOne<{
     id: string;
     confidence_threshold: string;
@@ -92,7 +95,8 @@ export async function loadTenantTriageSettings(db: Db, tenantId: string): Promis
        FROM tenants WHERE id = $1`,
     [tenantId],
   );
-  if (!row) throw new Error(`Unknown tenant ${tenantId}: cannot triage a reply without its thresholds.`);
+  if (!row)
+    throw new Error(`Unknown tenant ${tenantId}: cannot triage a reply without its thresholds.`);
   return {
     id: row.id,
     confidenceThreshold: Number(row.confidence_threshold),
@@ -194,7 +198,12 @@ async function cacheLookup(
 // The pipeline
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildRequest(deps: TriageDeps, input: TriageInput, inputHash: string, repair?: string): ModelRequest {
+function buildRequest(
+  deps: TriageDeps,
+  input: TriageInput,
+  inputHash: string,
+  repair?: string,
+): ModelRequest {
   const userContent = repair
     ? `${input.body}\n\n---\nYour previous answer was rejected by the output schema:\n${repair}\nAnswer again, valid this time.`
     : input.body;
@@ -220,14 +229,19 @@ function buildRequest(deps: TriageDeps, input: TriageInput, inputHash: string, r
  * working", with a full ledger and an empty model_calls table to explain it.
  */
 async function callWithBudget(deps: TriageDeps, request: ModelRequest): Promise<ModelResponse> {
-  const reserved = estimateTokens(request.system) + estimateTokens(request.userContent) + request.maxOutputTokens;
+  const reserved =
+    estimateTokens(request.system) + estimateTokens(request.userContent) + request.maxOutputTokens;
   await reserveTokens(deps.db, { tenantId: request.tenantId, tokens: reserved, clock: deps.clock });
 
   let response: ModelResponse;
   try {
     response = await deps.model.complete(request);
   } catch (error) {
-    await releaseTokens(deps.db, { tenantId: request.tenantId, tokens: reserved, clock: deps.clock });
+    await releaseTokens(deps.db, {
+      tenantId: request.tenantId,
+      tokens: reserved,
+      clock: deps.clock,
+    });
     throw error;
   }
 
@@ -241,7 +255,10 @@ async function callWithBudget(deps: TriageDeps, request: ModelRequest): Promise<
   return response;
 }
 
-function validate(deps: TriageDeps, raw: string): { ok: true; value: ReplyClassification } | { ok: false; error: string } {
+function validate(
+  deps: TriageDeps,
+  raw: string,
+): { ok: true; value: ReplyClassification } | { ok: false; error: string } {
   const schema = OUTPUT_SCHEMAS[deps.prompt.schemaName];
   let parsed: unknown;
   try {
@@ -520,7 +537,10 @@ export function autoSendAllowed(settings: TenantTriageSettings, outcome: TriageO
  * else; a suppression is a legal artefact and it is created by a keyword match
  * that gives the same answer every time, not by a probability.
  */
-export async function classifyReply(deps: TriageDeps, reply: StoredReply): Promise<ClassificationResult> {
+export async function classifyReply(
+  deps: TriageDeps,
+  reply: StoredReply,
+): Promise<ClassificationResult> {
   const settings = await loadTenantTriageSettings(deps.db, reply.tenantId);
   const outcome = await triage(deps, {
     tenantId: reply.tenantId,
@@ -548,7 +568,12 @@ export async function classifyReply(deps: TriageDeps, reply: StoredReply): Promi
   }
 
   const classificationId = await persistClassification(deps, reply, outcome);
-  return { ...outcome, classificationId, suppressed, autoSendAllowed: autoSendAllowed(settings, outcome) };
+  return {
+    ...outcome,
+    classificationId,
+    suppressed,
+    autoSendAllowed: autoSendAllowed(settings, outcome),
+  };
 }
 
 /**

@@ -166,7 +166,12 @@ export async function settleTokens(
         SET tokens_used = GREATEST(0, tokens_used + $3::bigint),
             cost_usd    = cost_usd + $4::numeric
       WHERE tenant_id = $1 AND period = $2::date`,
-    [opts.tenantId, budgetPeriod(opts.clock), delta, Number.isFinite(opts.costUsd) ? opts.costUsd : 0],
+    [
+      opts.tenantId,
+      budgetPeriod(opts.clock),
+      delta,
+      Number.isFinite(opts.costUsd) ? opts.costUsd : 0,
+    ],
   );
 }
 

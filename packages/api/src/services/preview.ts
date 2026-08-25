@@ -144,7 +144,9 @@ export async function renderCampaignMessage(
           },
     order:
       order === undefined
-        ? (contact === undefined ? SAMPLE.order : undefined)
+        ? contact === undefined
+          ? SAMPLE.order
+          : undefined
         : {
             number: order.order_number,
             total: order.total,
@@ -212,8 +214,8 @@ const DESCRIPTIONS: Readonly<Record<string, string>> = {
   'order.tracking_url': "Carrier's own tracking page for this shipment.",
   'order.placed_at': 'When the order was placed.',
   'order.delivered_at': 'When the order was delivered.',
-  'unsubscribe_url': 'One-click link to the preference centre. Required in marketing mail (I7).',
-  'preferences_url': 'The preference centre; same destination as unsubscribe_url.',
+  unsubscribe_url: 'One-click link to the preference centre. Required in marketing mail (I7).',
+  preferences_url: 'The preference centre; same destination as unsubscribe_url.',
 };
 
 export function mergeFieldCatalogue(): readonly {

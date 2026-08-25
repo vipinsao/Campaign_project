@@ -30,8 +30,7 @@ import {
  */
 
 export type ConsentDecision =
-  | { allowed: true }
-  | { allowed: false; reasonCode: ReasonCode; detail: string };
+  { allowed: true } | { allowed: false; reasonCode: ReasonCode; detail: string };
 
 /**
  * Resolve current consent for a channel and campaign category.

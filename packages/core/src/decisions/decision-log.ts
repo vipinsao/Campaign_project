@@ -37,10 +37,7 @@ export type DecisionInput = {
   readonly decidedAt?: Date | undefined;
 };
 
-export async function recordDecision(
-  db: Db | PoolClient,
-  input: DecisionInput,
-): Promise<void> {
+export async function recordDecision(db: Db | PoolClient, input: DecisionInput): Promise<void> {
   await db.query(
     `INSERT INTO send_decisions
        (tenant_id, campaign_id, campaign_message_id, contact_id, order_id,

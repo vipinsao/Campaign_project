@@ -36,10 +36,7 @@ import {
  */
 
 /** The smallest valid GIF: 1×1, one colour, transparent. 43 bytes. */
-const PIXEL = Buffer.from(
-  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-  'base64',
-);
+const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -349,7 +346,8 @@ async function applyPreferenceChange(
   }
 
   if (form.action === 'pause') {
-    const days = Number.isFinite(form.pauseDays) && form.pauseDays > 0 ? form.pauseDays : PAUSE_DAYS_DEFAULT;
+    const days =
+      Number.isFinite(form.pauseDays) && form.pauseDays > 0 ? form.pauseDays : PAUSE_DAYS_DEFAULT;
     const from = deps.clock.now();
     const until = new Date(from.getTime() + days * 86_400_000);
 
