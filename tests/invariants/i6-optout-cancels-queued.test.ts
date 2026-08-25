@@ -89,9 +89,9 @@ describe('I6 — opting out cancels what is already queued', () => {
   it('keeps the full consent history rather than overwriting a flag', async () => {
     const seeded = await seedAll();
     const db = testDb();
-    const clock = new FakeClock('2026-01-01T00:00:00Z');
 
-    // out -> in -> out. A boolean column would retain only the last of these.
+    // out -> in -> out, with explicit timestamps so the sequence is unambiguous.
+    // A boolean column would retain only the last of these.
     await optIn(db, seeded.tenantId, seeded.contactId);
     await db.query(
       `INSERT INTO contact_consents (tenant_id, contact_id, channel, state, source, occurred_at)
