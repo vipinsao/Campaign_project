@@ -4,7 +4,7 @@
 -- enrollments — explicit state, not implied
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE enrollments (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id  UUID NOT NULL REFERENCES tenants(id)           ON DELETE CASCADE,
   campaign_id UUID NOT NULL REFERENCES campaigns(id)        ON DELETE CASCADE,
   campaign_version_id UUID NOT NULL REFERENCES campaign_versions(id) ON DELETE RESTRICT,
@@ -48,7 +48,7 @@ CREATE INDEX enrollments_active          ON enrollments(campaign_id) WHERE statu
 -- message_queue
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE message_queue (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                  UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id           UUID NOT NULL REFERENCES tenants(id)            ON DELETE CASCADE,
   enrollment_id       UUID NOT NULL REFERENCES enrollments(id)        ON DELETE CASCADE,
   campaign_id         UUID NOT NULL REFERENCES campaigns(id)          ON DELETE CASCADE,
@@ -67,6 +67,12 @@ CREATE TABLE message_queue (
   rendered_subject  TEXT,
   rendered_body     TEXT NOT NULL,
   rendered_html     TEXT,
+  -- Deliberately gen_random_uuid() (v4) and NOT uuidv7, unlike every primary key
+  -- in this schema. tracking_id is embedded in an unauthenticated URL (the open
+  -- pixel and the click redirect); a uuidv7 carries an extractable millisecond
+  -- timestamp, so anyone holding one could read exactly when the message was
+  -- generated. Primary keys benefit from v7's index locality; a public identifier
+  -- benefits from having no structure at all.
   tracking_id       UUID NOT NULL DEFAULT gen_random_uuid(),
 
   scheduled_at TIMESTAMPTZ NOT NULL,

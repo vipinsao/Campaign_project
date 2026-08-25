@@ -48,7 +48,7 @@ CREATE INDEX send_decisions_reason   ON send_decisions(tenant_id, reason_code, d
 -- tracking + consent surfaces
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE tracking_links (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id               UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id        UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   message_queue_id UUID NOT NULL REFERENCES message_queue(id) ON DELETE CASCADE,
   short_code       TEXT NOT NULL UNIQUE,        -- base62, 10 chars, crypto.randomBytes
@@ -96,7 +96,7 @@ CREATE INDEX webhook_deliveries_replay
 -- provider callback with 403 for months without anyone noticing, because the
 -- rejection looks like an attack rather than a defect.
 CREATE TABLE provider_credentials (
-  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id        UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   channel   TEXT NOT NULL CHECK (channel IN ('email','sms')),
   provider  TEXT NOT NULL CHECK (provider IN ('smtp','postmark','twilio','mock')),

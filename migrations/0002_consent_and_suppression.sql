@@ -14,7 +14,7 @@
 -- contact_consents — APPEND ONLY, enforced by the database
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE contact_consents (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id   UUID NOT NULL REFERENCES tenants(id)  ON DELETE CASCADE,
   contact_id  UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
   channel     TEXT NOT NULL CHECK (channel IN ('email','sms')),
@@ -113,7 +113,7 @@ SELECT DISTINCT ON (tenant_id, contact_id, channel, COALESCE(category, '*'))
 -- This table is a derived cache with an operational purpose; contact_consents
 -- remains the audit trail. A resubscribe deletes from here and appends there.
 CREATE TABLE suppressions (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id  UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   channel    TEXT NOT NULL CHECK (channel IN ('email','sms')),
   address    TEXT NOT NULL,                     -- normalised email or E.164
@@ -151,7 +151,7 @@ CREATE INDEX suppressions_expiring
 -- This is the kind of rule that application code enforces correctly until the day
 -- two requests arrive at once.
 CREATE TABLE consent_pauses (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id  UUID NOT NULL REFERENCES tenants(id)  ON DELETE CASCADE,
   contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
   channel    TEXT NOT NULL CHECK (channel IN ('email','sms')),

@@ -95,6 +95,7 @@ export default tseslint.config(
             { name: 'nodemailer', message: 'Vendor SDKs live in packages/providers only.' },
             { name: 'postmark', message: 'Vendor SDKs live in packages/providers only.' },
             { name: 'twilio', message: 'Vendor SDKs live in packages/providers only.' },
+            { name: 'hono', message: 'core is transport-agnostic.' },
             { name: 'express', message: 'core is transport-agnostic.' },
             { name: '@anthropic-ai/sdk', message: 'The model client lives in packages/triage only.' },
           ],

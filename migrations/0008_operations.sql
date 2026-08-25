@@ -46,7 +46,7 @@ CREATE TABLE provider_rate_buckets (
 -- This is what lets a reviewer watch the complete lifecycle — including a bounce
 -- and an opt-out — with zero credentials and zero accounts.
 CREATE TABLE mock_outbox (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id               UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id        UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   message_queue_id UUID REFERENCES message_queue(id) ON DELETE CASCADE,
   channel          TEXT NOT NULL CHECK (channel IN ('email','sms')),
@@ -68,7 +68,7 @@ CREATE INDEX mock_outbox_recent ON mock_outbox(tenant_id, sent_at DESC);
 -- inbound_replies — the responses inbox
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE inbound_replies (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id  UUID NOT NULL REFERENCES tenants(id)  ON DELETE CASCADE,
   contact_id UUID REFERENCES contacts(id)          ON DELETE CASCADE,
   -- The message that prompted this reply, when it can be established.

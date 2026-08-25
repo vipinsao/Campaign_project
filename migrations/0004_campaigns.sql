@@ -1,7 +1,7 @@
 -- 0004 — campaigns, versions, messages, stop conditions, goals
 
 CREATE TABLE campaigns (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
   description TEXT,
@@ -69,7 +69,7 @@ CREATE INDEX campaigns_trigger       ON campaigns(tenant_id, trigger_type)
 -- sent. Queued rows reference the version that produced them, so "what did this
 -- recipient actually receive" stays answerable after the operator rewrites the copy.
 CREATE TABLE campaign_versions (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id    UUID NOT NULL REFERENCES tenants(id)   ON DELETE CASCADE,
   campaign_id  UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
   version      INT NOT NULL,
@@ -91,7 +91,7 @@ ALTER TABLE campaigns
 -- campaign_messages
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE campaign_messages (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id   UUID NOT NULL REFERENCES tenants(id)   ON DELETE CASCADE,
   campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
   channel     TEXT NOT NULL CHECK (channel IN ('email','sms')),
@@ -140,7 +140,7 @@ CREATE INDEX campaign_messages_campaign ON campaign_messages(campaign_id, sequen
 -- campaign_stop_conditions — cancel a contact's remaining queued messages
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE campaign_stop_conditions (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id      UUID NOT NULL REFERENCES tenants(id)   ON DELETE CASCADE,
   campaign_id    UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
   condition_type TEXT NOT NULL CHECK (condition_type IN
@@ -156,7 +156,7 @@ CREATE TABLE campaign_stop_conditions (
 -- campaign_goals — what the campaign is FOR, measured
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE campaign_goals (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id    UUID NOT NULL REFERENCES tenants(id)   ON DELETE CASCADE,
   campaign_id  UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
   metric       TEXT NOT NULL CHECK (metric IN

@@ -17,7 +17,7 @@
 -- and this table is the synced index. A changed prompt is a NEW VERSION, never an
 -- edit — otherwise "it worked last week" has no answer.
 CREATE TABLE prompts (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           UUID PRIMARY KEY DEFAULT uuidv7(),
   name         TEXT NOT NULL,
   version      INT  NOT NULL,
   content      TEXT NOT NULL,
@@ -39,7 +39,7 @@ CREATE TRIGGER prompts_append_only
 -- classifications
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE classifications (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id  UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   reply_id   UUID NOT NULL REFERENCES inbound_replies(id) ON DELETE CASCADE,
   prompt_id  UUID REFERENCES prompts(id) ON DELETE RESTRICT,
@@ -124,7 +124,7 @@ ALTER TABLE tenants
 -- eval_runs / eval_cases — V4: CI blocks a merge that regresses the golden set
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE eval_cases (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID PRIMARY KEY DEFAULT uuidv7(),
   dataset       TEXT NOT NULL,
   input_body    TEXT NOT NULL,
   expected_label TEXT NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE eval_cases (
 );
 
 CREATE TABLE eval_runs (
-  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id        UUID PRIMARY KEY DEFAULT uuidv7(),
   prompt_id UUID NOT NULL REFERENCES prompts(id) ON DELETE CASCADE,
   dataset_version TEXT NOT NULL,
   git_sha   TEXT,

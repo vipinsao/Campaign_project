@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;  -- required by the EXCLUDE in 0002
 -- tenants
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE tenants (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                UUID PRIMARY KEY DEFAULT uuidv7(),
   name              TEXT NOT NULL,
   default_timezone  TEXT NOT NULL DEFAULT 'UTC',
 
@@ -39,7 +39,7 @@ CREATE TABLE tenants (
 -- users — operators of the product, not message recipients
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE users (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   email         CITEXT NOT NULL,
   password_hash TEXT NOT NULL,                          -- argon2id
@@ -53,7 +53,7 @@ CREATE TABLE users (
 -- contacts — message recipients
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE contacts (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id      UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   external_id    TEXT,                    -- id in the source system, if any
   email          CITEXT,

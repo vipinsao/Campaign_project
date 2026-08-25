@@ -5,7 +5,7 @@
 -- portfolio project unfinishable is to let it become one.
 
 CREATE TABLE stores (
-  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id        UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   name      TEXT NOT NULL,
   code      TEXT NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE stores (
 );
 
 CREATE TABLE orders (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID PRIMARY KEY DEFAULT uuidv7(),
   tenant_id     UUID NOT NULL REFERENCES tenants(id)   ON DELETE CASCADE,
   store_id      UUID NOT NULL REFERENCES stores(id)    ON DELETE CASCADE,
   contact_id    UUID NOT NULL REFERENCES contacts(id)  ON DELETE CASCADE,
