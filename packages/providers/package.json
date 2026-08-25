@@ -10,10 +10,14 @@
     "./*": "./src/*.ts"
   },
   "//boundary": "the ONLY package permitted to import nodemailer/postmark/twilio. Enforced by tests/unit/architecture.test.ts",
+  "//sdks": "twilio and postmark are deliberately absent. Three REST endpoints do not justify two SDKs; see src/twilio.ts and src/postmark.ts.",
   "dependencies": {
-    "nodemailer": "^9.0.5"
+    "nodemailer": "^9.0.5",
+    "pg": "^8.23.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/nodemailer": "^8.0.1"
+    "@types/nodemailer": "^8.0.1",
+    "@types/pg": "^8.23.1"
   }
 }
