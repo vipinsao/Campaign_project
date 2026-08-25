@@ -149,6 +149,19 @@ npm run lint        # eslint, including the architecture boundary rules
 npm test            # unit + integration + invariants
 ```
 
+### See it actually run
+
+```bash
+npm run dev          # boots Postgres, migrates, starts api + worker + web
+npm run seed:demo    # deterministic: 500 contacts, 1,200 orders, 5 campaigns
+npm run demo:simulate # replays 30 days in about a minute
+```
+
+`demo:simulate` advances a `FakeClock` in one-hour steps and drives the trigger
+evaluator and the worker at every tick, so a month of campaign behaviour is
+watchable in about a minute. It ends by printing the decision log — the reasons
+messages did *not* send. See [`docs/DEMO.md`](docs/DEMO.md).
+
 ---
 
 ## Deliberately not built
@@ -186,9 +199,19 @@ so is cheaper than having a reviewer discover it.
 
 ## Documentation
 
+- [`docs/INVARIANTS.md`](docs/INVARIANTS.md) — all 23 invariants, each with the
+  production failure it prevents and a link to its test.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — every judgment call, with the reasoning
   at the time. Includes the defects found in the original build specification and
   why following it literally would have shipped bugs.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the two-process split, the
+  package boundaries and how they are enforced, and the send-time gate chain.
+- [`docs/DEMO.md`](docs/DEMO.md) — a numbered sixty-second click-through.
+- ADRs: [Postgres as the queue](docs/ADR-001-postgres-queue.md) ·
+  [event-sourced analytics](docs/ADR-002-event-sourced-analytics.md) ·
+  [the consent ledger](docs/ADR-003-consent-ledger-vs-boolean.md) ·
+  [the injectable clock](docs/ADR-004-injectable-clock.md) ·
+  [decision-log retention](docs/ADR-005-decision-log-retention.md)
 - [`TRACKER.md`](TRACKER.md) — build state, per phase.
 
 ## Licence
