@@ -45,6 +45,8 @@ export const REASON_CODES = {
   suppressed_manual: 'Address is suppressed: added manually by an operator.',
   suppressed_invalid: 'Address is suppressed: not a valid destination.',
   quiet_hours_deferred: 'Outside the recipient’s local sending window; deferred.',
+  campaign_window_unsatisfiable:
+    'The campaign’s send window does not overlap the tenant’s quiet-hours floor, so no send time exists. Fix the campaign schedule.',
   frequency_cap: 'Contact has already received the maximum messages for this channel and window.',
   no_recipient_address: 'Contact has no usable address on this channel.',
   send_condition_unmet: 'The message’s send condition was not satisfied at send time.',
@@ -56,6 +58,9 @@ export const REASON_CODES = {
   provider_transient_error: 'The provider failed temporarily; the message will be retried.',
   retry_exhausted: 'Retry attempts exhausted.',
   stale_claim_exhausted: 'The message was reclaimed too many times without completing.',
+
+  internal_error:
+    'The message could not be evaluated because of an unexpected error. The error is recorded against this decision.',
 
   // ── environment (I2) ─────────────────────────────────────────────────────
   worker_not_permitted_to_send:

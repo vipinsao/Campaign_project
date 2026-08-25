@@ -244,6 +244,33 @@ const withinQuietHours: Gate = {
   evaluate: (ctx) => {
     if (isQuietHoursExempt(ctx.campaign.category)) return pass;
 
+    let decision;
+    try {
+      decision = resolveWindow(ctx);
+    } catch (error) {
+      // A campaign whose send window does not overlap the tenant floor has no
+      // satisfiable send time, and `effectiveWindow` throws rather than returning
+      // an empty range that would send the day-advancing loop looking for a slot
+      // that cannot exist.
+      //
+      // That throw used to escape all the way out of processQueue, which aborted
+      // the ENTIRE claimed batch: one misconfigured campaign stranded every
+      // unrelated message claimed alongside it, left them in `processing` with an
+      // incremented attempt count, and repeated every minute until reclaim-stale
+      // burned them to permanent failure. A configuration mistake on one campaign
+      // is not permitted to be an outage for the others.
+      return fail(
+        'campaign_window_unsatisfiable',
+        error instanceof Error ? error.message : 'The campaign send window is unsatisfiable.',
+        { retryable: false },
+      );
+    }
+    return decision;
+  },
+};
+
+function resolveWindow(ctx: SendContext): GateResult {
+  {
     const decision = resolveSendTime({
       target: ctx.clock.now(),
       timezone: ctx.contact.timezone,
@@ -265,8 +292,8 @@ const withinQuietHours: Gate = {
       `Outside the recipient’s local sending window (${ctx.contact.timezone ?? ctx.tenant.default_timezone}).`,
       { retryable: true, nextEligibleAt: decision.nextEligibleAt },
     );
-  },
-};
+  }
+}
 
 const underFrequencyCap: Gate = {
   name: 'underFrequencyCap',
@@ -757,7 +784,51 @@ export async function processQueue(deps: DeliveryDeps): Promise<QueueRunSummary>
   let skipped = 0;
 
   for (const row of claimed) {
-    const outcome = await deliverClaimed(deps, row);
+    // One message must never be able to take the batch down with it.
+    //
+    // Before this, an exception anywhere in deliverClaimed - a misconfigured send
+    // window, a provider adapter throwing rather than returning, an unexpected
+    // null - propagated out of processQueue and abandoned every remaining row in
+    // the batch. Those rows stayed in `processing` with an incremented attempt
+    // count, the job retried a minute later, hit the same poison row, and
+    // reclaim-stale eventually burned all of them to permanent failure. Messages
+    // on entirely unrelated campaigns died because one campaign was misconfigured.
+    //
+    // A single message failing is a message-level event, and it is recorded as
+    // one. The batch continues.
+    let outcome: SendOutcome;
+    try {
+      outcome = await deliverClaimed(deps, row);
+    } catch (error) {
+      outcome = 'FAILED';
+      const message = error instanceof Error ? error.message : String(error);
+      try {
+        await markFailed(deps.db, {
+          id: row.id,
+          provider: row.provider ?? 'unknown',
+          errorCode: 'internal_error',
+          errorMessage: message,
+          errorClass: 'terminal',
+          clock: deps.clock,
+        });
+        await recordDecision(deps.db, {
+          tenantId: row.tenant_id,
+          campaignId: row.campaign_id,
+          contactId: row.contact_id,
+          messageQueueId: row.id,
+          stage: 'send',
+          decision: 'skip',
+          reasonCode: 'internal_error',
+          detail: message,
+          inputs: { error: message, attempts: row.attempts },
+          decidedAt: deps.clock.now(),
+        });
+      } catch {
+        // The database itself is unhappy. Leave the row for reclaim-stale rather
+        // than losing the rest of the batch to a second failure.
+      }
+    }
+
     if (outcome === 'SENT') sent++;
     else if (outcome === 'FAILED') failed++;
     else if (outcome === 'DEFERRED') deferred++;

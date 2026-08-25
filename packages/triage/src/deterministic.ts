@@ -33,16 +33,70 @@ import type { RecipientResolution } from '@campaign/shared';
  * replies because a customer who replies "UNSUBSCRIBE" to an email means it just
  * as much as one who texts it.
  */
-export const OPT_OUT_KEYWORDS: readonly string[] = [
+/**
+ * Opt-out keywords, split by channel — and the split is the point.
+ *
+ * CANCEL, END, QUIT and REVOKE are SMS CARRIER keywords. A carrier requires them
+ * on a short code, and on SMS a bare "Cancel" unambiguously means stop texting me.
+ *
+ * On EMAIL those same words mean something else entirely. A one-word "Cancel"
+ * replying to "reply CANCEL to cancel your order" is a customer cancelling an
+ * ORDER, and treating it as an opt-out wrote a permanent, never-expiring
+ * suppression against their address — which then stopped their own refund
+ * confirmation and shipping notices, because the suppression gate has no
+ * transactional exemption. On SMS the recovery path is worse still: a `sms_stop`
+ * suppression is not something the preference centre can undo.
+ *
+ * So the carrier list applies where the carrier requires it, and nowhere else.
+ */
+export const UNIVERSAL_OPT_OUT_KEYWORDS: readonly string[] = [
   'STOP',
   'STOPALL',
   'UNSUBSCRIBE',
-  'CANCEL',
-  'END',
-  'QUIT',
-  'REVOKE',
   'OPTOUT',
 ];
+
+export const SMS_CARRIER_OPT_OUT_KEYWORDS: readonly string[] = ['CANCEL', 'END', 'QUIT', 'REVOKE'];
+
+/** Retained for the SMS case, which is the one the carriers define. */
+export const OPT_OUT_KEYWORDS: readonly string[] = [
+  ...UNIVERSAL_OPT_OUT_KEYWORDS,
+  ...SMS_CARRIER_OPT_OUT_KEYWORDS,
+];
+
+export function optOutKeywordsFor(channel: 'email' | 'sms'): readonly string[] {
+  return channel === 'sms' ? OPT_OUT_KEYWORDS : UNIVERSAL_OPT_OUT_KEYWORDS;
+}
+
+/**
+ * Strip everything a mail client appended, and return the reply the human typed.
+ *
+ * This is what makes the whole-message rule survive contact with real email. A
+ * person replying "STOP" from a phone sends "STOP\n\nSent from my iPhone", and a
+ * person replying from a desktop client sends "STOP" followed by the entire quoted
+ * thread. Requiring the WHOLE body to equal the keyword rejected both, so the two
+ * most common physical shapes of an opt-out fell through to the model — where a
+ * vendor outage or a budget ceiling drops the opt-out entirely.
+ */
+export function humanTypedPortion(body: string): string {
+  const lines = body.split(/\r?\n/);
+  const kept: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^>/.test(trimmed)) break;                       // quoted reply
+    if (/^--\s*$/.test(trimmed)) break;                  // signature delimiter
+    if (/^_{5,}$/.test(trimmed)) break;                   // Outlook divider
+    if (/^-{5,}\s*original message/i.test(trimmed)) break;
+    if (/^sent from my /i.test(trimmed)) break;
+    if (/^get outlook for /i.test(trimmed)) break;
+    if (/^on .{4,80}\bwrote:$/i.test(trimmed)) break;     // "On <date>, <x> wrote:"
+    if (/^(from|to|subject|date|sent):\s/i.test(trimmed)) break; // forwarded header block
+    kept.push(line);
+  }
+
+  return kept.join('\n').trim();
+}
 
 /**
  * Normalise for keyword comparison.
@@ -86,16 +140,47 @@ export type OptOutDetection =
  * "STOP ALL" collapses to "STOPALL" because the space is a keyboard artefact, not
  * a different intent.
  */
-export function detectOptOut(body: string): OptOutDetection {
-  const normalised = normaliseForKeyword(body);
+export function detectOptOut(
+  body: string,
+  channel: 'email' | 'sms' = 'sms',
+): OptOutDetection {
+  const keywords = optOutKeywordsFor(channel);
+
+  // Only the part the human typed, and within that only the FIRST line.
+  //
+  // Everything a mail client appended is stripped first, so a signature or a quoted
+  // thread cannot hide an opt-out. Then the first line alone decides, because that
+  // is what separates the two cases that look similar and mean different things:
+  //
+  //   "UNSUBSCRIBE\nThanks"  — the instruction, then a courtesy. An opt-out.
+  //   "unsubscribe me"       — a sentence. Ambiguous prose, so it goes to the
+  //                            model rather than being acted on deterministically.
+  //
+  // Trailing pleasantries are extremely common on a genuine opt-out and must not
+  // defeat it; a keyword buried mid-sentence must not trigger it.
+  const typed = humanTypedPortion(body);
+  const source = typed.length > 0 ? typed : body;
+  const firstLine = source.split(/\r?\n/).find((line) => line.trim().length > 0) ?? '';
+  const normalised = normaliseForKeyword(firstLine);
   if (normalised.length === 0) return { optedOut: false };
 
   const collapsed = normalised.replace(/\s+/g, '');
-  for (const keyword of OPT_OUT_KEYWORDS) {
-    if (normalised === keyword || collapsed === keyword) {
-      return { optedOut: true, keyword, normalised };
-    }
+
+  // "STOP ALL" collapses to "STOPALL" — the space is a keyboard artefact.
+  for (const keyword of keywords) {
+    if (collapsed === keyword) return { optedOut: true, keyword, normalised };
   }
+
+  // Every token must be a keyword. This is what admits "STOP STOP STOP" — what an
+  // annoyed person sends on the second attempt, and which a whole-string equality
+  // check rejected — while still refusing "don't stop sending me these" and "stop
+  // by our store", where non-keyword tokens carry the actual meaning.
+  const tokens = normalised.split(' ').filter((t) => t.length > 0);
+  if (tokens.length > 0 && tokens.every((token) => keywords.includes(token))) {
+    const first = tokens[0];
+    if (first !== undefined) return { optedOut: true, keyword: first, normalised };
+  }
+
   return { optedOut: false };
 }
 

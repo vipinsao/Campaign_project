@@ -305,20 +305,42 @@ export async function scheduleMessages(
 
       const target = new Date(base.getTime() + message.delay_minutes * 60_000);
 
-      scheduledAt = isQuietHoursExempt(campaign.category)
-        ? target
-        : scheduleWithin({
-            target,
-            timezone: contact.timezone,
-            tenantTimezone: tenant.default_timezone,
-            config: {
-              floorStart: tenant.quiet_hours_start,
-              floorEnd: tenant.quiet_hours_end,
-              windowStart: campaign.send_window_start,
-              windowEnd: campaign.send_window_end,
-              sendDays: campaign.send_days,
-            },
-          });
+      try {
+        scheduledAt = isQuietHoursExempt(campaign.category)
+          ? target
+          : scheduleWithin({
+              target,
+              timezone: contact.timezone,
+              tenantTimezone: tenant.default_timezone,
+              config: {
+                floorStart: tenant.quiet_hours_start,
+                floorEnd: tenant.quiet_hours_end,
+                windowStart: campaign.send_window_start,
+                windowEnd: campaign.send_window_end,
+                sendDays: campaign.send_days,
+              },
+            });
+      } catch (error) {
+        // The campaign's send window does not overlap the tenant floor, so no send
+        // time exists for this message. That is a configuration mistake on ONE
+        // campaign, and letting the throw escape would take down the whole trigger
+        // evaluation - including every other campaign reacting to the same event.
+        // Record it and carry on to the next message.
+        await recordDecision(db, {
+          tenantId: ctx.tenantId,
+          stage: 'schedule',
+          decision: 'skip',
+          reasonCode: 'campaign_window_unsatisfiable',
+          detail: error instanceof Error ? error.message : 'Unsatisfiable send window.',
+          campaignId: ctx.campaignId,
+          campaignMessageId: message.id,
+          contactId: ctx.contactId,
+          orderId: ctx.orderId ?? undefined,
+          decidedAt: clock.now(),
+        });
+        skipped++;
+        continue;
+      }
       previousScheduledAt = scheduledAt;
     }
 

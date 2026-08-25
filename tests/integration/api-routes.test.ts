@@ -522,7 +522,7 @@ describe('supporting surfaces', () => {
 });
 
 describe('suppressions, queue and the decision log', () => {
-  it('adds, lists and removes a suppression — and records the resubscribe', async () => {
+  it('adds, lists and removes a suppression WITHOUT rewriting consent', async () => {
     const contactId = await seedContact(testDb(), tenantId, { email: 'bounced@example.com' });
 
     const added = await app.request('/suppressions', {
@@ -550,15 +550,50 @@ describe('suppressions, queue and the decision log', () => {
     });
     expect(removed.status).toBe(200);
 
-    // Lifting a block is a consent event. Deleting the row alone would let mail
-    // start flowing again with no record of who authorised it.
-    const { rows } = await testDb().query<{ state: string; evidence: Record<string, unknown> }>(
-      `SELECT state, evidence FROM contact_consents WHERE contact_id = $1`,
+    // NO consent row is written, and that is the fix for a real bug.
+    //
+    // This route used to record a category-less `opted_in` here, reasoning that
+    // lifting a block is a consent event. But consent resolves by most-recent
+    // intent across wildcard and category rows — so writing a wildcard opt-in
+    // silently reversed EVERY per-category opt-out the contact had ever made. An
+    // operator tidying up a bounce list re-subscribed people to categories they
+    // had deliberately switched off.
+    //
+    // Removing a hard-bounce suppression asserts the ADDRESS is deliverable again.
+    // It says nothing about what the person wants. Those are different facts, they
+    // live in different tables on purpose, and only a human may move the second.
+    const { rows } = await testDb().query<{ state: string }>(
+      `SELECT state FROM contact_consents WHERE contact_id = $1`,
       [contactId],
     );
-    expect(rows).toHaveLength(1);
-    expect(rows[0]!.state).toBe('opted_in');
-    expect(rows[0]!.evidence['action']).toBe('suppression_removed');
+    expect(rows, 'removing a deliverability block must not rewrite consent').toHaveLength(0);
+  });
+
+  it('refuses to remove a suppression that records the recipient’s own decision', async () => {
+    // A hard bounce is a fact about the address. An unsubscribe is a decision by a
+    // person, and undoing it is a consent action that has to be deliberate.
+    await seedContact(testDb(), tenantId, { email: 'asked-to-stop@example.com' });
+    await app.request('/suppressions', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        channel: 'email',
+        address: 'asked-to-stop@example.com',
+        reason: 'unsubscribe',
+      }),
+    });
+
+    const refused = await app.request(
+      '/suppressions?channel=email&address=asked-to-stop@example.com',
+      { method: 'DELETE', headers: headers() },
+    );
+    expect(refused.status).toBe(409);
+
+    const acknowledged = await app.request(
+      '/suppressions?channel=email&address=asked-to-stop@example.com&acknowledgeConsent=true',
+      { method: 'DELETE', headers: headers() },
+    );
+    expect(acknowledged.status).toBe(200);
   });
 
   it('refuses a DELETE that does not identify the address', async () => {

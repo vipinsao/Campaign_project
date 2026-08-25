@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { addSuppression, query, queryOne, recordConsent, withTransaction } from '@campaign/core';
+import { addSuppression, query, queryOne, withTransaction } from '@campaign/core';
 import { Channel, SuppressionReason } from '@campaign/shared';
 import type { ApiDeps } from '../deps.ts';
 import type { AppEnv } from '../middleware/context.ts';
 import { operatorOf, tenantOf } from '../middleware/context.ts';
-import { badRequest, notFound } from '../errors.ts';
+import { badRequest, notFound, conflict } from '../errors.ts';
 import { pagination } from './campaigns.ts';
 
 const AddBody = z.object({
@@ -62,6 +62,7 @@ export function suppressionRoutes(deps: ApiDeps): Hono<AppEnv> {
     const body = AddBody.parse(await c.req.json<unknown>());
 
     await addSuppression(deps.db, {
+      clock: deps.clock,
       tenantId,
       channel: body.channel,
       address: body.address,
@@ -100,7 +101,6 @@ export function suppressionRoutes(deps: ApiDeps): Hono<AppEnv> {
    */
   app.delete('/suppressions', async (c) => {
     const tenantId = tenantOf(c);
-    const operator = operatorOf(c);
     const channel = c.req.query('channel');
     const address = c.req.query('address');
 
@@ -119,7 +119,31 @@ export function suppressionRoutes(deps: ApiDeps): Hono<AppEnv> {
       });
     }
 
+    // Reasons that record a PERSON's expressed intent, as opposed to a fact about
+    // the address. Removing one of these is a consent decision and must be made
+    // deliberately, so it requires an explicit acknowledgement.
+    const INTENT_REASONS = new Set(['unsubscribe', 'sms_stop', 'complaint']);
+    const acknowledged = c.req.query('acknowledgeConsent') === 'true';
+
     const removed = await withTransaction(deps.db, async (tx) => {
+      const existing = await queryOne<{ id: string; reason: string }>(
+        tx,
+        `SELECT id, reason FROM suppressions
+          WHERE tenant_id = $1 AND channel = $2 AND address = $3`,
+        [tenantId, parsedChannel.data, address],
+      );
+      if (existing === undefined) return undefined;
+
+      if (INTENT_REASONS.has(existing.reason) && !acknowledged) {
+        throw conflict(
+          'suppression_records_intent',
+          `This suppression records the recipient's own decision (${existing.reason}), not a ` +
+            `delivery failure. Removing it re-enables mail to someone who asked to stop. ` +
+            `Re-send with ?acknowledgeConsent=true if that is genuinely intended.`,
+          { reason: existing.reason, address, channel: parsedChannel.data },
+        );
+      }
+
       const deleted = await queryOne<{ id: string; reason: string }>(
         tx,
         `DELETE FROM suppressions
@@ -129,29 +153,21 @@ export function suppressionRoutes(deps: ApiDeps): Hono<AppEnv> {
       );
       if (deleted === undefined) return undefined;
 
-      const contact = await queryOne<{ id: string }>(
-        tx,
-        `SELECT id FROM contacts
-          WHERE tenant_id = $1 AND (email = $2::citext OR phone = $2) LIMIT 1`,
-        [tenantId, address],
-      );
-      if (contact !== undefined) {
-        await recordConsent(tx, {
-          tenantId,
-          contactId: contact.id,
-          channel: parsedChannel.data,
-          category: null,
-          state: 'opted_in',
-          source: 'operator',
-          evidence: {
-            action: 'suppression_removed',
-            previousReason: deleted.reason,
-            removedBy: operator.userId,
-            address,
-          },
-          clock: deps.clock,
-        });
-      }
+      // Deliberately NO consent row is written here.
+      //
+      // Removing a suppression asserts that the ADDRESS is deliverable again. It
+      // says nothing about what the person wants, and the two are different facts
+      // living in different tables on purpose.
+      //
+      // Writing a category-less `opted_in` here — which is what this route used to
+      // do — was a live bug: consent resolves by most-recent-intent across wildcard
+      // and category rows, so clearing an unrelated soft bounce silently reversed
+      // every per-category opt-out the contact had ever made. An operator tidying
+      // up a bounce list re-subscribed people to everything they had switched off.
+      //
+      // An operator who genuinely means "this person wants mail again" records that
+      // through POST /contacts/:id/consent, where it is an explicit act with an
+      // author against it.
       return deleted;
     });
 

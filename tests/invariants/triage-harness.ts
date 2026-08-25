@@ -143,6 +143,6 @@ export function triageDeps(args: {
     clock: args.clock ?? fakeClock(),
     model: args.model,
     prompt: args.prompt,
-    protection: args.protection ?? protectionCapability(args.db),
+    protection: args.protection ?? protectionCapability(args.db, args.clock ?? fakeClock()),
   };
 }

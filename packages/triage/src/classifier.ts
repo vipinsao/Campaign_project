@@ -329,7 +329,7 @@ export async function triage(deps: TriageDeps, input: TriageInput): Promise<Tria
   const inputHash = contentHash(input.body);
 
   // ── 1. Deterministic pass. No model, no budget, no network. ─────────────────
-  const optOut = detectOptOut(input.body);
+  const optOut = detectOptOut(input.body, input.channel);
   if (optOut.optedOut) {
     // No model_calls row is written here, and that is not an omission: there was
     // no call. `SELECT count(*) FROM classifications WHERE decided_by='model'`

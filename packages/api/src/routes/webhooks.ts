@@ -318,6 +318,7 @@ async function applyProviderEvent(
   // resurrect an address the provider has already told us not to use.
   if (event.type === 'bounced' || event.type === 'complained') {
     await addSuppression(deps.db, {
+      clock: deps.clock,
       tenantId,
       channel,
       address: row.recipient_address,

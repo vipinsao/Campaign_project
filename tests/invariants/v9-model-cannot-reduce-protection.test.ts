@@ -39,6 +39,7 @@ import {
 } from '@campaign/triage';
 import {
   CLOCK_START,
+  fakeClock,
   fixtureFor,
   seedReply,
   seedTriageTenant,
@@ -70,7 +71,13 @@ describe('V9 — structurally, the model cannot weaken a protection', () => {
     // The one core import the classifier is allowed is the pool/clock surface.
     // `consent/consent.ts` is not on the list, so `recordConsent` and `optOut` are
     // not merely unused here — they are not in scope.
-    expect(imports).not.toContain('@campaign/core/consent/consent.ts');
+    // NOT asserted here: that classifier.ts avoids the consent module's specifier.
+    // Nothing in the repository imports that path directly - packages import the
+    // `@campaign/core` barrel, which re-exports it - so the assertion could never
+    // have failed. A test that cannot fail is worse than no test, because it reads
+    // like coverage. The real guarantee is the single guarded call site asserted
+    // below, and the Proxy test that records every property the classifier touches.
+    expect(imports).toContain('@campaign/core');
     for (const forbidden of ['recordConsent', 'optOut(', 'consentState', 'contact_consents']) {
       expect(source, `classifier.ts must not reference ${forbidden}`).not.toContain(forbidden);
     }
@@ -93,7 +100,7 @@ describe('V9 — structurally, the model cannot weaken a protection', () => {
   });
 
   it('hands the classifier exactly one method, and it takes no database handle', () => {
-    const capability = protectionCapability(testDb());
+    const capability = protectionCapability(testDb(), fakeClock());
     expect(Object.keys(capability)).toEqual(['addSuppression']);
     // The pool is closed over, not passed through. Handing over a `Db` alongside a
     // "please only use addSuppression" comment would be a convention wearing a type.
@@ -108,7 +115,7 @@ describe('V9 — structurally, the model cannot weaken a protection', () => {
     const model = new MockModelClient({ fixtures: {} });
 
     const accessed: string[] = [];
-    const spy = new Proxy(protectionCapability(db), {
+    const spy = new Proxy(protectionCapability(db, fakeClock()), {
       get(target, property, receiver) {
         if (typeof property === 'string') accessed.push(property);
         return Reflect.get(target, property, receiver) as unknown;
@@ -132,6 +139,7 @@ describe('V9 — structurally, the model cannot weaken a protection', () => {
 
     // The contact said STOP last week and is suppressed.
     await addSuppression(db, {
+      clock: fakeClock(),
       tenantId,
       channel: 'email',
       address,
@@ -170,7 +178,7 @@ describe('V9 — structurally, the model cannot weaken a protection', () => {
     const prompt = await syncedPrompt(db, 1);
     const address = 'stopped-then-cheerful@example.com';
 
-    await addSuppression(db, { tenantId, channel: 'email', address, reason: 'unsubscribe' });
+    await addSuppression(db, { clock: fakeClock(), tenantId, channel: 'email', address, reason: 'unsubscribe' });
 
     const body = 'Wonderful service, thank you so much!';
     const model = new MockModelClient({
