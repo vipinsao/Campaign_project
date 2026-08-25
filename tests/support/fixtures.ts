@@ -193,16 +193,25 @@ export async function seedAll(
   };
 }
 
-/** Opt a contact in, so the consent gate is not the thing failing a delivery test. */
+/**
+ * Opt a contact in, so the consent gate is not the thing failing a delivery test.
+ *
+ * `occurredAt` defaults to a fixed instant in the distant past rather than to the
+ * database's now(). Consent resolves by most-recent-intent, so a fixture stamped
+ * with the real wall clock would silently outrank an opt-out recorded by a test's
+ * FakeClock — and the test would fail for a reason that has nothing to do with the
+ * behaviour under test. Fixtures must not read a clock the test does not control.
+ */
 export async function optIn(
   db: Pool,
   tenantId: string,
   contactId: string,
   channel: 'email' | 'sms' = 'email',
+  occurredAt: string = '2020-01-01T00:00:00Z',
 ): Promise<void> {
   await db.query(
-    `INSERT INTO contact_consents (tenant_id, contact_id, channel, state, source)
-     VALUES ($1,$2,$3,'opted_in','signup')`,
-    [tenantId, contactId, channel],
+    `INSERT INTO contact_consents (tenant_id, contact_id, channel, state, source, occurred_at)
+     VALUES ($1,$2,$3,'opted_in','signup',$4::timestamptz)`,
+    [tenantId, contactId, channel, occurredAt],
   );
 }
