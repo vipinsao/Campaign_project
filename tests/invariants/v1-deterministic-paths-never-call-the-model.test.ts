@@ -125,7 +125,9 @@ describe('V1 — the deterministic paths never call the model', () => {
     );
     expect(decided).toEqual([{ decided_by: 'deterministic', n: String(OPT_OUT_FIXTURES.length) }]);
 
-    const { rows: calls } = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM model_calls`);
+    const { rows: calls } = await db.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM model_calls`,
+    );
     expect(Number(calls[0]!.n), 'a deterministic decision must cost nothing').toBe(0);
 
     // And the suppressions are real rows, written by the add-only capability.
@@ -167,7 +169,11 @@ describe('V1 — the deterministic paths never call the model', () => {
     const fixtures: readonly { body: string; kind: string; why: string }[] = [
       { body: 'Any update on order #77123?', kind: 'single', why: 'hash-prefixed, exists once' },
       { body: 'Chasing ORD-88120 please', kind: 'single', why: 'prefixed alphanumeric form' },
-      { body: 'order number 99999 has not arrived', kind: 'none', why: 'well-formed but not in the database' },
+      {
+        body: 'order number 99999 has not arrived',
+        kind: 'none',
+        why: 'well-formed but not in the database',
+      },
       { body: 'Thanks, all good here!', kind: 'none', why: 'no candidate at all' },
       { body: 'Where is #10041?', kind: 'ambiguous', why: 'two stores, two customers, one number' },
     ];
@@ -183,7 +189,9 @@ describe('V1 — the deterministic paths never call the model', () => {
     expect(ambiguous.kind).toBe('ambiguous');
     if (ambiguous.kind === 'ambiguous') {
       expect(ambiguous.candidates).toHaveLength(2);
-      expect(new Set(ambiguous.candidates.map((c) => c.store_id))).toEqual(new Set([mainStore, outletStore]));
+      expect(new Set(ambiguous.candidates.map((c) => c.store_id))).toEqual(
+        new Set([mainStore, outletStore]),
+      );
     }
 
     // A phone number, a postcode and a price must not be read as order numbers.
@@ -205,7 +213,11 @@ describe('V1 — the deterministic paths never call the model', () => {
     // A webhook redelivery: identical body, second row.
     const first = await seedReply(db, tenantId, body);
     const second = await seedReply(db, tenantId, body);
-    const duplicate = await findDuplicateReply(db, { tenantId, contentHash: hash, excludeReplyId: second.id });
+    const duplicate = await findDuplicateReply(db, {
+      tenantId,
+      contentHash: hash,
+      excludeReplyId: second.id,
+    });
     expect(duplicate?.id).toBe(first.id);
 
     // Line-ending and trailing-whitespace variants are the SAME reply: SMTP and a

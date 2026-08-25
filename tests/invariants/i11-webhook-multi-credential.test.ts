@@ -30,7 +30,13 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { testDb, resetDb, closeTestDb } from '../support/db.ts';
-import { seedTenant, seedContact, seedCampaign, seedCampaignMessage, seedEnrollment } from '../support/fixtures.ts';
+import {
+  seedTenant,
+  seedContact,
+  seedCampaign,
+  seedCampaignMessage,
+  seedEnrollment,
+} from '../support/fixtures.ts';
 import { FakeClock } from '@campaign/core';
 import { buildMockWebhookRequest, MOCK_SIGNATURE_HEADER } from '@campaign/providers';
 import type { ProviderEvent } from '@campaign/shared';
@@ -199,10 +205,10 @@ describe('I11 — every active credential is tried', () => {
     // rows, which is the realistic version of this. The loop must skip it and go
     // on, rather than abandoning the search at the first bad row: a `throw` there
     // is the single-credential bug wearing a different hat.
-    await testDb().query(
-      `UPDATE provider_credentials SET secret_ciphertext = $2 WHERE id = $1`,
-      [credentialIds['primary'], Buffer.from('not a valid ciphertext at all')],
-    );
+    await testDb().query(`UPDATE provider_credentials SET secret_ciphertext = $2 WHERE id = $1`, [
+      credentialIds['primary'],
+      Buffer.from('not a valid ciphertext at all'),
+    ]);
 
     const providerMessageId = 'mock-after-a-broken-row';
     await seedSentMessage(tenantId, providerMessageId);
@@ -232,7 +238,9 @@ describe('I11 — every active credential is tried', () => {
 
     const response = await post(app, headers, body);
     expect(response.status).toBe(401);
-    const envelope = (await response.json()) as { error: { details: { credentialsTried: number } } };
+    const envelope = (await response.json()) as {
+      error: { details: { credentialsTried: number } };
+    };
     expect(envelope.error.details.credentialsTried).toBe(2);
   });
 
@@ -253,9 +261,9 @@ describe('I11 — every active credential is tried', () => {
 
     for await (const file of walk(root)) {
       const text = await readFile(file, 'utf8');
-      const credentialQueries = text.split(/\n\s*\n/).filter((block) =>
-        block.includes('provider_credentials'),
-      );
+      const credentialQueries = text
+        .split(/\n\s*\n/)
+        .filter((block) => block.includes('provider_credentials'));
       for (const block of credentialQueries) {
         if (/\.single\(|LIMIT\s+1|queryOne</i.test(block)) {
           offenders.push(`${path.relative(root, file)}: ${block.trim().slice(0, 200)}`);
@@ -301,7 +309,9 @@ describe('I11 — persist before validating, then fail closed', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.signature_status).toBe('invalid');
     expect(rows[0]!.processed_at).toBeNull();
-    expect(rows[0]!.payload.events[0]!.providerEventId).toBe(`${providerMessageId}:delivered:forged`);
+    expect(rows[0]!.payload.events[0]!.providerEventId).toBe(
+      `${providerMessageId}:delivered:forged`,
+    );
     // Unattributable, and honestly recorded as such rather than guessed at.
     expect(rows[0]!.tenant_id).toBeNull();
 

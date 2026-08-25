@@ -96,7 +96,12 @@ type TriggerData = {
   category: string;
   problems: readonly Problem[];
 };
-type DelayData = { stepKey: string; minutes: number; anchor: DelayAnchor; problems: readonly Problem[] };
+type DelayData = {
+  stepKey: string;
+  minutes: number;
+  anchor: DelayAnchor;
+  problems: readonly Problem[];
+};
 type ConditionData = { stepKey: string; condition: SendCondition; problems: readonly Problem[] };
 type SendData = {
   stepKey: string;
@@ -172,7 +177,9 @@ function NodeLabel({ glyph, text, tone }: { glyph: string; text: string; tone: s
   return (
     <div className="flex items-center gap-1.5">
       <span className={clsx('font-mono text-[11px]', tone)}>{glyph}</span>
-      <span className="text-[10px] font-semibold tracking-wide text-ink-faint uppercase">{text}</span>
+      <span className="text-[10px] font-semibold tracking-wide text-ink-faint uppercase">
+        {text}
+      </span>
     </div>
   );
 }
@@ -306,7 +313,11 @@ function validate(
   const problems: ProblemMap = new Map();
 
   if (steps.length === 0) {
-    addProblem(problems, 'trigger', 'This journey sends nothing: it would enrol contacts and stop.');
+    addProblem(
+      problems,
+      'trigger',
+      'This journey sends nothing: it would enrol contacts and stop.',
+    );
     return problems;
   }
 
@@ -319,7 +330,11 @@ function validate(
       );
     }
     if (step.body.trim().length === 0) {
-      addProblem(problems, step.key, 'The body is empty, so this step would deliver a blank message.');
+      addProblem(
+        problems,
+        step.key,
+        'The body is empty, so this step would deliver a blank message.',
+      );
     }
     if (step.channel === 'email' && (step.subject ?? '').trim().length === 0) {
       addProblem(problems, step.key, 'An email with no subject line cannot be activated.');
@@ -359,7 +374,9 @@ type SyncPlan = {
 };
 
 function linearise(steps: readonly Step[], existing: readonly CampaignMessage[]): SyncPlan {
-  const kept = new Set(steps.map((step) => step.messageId).filter((id): id is string => id !== null));
+  const kept = new Set(
+    steps.map((step) => step.messageId).filter((id): id is string => id !== null),
+  );
   return {
     creates: steps
       .map((step, index) => ({ step, sequenceOrder: index + 1 }))
@@ -562,7 +579,6 @@ export function JourneyTab() {
     }
   }
 
-
   // ── mutations ──────────────────────────────────────────────────────────────
 
   const save = useMutation({
@@ -580,7 +596,10 @@ export function JourneyTab() {
         );
       }
       for (const entry of plan.creates) {
-        await api.post(`/campaigns/${campaignId}/messages`, bodyOf(entry.step, entry.sequenceOrder));
+        await api.post(
+          `/campaigns/${campaignId}/messages`,
+          bodyOf(entry.step, entry.sequenceOrder),
+        );
       }
       return plan;
     },
@@ -658,7 +677,9 @@ export function JourneyTab() {
                 key={channel}
                 type="button"
                 className="btn"
-                onClick={() => { addStep(channel); }}
+                onClick={() => {
+                  addStep(channel);
+                }}
               >
                 + {channel.toUpperCase()}
               </button>
@@ -676,8 +697,8 @@ export function JourneyTab() {
 
         {totalProblems > 0 && (
           <p className="border-b border-bad/25 bg-bad-wash px-4 py-2 text-[12px] text-bad">
-            {totalProblems} problem{totalProblems === 1 ? '' : 's'} — each one is drawn on the node it
-            belongs to. Nothing was written.
+            {totalProblems} problem{totalProblems === 1 ? '' : 's'} — each one is drawn on the node
+            it belongs to. Nothing was written.
           </p>
         )}
         {note !== null && (
@@ -696,8 +717,12 @@ export function JourneyTab() {
             fitView
             fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
             proOptions={{ hideAttribution: true }}
-            onNodeClick={(_event, node) => { setSelected(node.id); }}
-            onPaneClick={() => { setSelected(null); }}
+            onNodeClick={(_event, node) => {
+              setSelected(node.id);
+            }}
+            onPaneClick={() => {
+              setSelected(null);
+            }}
           >
             <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="#222833" />
             <Controls showInteractive={false} />
@@ -727,7 +752,9 @@ export function JourneyTab() {
             <StepInspector
               step={selectedStep}
               channels={campaign.channels}
-              onChange={(patch) => { patchStep(selectedStep.key, patch); }}
+              onChange={(patch) => {
+                patchStep(selectedStep.key, patch);
+              }}
               onRemove={() => {
                 setSteps(steps.filter((step) => step.key !== selectedStep.key));
                 setSelected(null);
@@ -742,12 +769,14 @@ export function JourneyTab() {
           </div>
           <ol className="space-y-2 px-4 py-3 text-[12px] leading-relaxed text-ink-dim">
             <li>
-              <b className="text-ink">Validate.</b> Shape checks run here; template checks stay on the
-              server so this screen and <code className="font-mono">/activate</code> cannot disagree.
+              <b className="text-ink">Validate.</b> Shape checks run here; template checks stay on
+              the server so this screen and <code className="font-mono">/activate</code> cannot
+              disagree.
             </li>
             <li>
-              <b className="text-ink">Linearise.</b> Nodes become <code className="font-mono">sequence_order</code>{' '}
-              1…n with their delay, condition and branch.
+              <b className="text-ink">Linearise.</b> Nodes become{' '}
+              <code className="font-mono">sequence_order</code> 1…n with their delay, condition and
+              branch.
             </li>
             <li>
               <b className="text-ink">Sync.</b> DELETE, then PATCH, then POST against{' '}
@@ -793,8 +822,14 @@ function StepInspector({
             <button
               key={channel}
               type="button"
-              className={step.channel === channel ? 'btn btn-primary flex-1 justify-center' : 'btn flex-1 justify-center'}
-              onClick={() => { onChange({ channel }); }}
+              className={
+                step.channel === channel
+                  ? 'btn btn-primary flex-1 justify-center'
+                  : 'btn flex-1 justify-center'
+              }
+              onClick={() => {
+                onChange({ channel });
+              }}
             >
               {channel.toUpperCase()}
             </button>
@@ -804,33 +839,45 @@ function StepInspector({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="label" htmlFor="delay-minutes">Delay (minutes)</label>
+          <label className="label" htmlFor="delay-minutes">
+            Delay (minutes)
+          </label>
           <input
             id="delay-minutes"
             type="number"
             min={0}
             className="input"
             value={step.delayMinutes}
-            onChange={(event) => { onChange({ delayMinutes: Math.max(0, Number(event.target.value)) }); }}
+            onChange={(event) => {
+              onChange({ delayMinutes: Math.max(0, Number(event.target.value)) });
+            }}
           />
         </div>
         <div>
-          <label className="label" htmlFor="delay-anchor">Anchor</label>
+          <label className="label" htmlFor="delay-anchor">
+            Anchor
+          </label>
           <select
             id="delay-anchor"
             className="input"
             value={step.delayAnchor}
-            onChange={(event) => { onChange({ delayAnchor: event.target.value as DelayAnchor }); }}
+            onChange={(event) => {
+              onChange({ delayAnchor: event.target.value as DelayAnchor });
+            }}
           >
             {ANCHORS.map((anchor) => (
-              <option key={anchor} value={anchor}>{anchor}</option>
+              <option key={anchor} value={anchor}>
+                {anchor}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
       <div>
-        <label className="label" htmlFor="condition">Send condition</label>
+        <label className="label" htmlFor="condition">
+          Send condition
+        </label>
         <select
           id="condition"
           className="input"
@@ -841,7 +888,9 @@ function StepInspector({
           }}
         >
           {CONDITIONS.map((condition) => (
-            <option key={condition} value={condition}>{condition}</option>
+            <option key={condition} value={condition}>
+              {condition}
+            </option>
           ))}
         </select>
         <p className="mt-1 text-[11px] leading-relaxed text-ink-faint">
@@ -853,24 +902,32 @@ function StepInspector({
 
       {step.channel === 'email' && (
         <div>
-          <label className="label" htmlFor="subject">Subject</label>
+          <label className="label" htmlFor="subject">
+            Subject
+          </label>
           <input
             id="subject"
             className="input"
             value={step.subject ?? ''}
-            onChange={(event) => { onChange({ subject: event.target.value }); }}
+            onChange={(event) => {
+              onChange({ subject: event.target.value });
+            }}
           />
         </div>
       )}
 
       <div>
-        <label className="label" htmlFor="body">Body</label>
+        <label className="label" htmlFor="body">
+          Body
+        </label>
         <textarea
           id="body"
           className="input min-h-32 font-mono text-[12px] leading-relaxed"
           value={step.body}
           spellCheck={false}
-          onChange={(event) => { onChange({ body: event.target.value }); }}
+          onChange={(event) => {
+            onChange({ body: event.target.value });
+          }}
         />
         <p className="mt-1 text-[11px] leading-relaxed text-ink-faint">
           The Messages tab validates this against the server. Nothing here second-guesses that.
@@ -882,7 +939,9 @@ function StepInspector({
           type="checkbox"
           className="accent-accent"
           checked={step.enabled}
-          onChange={(event) => { onChange({ enabled: event.target.checked }); }}
+          onChange={(event) => {
+            onChange({ enabled: event.target.checked });
+          }}
         />
         <span className="text-ink-dim">Enabled</span>
       </label>
@@ -893,8 +952,8 @@ function StepInspector({
           content={
             <div className="text-ink-dim">
               Removing a step that already produced queued or sent rows does not delete it — the
-              server disables it instead, because deleting would cascade and erase the record of what
-              was sent.
+              server disables it instead, because deleting would cascade and erase the record of
+              what was sent.
             </div>
           }
         >

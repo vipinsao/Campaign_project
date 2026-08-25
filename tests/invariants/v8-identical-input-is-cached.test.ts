@@ -36,7 +36,9 @@ describe('V8 — the cache is keyed on content and prompt version', () => {
     const tenantId = await seedTriageTenant(db);
     const prompt = await syncedPrompt(db, 1);
     const body = 'Is the black one back in stock yet?';
-    const model = new MockModelClient({ fixtures: fixtureFor(prompt, body, validAnswer({ confidence: 0.91 })) });
+    const model = new MockModelClient({
+      fixtures: fixtureFor(prompt, body, validAnswer({ confidence: 0.91 })),
+    });
     const deps = triageDeps({ db, prompt, model });
 
     const first = await classifyReply(deps, await seedReply(db, tenantId, body));
@@ -61,7 +63,10 @@ describe('V8 — the cache is keyed on content and prompt version', () => {
 
     // Exactly how the same reply differs when it arrives via SMTP and via a webhook.
     await classifyReply(deps, await seedReply(db, tenantId, canonical));
-    const viaWebhook = await classifyReply(deps, await seedReply(db, tenantId, 'Line one\r\nLine two   '));
+    const viaWebhook = await classifyReply(
+      deps,
+      await seedReply(db, tenantId, 'Line one\r\nLine two   '),
+    );
 
     expect(viaWebhook.cacheHit).toBe(true);
     expect(model.calls).toBe(1);
@@ -78,8 +83,16 @@ describe('V8 — the cache is keyed on content and prompt version', () => {
 
     const model = new MockModelClient({
       fixtures: {
-        ...fixtureFor(prompt, shouted, validAnswer({ label: 'complaint', urgency: 'high', confidence: 0.97 })),
-        ...fixtureFor(prompt, quiet, validAnswer({ label: 'complaint', urgency: 'normal', confidence: 0.88 })),
+        ...fixtureFor(
+          prompt,
+          shouted,
+          validAnswer({ label: 'complaint', urgency: 'high', confidence: 0.97 }),
+        ),
+        ...fixtureFor(
+          prompt,
+          quiet,
+          validAnswer({ label: 'complaint', urgency: 'normal', confidence: 0.88 }),
+        ),
       },
     });
     const deps = triageDeps({ db, prompt, model });
@@ -106,8 +119,14 @@ describe('V8 — the cache is keyed on content and prompt version', () => {
       },
     });
 
-    const underV1 = await classifyReply(triageDeps({ db, prompt: v1, model }), await seedReply(db, tenantId, body));
-    const underV2 = await classifyReply(triageDeps({ db, prompt: v2, model }), await seedReply(db, tenantId, body));
+    const underV1 = await classifyReply(
+      triageDeps({ db, prompt: v1, model }),
+      await seedReply(db, tenantId, body),
+    );
+    const underV2 = await classifyReply(
+      triageDeps({ db, prompt: v2, model }),
+      await seedReply(db, tenantId, body),
+    );
 
     expect(underV1.cacheHit).toBe(false);
     expect(underV2.cacheHit, 'a v1 answer must never be served for v2').toBe(false);
@@ -186,7 +205,9 @@ describe('V8 — the cache is keyed on content and prompt version', () => {
     const body = 'Where is my refund?';
     const first = await seedTriageTenant(db);
     const second = await seedTriageTenant(db);
-    const model = new MockModelClient({ fixtures: fixtureFor(prompt, body, validAnswer({ label: 'complaint' })) });
+    const model = new MockModelClient({
+      fixtures: fixtureFor(prompt, body, validAnswer({ label: 'complaint' })),
+    });
     const deps = triageDeps({ db, prompt, model });
 
     await classifyReply(deps, await seedReply(db, first, body));

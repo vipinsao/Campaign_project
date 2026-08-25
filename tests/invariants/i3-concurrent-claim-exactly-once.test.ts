@@ -58,13 +58,14 @@ describe('I3 — concurrent claim is exactly once', () => {
 
     // Genuinely separate connection pools, so the workers contend in the server's
     // lock manager rather than being serialised by one client-side pool.
-    const pools = Array.from({ length: WORKERS }, () => new Pool({ connectionString: url, max: 4 }));
+    const pools = Array.from(
+      { length: WORKERS },
+      () => new Pool({ connectionString: url, max: 4 }),
+    );
 
     try {
       const results = await Promise.all(
-        pools.map((pool, i) =>
-          claimBatch(pool, { workerId: `worker-${i}`, batchSize: 40, clock }),
-        ),
+        pools.map((pool, i) => claimBatch(pool, { workerId: `worker-${i}`, batchSize: 40, clock })),
       );
 
       const claimedIds = results.flat().map((r) => r.id);

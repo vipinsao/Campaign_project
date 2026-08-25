@@ -40,7 +40,9 @@ describe('I6 — opting out cancels what is already queued', () => {
     );
 
     for (const id of ids) {
-      expect((await queueRow(id)).status, `queued message ${id} should be cancelled`).toBe('cancelled');
+      expect((await queueRow(id)).status, `queued message ${id} should be cancelled`).toBe(
+        'cancelled',
+      );
     }
 
     // And running the worker immediately afterwards must still send nothing.
@@ -132,7 +134,9 @@ describe('I6 — opting out cancels what is already queued', () => {
         ORDER BY occurred_at DESC LIMIT 1`,
       [seeded.contactId, '2026-03-15T00:00:00Z'],
     );
-    expect(asOf[0]!.state, 'the ledger can answer "were they opted in on 15 March?"').toBe('opted_in');
+    expect(asOf[0]!.state, 'the ledger can answer "were they opted in on 15 March?"').toBe(
+      'opted_in',
+    );
   });
 
   it('records a category-scoped opt-out WITHOUT suppressing the whole address', async () => {

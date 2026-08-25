@@ -174,7 +174,13 @@ export function ReasonChip({ code, title }: { code: string; title?: string }) {
 
 export function DecisionChip({ decision }: { decision: string }) {
   const tone: Tone =
-    decision === 'proceed' ? 'ok' : decision === 'skip' ? 'bad' : decision === 'defer' ? 'held' : 'quiet';
+    decision === 'proceed'
+      ? 'ok'
+      : decision === 'skip'
+        ? 'bad'
+        : decision === 'defer'
+          ? 'held'
+          : 'quiet';
   return (
     <Pill tone={tone} mono>
       {decision}

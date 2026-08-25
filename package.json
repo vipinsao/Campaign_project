@@ -35,7 +35,8 @@
     "test:integration": "vitest run tests/integration",
     "test:compliance": "vitest run tests/invariants",
     "test:e2e": "playwright test",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspaces --if-present",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

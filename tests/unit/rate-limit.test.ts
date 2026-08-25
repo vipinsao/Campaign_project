@@ -22,7 +22,13 @@ describe('the cross-process token bucket', () => {
   it('creates the bucket full and spends it down', async () => {
     const tenantId = await createTenant();
     const clock = new FakeClock('2026-03-01T09:00:00Z');
-    const config = { tenantId, provider: 'mock', channel: 'email' as const, capacity: 3, refillPerSecond: 1 };
+    const config = {
+      tenantId,
+      provider: 'mock',
+      channel: 'email' as const,
+      capacity: 3,
+      refillPerSecond: 1,
+    };
 
     expect((await tryAcquire(testDb(), config, clock)).allowed).toBe(true);
     expect((await tryAcquire(testDb(), config, clock)).allowed).toBe(true);
@@ -36,7 +42,13 @@ describe('the cross-process token bucket', () => {
   it('refills at the configured rate, measured on the injected clock', async () => {
     const tenantId = await createTenant();
     const clock = new FakeClock('2026-03-01T09:00:00Z');
-    const config = { tenantId, provider: 'mock', channel: 'email' as const, capacity: 2, refillPerSecond: 2 };
+    const config = {
+      tenantId,
+      provider: 'mock',
+      channel: 'email' as const,
+      capacity: 2,
+      refillPerSecond: 2,
+    };
 
     await tryAcquire(testDb(), config, clock);
     await tryAcquire(testDb(), config, clock);
@@ -53,7 +65,13 @@ describe('the cross-process token bucket', () => {
     // caller would reset the refill integral on every attempt and starve forever.
     const tenantId = await createTenant();
     const clock = new FakeClock('2026-03-01T09:00:00Z');
-    const config = { tenantId, provider: 'mock', channel: 'sms' as const, capacity: 1, refillPerSecond: 1 };
+    const config = {
+      tenantId,
+      provider: 'mock',
+      channel: 'sms' as const,
+      capacity: 1,
+      refillPerSecond: 1,
+    };
 
     expect((await tryAcquire(testDb(), config, clock)).allowed).toBe(true);
     for (let i = 0; i < 5; i++) {
@@ -67,7 +85,13 @@ describe('the cross-process token bucket', () => {
   it('never refills beyond capacity', async () => {
     const tenantId = await createTenant();
     const clock = new FakeClock('2026-03-01T09:00:00Z');
-    const config = { tenantId, provider: 'mock', channel: 'email' as const, capacity: 2, refillPerSecond: 5 };
+    const config = {
+      tenantId,
+      provider: 'mock',
+      channel: 'email' as const,
+      capacity: 2,
+      refillPerSecond: 5,
+    };
 
     await tryAcquire(testDb(), config, clock);
     // A bucket idle for an hour must not become an hour's worth of burst; that is
@@ -82,7 +106,13 @@ describe('the cross-process token bucket', () => {
   it('hands the last token to exactly one of two concurrent callers', async () => {
     const tenantId = await createTenant();
     const clock = new FakeClock('2026-03-01T09:00:00Z');
-    const config = { tenantId, provider: 'mock', channel: 'email' as const, capacity: 1, refillPerSecond: 0.001 };
+    const config = {
+      tenantId,
+      provider: 'mock',
+      channel: 'email' as const,
+      capacity: 1,
+      refillPerSecond: 0.001,
+    };
 
     const results = await Promise.all([
       tryAcquire(testDb(), config, clock),
@@ -99,20 +129,64 @@ describe('the cross-process token bucket', () => {
     const clock = new FakeClock('2026-03-01T09:00:00Z');
     const base = { capacity: 1, refillPerSecond: 0.001 };
 
-    expect((await tryAcquire(testDb(), { ...base, tenantId: a, provider: 'mock', channel: 'email' }, clock)).allowed).toBe(true);
+    expect(
+      (
+        await tryAcquire(
+          testDb(),
+          { ...base, tenantId: a, provider: 'mock', channel: 'email' },
+          clock,
+        )
+      ).allowed,
+    ).toBe(true);
     // One tenant exhausting its allowance must not throttle another one; a shared
     // bucket is a noisy-neighbour outage that looks like a provider problem.
-    expect((await tryAcquire(testDb(), { ...base, tenantId: b, provider: 'mock', channel: 'email' }, clock)).allowed).toBe(true);
-    expect((await tryAcquire(testDb(), { ...base, tenantId: a, provider: 'mock', channel: 'sms' }, clock)).allowed).toBe(true);
-    expect((await tryAcquire(testDb(), { ...base, tenantId: a, provider: 'twilio', channel: 'sms' }, clock)).allowed).toBe(true);
-    expect((await tryAcquire(testDb(), { ...base, tenantId: a, provider: 'mock', channel: 'email' }, clock)).allowed).toBe(false);
+    expect(
+      (
+        await tryAcquire(
+          testDb(),
+          { ...base, tenantId: b, provider: 'mock', channel: 'email' },
+          clock,
+        )
+      ).allowed,
+    ).toBe(true);
+    expect(
+      (
+        await tryAcquire(
+          testDb(),
+          { ...base, tenantId: a, provider: 'mock', channel: 'sms' },
+          clock,
+        )
+      ).allowed,
+    ).toBe(true);
+    expect(
+      (
+        await tryAcquire(
+          testDb(),
+          { ...base, tenantId: a, provider: 'twilio', channel: 'sms' },
+          clock,
+        )
+      ).allowed,
+    ).toBe(true);
+    expect(
+      (
+        await tryAcquire(
+          testDb(),
+          { ...base, tenantId: a, provider: 'mock', channel: 'email' },
+          clock,
+        )
+      ).allowed,
+    ).toBe(false);
   });
 
   it('refuses a configuration that could never permit a send', async () => {
     const tenantId = await createTenant();
     const clock = new FakeClock('2026-03-01T09:00:00Z');
     await expect(
-      tryAcquire(testDb(), { tenantId, provider: 'mock', channel: 'email', capacity: 0, refillPerSecond: 1 }, clock),
+      tryAcquire(
+        testDb(),
+        { tenantId, provider: 'mock', channel: 'email', capacity: 0, refillPerSecond: 1 },
+        clock,
+      ),
     ).rejects.toThrow(/positive capacity/);
   });
 });

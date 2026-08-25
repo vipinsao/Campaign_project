@@ -130,9 +130,14 @@ function headers(): Record<string, string> {
   return { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
 }
 
-async function lookup(query: string): Promise<{ status: number; body: RecipientResolution<OrderSummary> }> {
+async function lookup(
+  query: string,
+): Promise<{ status: number; body: RecipientResolution<OrderSummary> }> {
   const response = await app.request(`/orders/lookup?${query}`, { headers: headers() });
-  return { status: response.status, body: (await response.json()) as RecipientResolution<OrderSummary> };
+  return {
+    status: response.status,
+    body: (await response.json()) as RecipientResolution<OrderSummary>,
+  };
 }
 
 describe('I13 — the schema admits the ambiguity', () => {

@@ -101,12 +101,20 @@ describe('I4 — dedup is enforced by the database', () => {
 
     // And it is not writable: an attempt to set it directly is rejected outright.
     await expect(
-      testDb().query(`INSERT INTO message_queue
+      testDb().query(
+        `INSERT INTO message_queue
         (tenant_id, enrollment_id, campaign_id, campaign_version_id, campaign_message_id,
          contact_id, channel, recipient_address, rendered_body, scheduled_at, dedup_key)
         VALUES ($1,$2,$3,$4,$5,$6,'email','x@example.com','b',now(),'hand-written')`,
-        [input.tenantId, input.enrollmentId, input.campaignId, input.campaignVersionId,
-         input.campaignMessageId, input.contactId]),
+        [
+          input.tenantId,
+          input.enrollmentId,
+          input.campaignId,
+          input.campaignVersionId,
+          input.campaignMessageId,
+          input.contactId,
+        ],
+      ),
     ).rejects.toThrow(/non-DEFAULT value into column|generated/i);
   });
 });

@@ -301,7 +301,9 @@ export function InvariantsPage() {
       searchRef.current?.focus();
     };
     window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); };
+    return () => {
+      window.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   const needle = search.trim().toLowerCase();
@@ -336,9 +338,13 @@ export function InvariantsPage() {
                 className="input w-72 pl-7"
                 placeholder="Search rules and failures"
                 value={search}
-                onChange={(event) => { setSearch(event.target.value); }}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                }}
               />
-              <span className="pointer-events-none absolute top-1.5 left-2 text-[12px] text-ink-faint">⌕</span>
+              <span className="pointer-events-none absolute top-1.5 left-2 text-[12px] text-ink-faint">
+                ⌕
+              </span>
               {search.length === 0 && (
                 <span className="kbd pointer-events-none absolute top-1.5 right-2">/</span>
               )}
@@ -355,7 +361,9 @@ export function InvariantsPage() {
               <button
                 key={option}
                 type="button"
-                onClick={() => { setFamily(family === option ? null : option); }}
+                onClick={() => {
+                  setFamily(family === option ? null : option);
+                }}
                 className={clsx(
                   'rounded border px-1.5 py-px text-[11px] transition-colors',
                   family === option
@@ -390,8 +398,8 @@ export function InvariantsPage() {
                 </p>
                 <p className="mt-3 text-[13px] leading-relaxed text-ink-dim">
                   Each entry below is written as a rule and a <b className="text-ink">failure</b>,
-                  because a rule with no failure attached is a preference. The failures are specific,
-                  and most of them have happened to somebody.
+                  because a rule with no failure attached is a preference. The failures are
+                  specific, and most of them have happened to somebody.
                 </p>
               </div>
               <div className="grid grid-cols-3 divide-x divide-line border-t border-line md:border-t-0 md:border-l">
@@ -447,20 +455,35 @@ export function InvariantsPage() {
 
           <p className="mt-8 border-t border-line pt-4 text-[11px] leading-relaxed text-ink-faint">
             Rules and failure stories are transcribed from{' '}
-            <a href={`${BLOB}README.md`} target="_blank" rel="noreferrer" className="text-ink-dim hover:text-accent">
+            <a
+              href={`${BLOB}README.md`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-ink-dim hover:text-accent"
+            >
               README.md
             </a>{' '}
             and{' '}
-            <a href={`${BLOB}docs/DECISIONS.md`} target="_blank" rel="noreferrer" className="text-ink-dim hover:text-accent">
+            <a
+              href={`${BLOB}docs/DECISIONS.md`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-ink-dim hover:text-accent"
+            >
               docs/DECISIONS.md
             </a>
             ; status comes from{' '}
-            <a href={`${BLOB}TRACKER.md`} target="_blank" rel="noreferrer" className="text-ink-dim hover:text-accent">
+            <a
+              href={`${BLOB}TRACKER.md`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-ink-dim hover:text-accent"
+            >
               TRACKER.md
             </a>
             , which the README names as the accurate record — including where it says something is
-            only partly done. This page is static text: it is the repository&rsquo;s claim, rendered,
-            and it does not query the API to check whether the tests passed.
+            only partly done. This page is static text: it is the repository&rsquo;s claim,
+            rendered, and it does not query the API to check whether the tests passed.
           </p>
         </div>
       </Scroll>

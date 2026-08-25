@@ -19,7 +19,12 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { testDb, resetDb, closeTestDb } from '../support/db.ts';
 import { seedTenant } from '../support/fixtures.ts';
-import { autoSendAllowed, classifyReply, loadTenantTriageSettings, MockModelClient } from '@campaign/triage';
+import {
+  autoSendAllowed,
+  classifyReply,
+  loadTenantTriageSettings,
+  MockModelClient,
+} from '@campaign/triage';
 import {
   fixtureFor,
   seedReply,
@@ -54,7 +59,10 @@ describe('V10 — auto-send is off until somebody decides otherwise', () => {
       fixtures: fixtureFor(prompt, body, validAnswer({ label: 'positive', confidence: 0.99 })),
     });
 
-    const result = await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, body));
+    const result = await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, body),
+    );
 
     expect(result.status).toBe('auto');
     expect(result.confidence).toBe(0.99);
@@ -71,7 +79,10 @@ describe('V10 — auto-send is off until somebody decides otherwise', () => {
       fixtures: fixtureFor(prompt, body, validAnswer({ label: 'question', confidence: 0.95 })),
     });
 
-    const result = await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, body));
+    const result = await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, body),
+    );
     expect(result.autoSendAllowed).toBe(true);
   });
 
@@ -106,10 +117,18 @@ describe('V10 — auto-send is off until somebody decides otherwise', () => {
     const prompt = await syncedPrompt(db, 1);
     const model = new MockModelClient({
       fixtures: {},
-      synthesise: () => ({ raw: 'not json', modelId: 'claude-sonnet-5', inputTokens: 100, outputTokens: 5 }),
+      synthesise: () => ({
+        raw: 'not json',
+        modelId: 'claude-sonnet-5',
+        inputTokens: 100,
+        outputTokens: 5,
+      }),
     });
 
-    const result = await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, 'anything'));
+    const result = await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, 'anything'),
+    );
     expect(result.label).toBeNull();
     expect(result.autoSendAllowed).toBe(false);
   });
@@ -135,7 +154,9 @@ describe('V10 — auto-send is off until somebody decides otherwise', () => {
 
     expect(autoSendAllowed(on, ok)).toBe(true);
     expect(autoSendAllowed(off, ok), 'the tenant flag alone vetoes').toBe(false);
-    expect(autoSendAllowed(on, { ...ok, status: 'needs_review' }), 'uncertainty vetoes').toBe(false);
+    expect(autoSendAllowed(on, { ...ok, status: 'needs_review' }), 'uncertainty vetoes').toBe(
+      false,
+    );
     expect(autoSendAllowed(on, { ...ok, label: null }), 'a missing label vetoes').toBe(false);
     expect(autoSendAllowed(on, { ...ok, label: 'opt_out' }), 'an opt-out vetoes').toBe(false);
   });

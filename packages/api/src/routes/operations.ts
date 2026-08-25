@@ -55,7 +55,11 @@ export function operationsRoutes(deps: ApiDeps): Hono<AppEnv> {
   app.get('/mock-outbox', async (c) => {
     const tenantId = tenantOf(c);
     if (deps.sendMode === 'live') {
-      return c.json({ messages: [], available: false, reason: 'SEND_MODE is live; there is no mock outbox.' });
+      return c.json({
+        messages: [],
+        available: false,
+        reason: 'SEND_MODE is live; there is no mock outbox.',
+      });
     }
 
     const { limit, offset } = pagination(c.req.query('limit'), c.req.query('offset'));

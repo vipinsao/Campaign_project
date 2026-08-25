@@ -167,7 +167,11 @@ export function flowRoutes(deps: ApiDeps): Hono<AppEnv> {
         [campaignId, JSON.stringify(body.flow)],
       );
 
-      return { created: plan.create.length, updated: plan.update.length, disabled: plan.disable.length };
+      return {
+        created: plan.create.length,
+        updated: plan.update.length,
+        disabled: plan.disable.length,
+      };
     });
 
     return c.json({ validation, synced: result, messages: linearised });

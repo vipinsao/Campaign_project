@@ -3,9 +3,18 @@ import { useNavigate } from 'react-router';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { CampaignCategory, CampaignStatus, Channel } from '@campaign/shared';
-import type { CampaignCategory as Category, CampaignStatus as Status, Channel as Chan } from '@campaign/shared';
+import type {
+  CampaignCategory as Category,
+  CampaignStatus as Status,
+  Channel as Chan,
+} from '@campaign/shared';
 import { api } from '../lib/api.ts';
-import type { Campaign, CampaignListResponse, EnrollmentsResponse, StatsResponse } from '../lib/types.ts';
+import type {
+  Campaign,
+  CampaignListResponse,
+  EnrollmentsResponse,
+  StatsResponse,
+} from '../lib/types.ts';
 import { DASH, int, relative, titleCase } from '../lib/format.ts';
 import { PageHeader, Scroll } from '../components/Layout.tsx';
 import { CampaignStatusPill, ChannelBadges, Pill } from '../components/Pill.tsx';
@@ -42,13 +51,18 @@ export function CampaignsPage() {
       searchRef.current?.focus();
     };
     window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); };
+    return () => {
+      window.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   const list = useQuery({
     queryKey: ['campaigns', status],
     queryFn: () =>
-      api.get<CampaignListResponse>('/campaigns', { limit: 200, ...(status === null ? {} : { status }) }),
+      api.get<CampaignListResponse>('/campaigns', {
+        limit: 200,
+        ...(status === null ? {} : { status }),
+      }),
   });
 
   const all = list.data?.campaigns ?? [];
@@ -74,7 +88,8 @@ export function CampaignsPage() {
   const enrolled = useQueries({
     queries: rows.map((campaign) => ({
       queryKey: ['campaign-enrolled', campaign.id],
-      queryFn: () => api.get<EnrollmentsResponse>(`/campaigns/${campaign.id}/enrollments`, { limit: 1 }),
+      queryFn: () =>
+        api.get<EnrollmentsResponse>(`/campaigns/${campaign.id}/enrollments`, { limit: 1 }),
       staleTime: 30_000,
     })),
   });
@@ -97,7 +112,9 @@ export function CampaignsPage() {
                 className="input w-64 pl-7"
                 placeholder="Search name, description, id"
                 value={search}
-                onChange={(event) => { setSearch(event.target.value); }}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                }}
               />
               <span className="pointer-events-none absolute top-1.5 left-2 text-[12px] text-ink-faint">
                 ⌕
@@ -125,7 +142,12 @@ export function CampaignsPage() {
               value={category}
               onChange={setCategory}
             />
-            <ChipGroup label="channel" options={Channel.options} value={channel} onChange={setChannel} />
+            <ChipGroup
+              label="channel"
+              options={Channel.options}
+              value={channel}
+              onChange={setChannel}
+            />
           </div>
         }
       />
@@ -138,7 +160,11 @@ export function CampaignsPage() {
         ) : rows.length === 0 ? (
           <EmptyState
             glyph={all.length === 0 ? '∅' : '⌕'}
-            title={all.length === 0 ? 'No campaigns in this tenant yet' : 'No campaign matches these filters'}
+            title={
+              all.length === 0
+                ? 'No campaigns in this tenant yet'
+                : 'No campaign matches these filters'
+            }
             detail={
               all.length === 0 ? (
                 <>
@@ -219,8 +245,11 @@ export function CampaignsPage() {
             {rows.length} of {all.length} loaded
             {status !== null && <> · server-filtered to {status}</>} · page limit 200
             {(list.data?.page.total ?? 0) > all.length && (
-              <> · {list.data?.page.total} exist in this tenant, so category/channel/search filters
-                apply to the loaded page only</>
+              <>
+                {' '}
+                · {list.data?.page.total} exist in this tenant, so category/channel/search filters
+                apply to the loaded page only
+              </>
             )}
           </div>
         )}
@@ -266,7 +295,13 @@ function Row({
         )}
       </td>
       <td className="cell">
-        <Pill tone={campaign.category === 'transactional' || campaign.category === 'operational' ? 'info' : 'quiet'}>
+        <Pill
+          tone={
+            campaign.category === 'transactional' || campaign.category === 'operational'
+              ? 'info'
+              : 'quiet'
+          }
+        >
           {titleCase(campaign.category)}
         </Pill>
       </td>
@@ -289,10 +324,18 @@ function Row({
         )}
       </td>
       <td className="cell text-right">
-        {delivery === undefined ? <span className="text-ink-faint">{DASH}</span> : <ApiRateValue rate={delivery} />}
+        {delivery === undefined ? (
+          <span className="text-ink-faint">{DASH}</span>
+        ) : (
+          <ApiRateValue rate={delivery} />
+        )}
       </td>
       <td className="cell text-right">
-        {open === undefined ? <span className="text-ink-faint">{DASH}</span> : <ApiRateValue rate={open} />}
+        {open === undefined ? (
+          <span className="text-ink-faint">{DASH}</span>
+        ) : (
+          <ApiRateValue rate={open} />
+        )}
       </td>
       <td className="cell text-right text-[11px] whitespace-nowrap text-ink-faint">
         {relative(campaign.updatedAt)}
@@ -319,7 +362,9 @@ function ChipGroup<T extends string>({
         <button
           key={option}
           type="button"
-          onClick={() => { onChange(value === option ? null : option); }}
+          onClick={() => {
+            onChange(value === option ? null : option);
+          }}
           className={clsx(
             'rounded border px-1.5 py-px text-[11px] transition-colors',
             value === option

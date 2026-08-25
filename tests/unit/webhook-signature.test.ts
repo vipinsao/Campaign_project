@@ -144,7 +144,9 @@ describe('Twilio webhook signatures', () => {
 
   it('sorts parameters by key rather than trusting the order they arrived in', () => {
     const shuffled = [...PARAMS].reverse();
-    expect(twilioSignature(URL, shuffled, AUTH_TOKEN)).toBe(twilioSignature(URL, PARAMS, AUTH_TOKEN));
+    expect(twilioSignature(URL, shuffled, AUTH_TOKEN)).toBe(
+      twilioSignature(URL, PARAMS, AUTH_TOKEN),
+    );
   });
 
   it('accepts a correctly signed callback', () => {
@@ -174,7 +176,11 @@ describe('Twilio webhook signatures', () => {
     const body = formBody(PARAMS);
     const params = [...new URLSearchParams(body.toString('utf8'))];
     const headers = {
-      [TWILIO_SIGNATURE_HEADER]: twilioSignature('https://elsewhere.example/hook', params, AUTH_TOKEN),
+      [TWILIO_SIGNATURE_HEADER]: twilioSignature(
+        'https://elsewhere.example/hook',
+        params,
+        AUTH_TOKEN,
+      ),
       [TWILIO_REQUEST_URL_HEADER]: URL,
     };
     expect(provider().verifyWebhook(headers, body, AUTH_TOKEN)).toBe(false);
@@ -189,7 +195,9 @@ describe('Twilio webhook signatures', () => {
 
   it('rejects a callback with no signature header', () => {
     const body = formBody(PARAMS);
-    expect(provider().verifyWebhook({ [TWILIO_REQUEST_URL_HEADER]: URL }, body, AUTH_TOKEN)).toBe(false);
+    expect(provider().verifyWebhook({ [TWILIO_REQUEST_URL_HEADER]: URL }, body, AUTH_TOKEN)).toBe(
+      false,
+    );
   });
 
   it('maps a delivery receipt but not an in-flight status', () => {

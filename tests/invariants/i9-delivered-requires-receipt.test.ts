@@ -82,7 +82,10 @@ describe('I9 — delivery is a fact only the provider can report', () => {
       new URL('../../packages/core/src/queue/message-queue.ts', import.meta.url),
       'utf8',
     );
-    const markSentBody = src.slice(src.indexOf('export async function markSent'), src.indexOf('export async function markFailed'));
+    const markSentBody = src.slice(
+      src.indexOf('export async function markSent'),
+      src.indexOf('export async function markFailed'),
+    );
     expect(
       markSentBody.includes('delivered_at'),
       'markSent must never write delivered_at — that is what inferring delivery looks like',

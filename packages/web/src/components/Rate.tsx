@@ -86,7 +86,9 @@ export function RateValue({
       <span
         className={
           className ??
-          (value === null ? 'num text-ink-faint' : 'num text-ink underline decoration-line-strong decoration-dotted underline-offset-4')
+          (value === null
+            ? 'num text-ink-faint'
+            : 'num text-ink underline decoration-line-strong decoration-dotted underline-offset-4')
         }
       >
         {formatRate(value)}
@@ -205,7 +207,9 @@ export function StatCard({
 }) {
   return (
     <div className="rounded-md border border-line bg-surface px-3 py-2.5">
-      <div className="mb-1 truncate text-[11px] tracking-wide text-ink-faint uppercase">{label}</div>
+      <div className="mb-1 truncate text-[11px] tracking-wide text-ink-faint uppercase">
+        {label}
+      </div>
       <div
         className={
           'text-xl leading-tight font-semibold tabular-nums ' +

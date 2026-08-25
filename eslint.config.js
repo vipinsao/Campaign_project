@@ -36,6 +36,7 @@ export default defineConfig(
             'vitest.config.ts',
             '*.config.ts',
             'scripts/dev.mjs',
+            'scripts/smoke.mjs',
           ],
         },
         tsconfigRootDir: import.meta.dirname,
@@ -62,14 +63,23 @@ export default defineConfig(
           default: 'disallow',
           policies: [
             // The domain depends on nothing but shared types. This is the whole point.
-            { from: [{ element: { type: 'shared' } }], allow: [{ to: { element: { type: 'shared' } } }] },
+            {
+              from: [{ element: { type: 'shared' } }],
+              allow: [{ to: { element: { type: 'shared' } } }],
+            },
             {
               from: [{ element: { type: 'core' } }],
-              allow: [{ to: { element: { type: 'shared' } } }, { to: { element: { type: 'core' } } }],
+              allow: [
+                { to: { element: { type: 'shared' } } },
+                { to: { element: { type: 'core' } } },
+              ],
             },
             {
               from: [{ element: { type: 'providers' } }],
-              allow: [{ to: { element: { type: 'shared' } } }, { to: { element: { type: 'providers' } } }],
+              allow: [
+                { to: { element: { type: 'shared' } } },
+                { to: { element: { type: 'providers' } } },
+              ],
             },
             {
               from: [{ element: { type: 'triage' } }],
@@ -170,7 +180,10 @@ export default defineConfig(
             { name: 'twilio', message: 'Vendor SDKs live in packages/providers only.' },
             { name: 'hono', message: 'core is transport-agnostic.' },
             { name: 'express', message: 'core is transport-agnostic.' },
-            { name: '@anthropic-ai/sdk', message: 'The model client lives in packages/triage only.' },
+            {
+              name: '@anthropic-ai/sdk',
+              message: 'The model client lives in packages/triage only.',
+            },
           ],
         },
       ],
@@ -209,6 +222,8 @@ export default defineConfig(
         console: 'readonly',
         Buffer: 'readonly',
         URL: 'readonly',
+        URLSearchParams: 'readonly',
+        fetch: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
       },

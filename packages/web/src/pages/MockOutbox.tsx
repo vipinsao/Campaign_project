@@ -92,7 +92,8 @@ export function MockOutboxPage() {
    * the fourth state: a thing the API cannot tell us, named precisely.
    */
   const missingEndpoint =
-    outbox.error instanceof ApiError && (outbox.error.status === 404 || outbox.error.code === 'not_found');
+    outbox.error instanceof ApiError &&
+    (outbox.error.status === 404 || outbox.error.code === 'not_found');
 
   const rows = outbox.data?.messages ?? [];
   const emails = rows.filter((row) => row.channel === 'email');
@@ -121,7 +122,9 @@ export function MockOutboxPage() {
                 key={option}
                 type="button"
                 className={clsx('btn', channel === option && 'border-accent-dim text-accent')}
-                onClick={() => { setChannel(channel === option ? null : option); }}
+                onClick={() => {
+                  setChannel(channel === option ? null : option);
+                }}
               >
                 {option.toUpperCase()}
               </button>
@@ -136,7 +139,10 @@ export function MockOutboxPage() {
             <div className="flex flex-wrap items-center gap-2 pb-3">
               <span className="text-[10px] tracking-wide text-ink-faint uppercase">outcomes</span>
               {(Object.keys(OUTCOME_TONE) as OutboxRow['simulated_outcome'][]).map((outcome) => (
-                <Tooltip key={outcome} content={<div className="text-ink-dim">{OUTCOME_NOTE[outcome]}</div>}>
+                <Tooltip
+                  key={outcome}
+                  content={<div className="text-ink-dim">{OUTCOME_NOTE[outcome]}</div>}
+                >
                   <Pill tone={counts[outcome] === undefined ? 'quiet' : OUTCOME_TONE[outcome]} mono>
                     {outcome} {counts[outcome] ?? 0}
                   </Pill>
@@ -159,11 +165,11 @@ export function MockOutboxPage() {
                   The mock provider writes every send to{' '}
                   <code className="font-mono text-ink-dim">mock_outbox</code> — address, subject,
                   body, <code className="font-mono text-ink-dim">provider_message_id</code> and the{' '}
-                  <code className="font-mono text-ink-dim">simulated_outcome</code> it assigned — but
-                  this API exposes no route that returns those rows. The one this page asks for is{' '}
-                  <code className="font-mono text-ink-dim">GET /mock-outbox</code>; it answered 404.
-                  The page is wired for it and will render the moment the route exists. Nothing is
-                  shown in the meantime, because the alternative would be an inbox made up in the
+                  <code className="font-mono text-ink-dim">simulated_outcome</code> it assigned —
+                  but this API exposes no route that returns those rows. The one this page asks for
+                  is <code className="font-mono text-ink-dim">GET /mock-outbox</code>; it answered
+                  404. The page is wired for it and will render the moment the route exists. Nothing
+                  is shown in the meantime, because the alternative would be an inbox made up in the
                   browser.
                 </>
               }
@@ -228,20 +234,28 @@ export function MockOutboxPage() {
                       <li key={row.id}>
                         <button
                           type="button"
-                          onClick={() => { setSelected(row.id); }}
+                          onClick={() => {
+                            setSelected(row.id);
+                          }}
                           className={clsx(
                             'w-full px-3 py-2 text-left transition-colors',
                             open?.id === row.id ? 'bg-accent-wash' : 'hover:bg-raised',
                           )}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="truncate text-[12px] text-ink-dim">{row.to_address}</span>
+                            <span className="truncate text-[12px] text-ink-dim">
+                              {row.to_address}
+                            </span>
                             <Pill tone={OUTCOME_TONE[row.simulated_outcome]} mono>
                               {row.simulated_outcome.slice(0, 4)}
                             </Pill>
                           </div>
-                          <div className="truncate text-[12px] text-ink">{row.subject ?? '(no subject)'}</div>
-                          <div className="text-[10px] text-ink-faint">{shortTimestamp(row.sent_at)}</div>
+                          <div className="truncate text-[12px] text-ink">
+                            {row.subject ?? '(no subject)'}
+                          </div>
+                          <div className="text-[10px] text-ink-faint">
+                            {shortTimestamp(row.sent_at)}
+                          </div>
                         </button>
                       </li>
                     ))}
@@ -292,7 +306,9 @@ function EmailView({ row }: { row: OutboxRow }) {
       <div className="border-b border-line px-4 py-3">
         <div className="mb-1.5 flex flex-wrap items-center gap-2">
           <ChannelBadge channel="email" />
-          <Tooltip content={<div className="text-ink-dim">{OUTCOME_NOTE[row.simulated_outcome]}</div>}>
+          <Tooltip
+            content={<div className="text-ink-dim">{OUTCOME_NOTE[row.simulated_outcome]}</div>}
+          >
             <Pill tone={OUTCOME_TONE[row.simulated_outcome]} mono>
               {row.simulated_outcome}
             </Pill>
@@ -325,14 +341,18 @@ function EmailView({ row }: { row: OutboxRow }) {
           <button
             type="button"
             className={clsx('btn btn-ghost', !showHtml && 'text-accent')}
-            onClick={() => { setShowHtml(false); }}
+            onClick={() => {
+              setShowHtml(false);
+            }}
           >
             Plain text
           </button>
           <button
             type="button"
             className={clsx('btn btn-ghost', showHtml && 'text-accent')}
-            onClick={() => { setShowHtml(true); }}
+            onClick={() => {
+              setShowHtml(true);
+            }}
           >
             HTML source
           </button>
@@ -399,8 +419,8 @@ function Phone({ rows }: { rows: readonly OutboxRow[] }) {
                     content={
                       <div className="text-ink-dim">
                         An estimate at 160 characters per segment. The authoritative count is
-                        computed on the server against the rendered text with GSM-7/UCS-2 detection —
-                        one curly apostrophe halves the segment size, and a merge field becomes
+                        computed on the server against the rendered text with GSM-7/UCS-2 detection
+                        — one curly apostrophe halves the segment size, and a merge field becomes
                         whatever the longest real first name happens to be.
                       </div>
                     }
@@ -411,7 +431,9 @@ function Phone({ rows }: { rows: readonly OutboxRow[] }) {
                   </Tooltip>
                   <Tooltip
                     align="right"
-                    content={<div className="text-ink-dim">{OUTCOME_NOTE[row.simulated_outcome]}</div>}
+                    content={
+                      <div className="text-ink-dim">{OUTCOME_NOTE[row.simulated_outcome]}</div>
+                    }
                   >
                     <span
                       className={clsx(
@@ -429,9 +451,9 @@ function Phone({ rows }: { rows: readonly OutboxRow[] }) {
         </div>
       </div>
       <p className="mt-3 text-[11px] leading-relaxed text-ink-faint">
-        Sender: <span className="font-mono text-ink-dim">{ordered[0]?.from_address ?? DASH}</span>. SMS
-        has no open tracking of any kind, which is why no open rate appears for this channel anywhere
-        in the product.
+        Sender: <span className="font-mono text-ink-dim">{ordered[0]?.from_address ?? DASH}</span>.
+        SMS has no open tracking of any kind, which is why no open rate appears for this channel
+        anywhere in the product.
       </p>
     </div>
   );

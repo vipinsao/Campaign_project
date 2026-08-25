@@ -66,7 +66,8 @@ export async function seedReply(
   opts: { channel?: 'email' | 'sms'; fromAddress?: string; contactId?: string } = {},
 ): Promise<SeededReply> {
   const channel = opts.channel ?? 'email';
-  const fromAddress = opts.fromAddress ?? `replier${Math.random().toString(36).slice(2, 10)}@example.com`;
+  const fromAddress =
+    opts.fromAddress ?? `replier${Math.random().toString(36).slice(2, 10)}@example.com`;
   const contactId = opts.contactId ?? (await seedContact(db, tenantId, { email: fromAddress }));
   const { rows } = await db.query<{ id: string }>(
     `INSERT INTO inbound_replies (tenant_id, contact_id, channel, from_address, body, content_hash)
@@ -95,10 +96,18 @@ export type ModelAnswer = {
 
 /** A fixture whose payload is exactly what is passed in — including deliberately
  *  invalid shapes, which is how the V5 and V9 suites drive a schema violation. */
-export function fixtureFor(prompt: PromptRecord, body: string, answer: ModelAnswer | string): Record<string, ModelFixture> {
+export function fixtureFor(
+  prompt: PromptRecord,
+  body: string,
+  answer: ModelAnswer | string,
+): Record<string, ModelFixture> {
   const raw = typeof answer === 'string' ? answer : JSON.stringify(answer);
   return {
-    [fixtureKey({ promptName: prompt.name, promptVersion: prompt.version, inputHash: contentHash(body) })]: {
+    [fixtureKey({
+      promptName: prompt.name,
+      promptVersion: prompt.version,
+      inputHash: contentHash(body),
+    })]: {
       raw,
       modelId: 'claude-sonnet-5',
       inputTokens: 400,

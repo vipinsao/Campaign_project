@@ -55,7 +55,9 @@ export function MessagesTab() {
             : 'Hi {{contact.first_name}} — ',
         ...(channel === 'email' ? { subjectTemplate: 'New message' } : {}),
       }),
-    onMutate: () => { setError(null); },
+    onMutate: () => {
+      setError(null);
+    },
     onSuccess: (result) => {
       setSelectedId(result.message.id);
       reload();
@@ -84,7 +86,9 @@ export function MessagesTab() {
                 <li key={message.id}>
                   <button
                     type="button"
-                    onClick={() => { setSelectedId(message.id); }}
+                    onClick={() => {
+                      setSelectedId(message.id);
+                    }}
                     className={clsx(
                       'flex w-full items-start gap-2 px-3 py-2 text-left transition-colors',
                       selected?.id === message.id ? 'bg-accent-wash' : 'hover:bg-raised',
@@ -100,7 +104,8 @@ export function MessagesTab() {
                         {failures.length > 0 && <Pill tone="bad">{failures.length}</Pill>}
                       </span>
                       <span className="mt-0.5 block truncate text-[12px] text-ink">
-                        {message.subjectTemplate ?? (message.bodyTemplate.slice(0, 40) || '(empty)')}
+                        {message.subjectTemplate ??
+                          (message.bodyTemplate.slice(0, 40) || '(empty)')}
                       </span>
                       <span className="block truncate text-[11px] text-ink-faint">
                         {minutes(message.delayMinutes)} after {message.delayAnchor}
@@ -119,7 +124,9 @@ export function MessagesTab() {
               type="button"
               className="btn flex-1 justify-center"
               disabled={create.isPending}
-              onClick={() => { create.mutate(channel); }}
+              onClick={() => {
+                create.mutate(channel);
+              }}
             >
               + {channel.toUpperCase()}
             </button>
@@ -174,15 +181,21 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
           setValidation(result);
           setValidationError(null);
         })
-        .catch((caught: unknown) => { setValidationError(caught); });
+        .catch((caught: unknown) => {
+          setValidationError(caught);
+        });
     }, 350);
-    return () => { window.clearTimeout(timer); };
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [subject, body, html, message.channel, campaign.category]);
 
   const save = useMutation({
     mutationFn: (patch: Record<string, unknown>) =>
       api.patch(`/campaigns/${campaignId}/messages/${message.id}`, patch),
-    onMutate: () => { setError(null); },
+    onMutate: () => {
+      setError(null);
+    },
     onSuccess: reload,
     onError: setError,
   });
@@ -208,7 +221,9 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
                 type="checkbox"
                 className="accent-accent"
                 checked={message.isEnabled}
-                onChange={(event) => { save.mutate({ isEnabled: event.target.checked }); }}
+                onChange={(event) => {
+                  save.mutate({ isEnabled: event.target.checked });
+                }}
               />
               enabled
             </label>
@@ -231,12 +246,16 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
 
         <div className="grid grid-cols-3 gap-3 border-b border-line p-4">
           <div>
-            <label className="label" htmlFor="anchor">Delay anchor</label>
+            <label className="label" htmlFor="anchor">
+              Delay anchor
+            </label>
             <select
               id="anchor"
               className="input"
               value={message.delayAnchor}
-              onChange={(event) => { save.mutate({ delayAnchor: event.target.value }); }}
+              onChange={(event) => {
+                save.mutate({ delayAnchor: event.target.value });
+              }}
             >
               <option value="trigger">trigger</option>
               <option value="previous">previous message</option>
@@ -244,7 +263,9 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="delay">Delay (minutes)</label>
+            <label className="label" htmlFor="delay">
+              Delay (minutes)
+            </label>
             <input
               id="delay"
               type="number"
@@ -261,18 +282,26 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
             <p className="mt-1 text-[11px] text-ink-faint">{minutes(message.delayMinutes)}</p>
           </div>
           <div>
-            <label className="label" htmlFor="condition">Send condition</label>
+            <label className="label" htmlFor="condition">
+              Send condition
+            </label>
             <select
               id="condition"
               className="input"
               value={message.sendCondition}
-              onChange={(event) => { save.mutate({ sendCondition: event.target.value }); }}
+              onChange={(event) => {
+                save.mutate({ sendCondition: event.target.value });
+              }}
             >
               {SEND_CONDITIONS.map((condition) => (
-                <option key={condition} value={condition}>{condition}</option>
+                <option key={condition} value={condition}>
+                  {condition}
+                </option>
               ))}
             </select>
-            <p className="mt-1 text-[11px] text-ink-faint">Re-evaluated at send time, not at enqueue.</p>
+            <p className="mt-1 text-[11px] text-ink-faint">
+              Re-evaluated at send time, not at enqueue.
+            </p>
           </div>
         </div>
 
@@ -280,9 +309,13 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
 
         {failures.length > 0 && (
           <div className="border-b border-bad/20 bg-bad-wash px-4 py-2">
-            <div className="mb-1 text-[12px] font-medium text-bad">Activation refused this message</div>
+            <div className="mb-1 text-[12px] font-medium text-bad">
+              Activation refused this message
+            </div>
             <ul className="list-disc space-y-0.5 pl-4 text-[12px] text-ink-dim">
-              {failures.map((failure, index) => <li key={index}>{failure}</li>)}
+              {failures.map((failure, index) => (
+                <li key={index}>{failure}</li>
+              ))}
             </ul>
           </div>
         )}
@@ -290,12 +323,16 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
         <div className="space-y-3 p-4">
           {message.channel === 'email' && (
             <div>
-              <label className="label" htmlFor="subject">Subject</label>
+              <label className="label" htmlFor="subject">
+                Subject
+              </label>
               <input
                 id="subject"
                 className="input"
                 value={subject}
-                onChange={(event) => { setSubject(event.target.value); }}
+                onChange={(event) => {
+                  setSubject(event.target.value);
+                }}
                 placeholder="Your order {{order.number}} is on its way"
               />
             </div>
@@ -310,21 +347,27 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
               className="input min-h-32 resize-y font-mono text-[12px] leading-relaxed"
               value={body}
               spellCheck={false}
-              onChange={(event) => { setBody(event.target.value); }}
+              onChange={(event) => {
+                setBody(event.target.value);
+              }}
             />
             {message.channel === 'sms' && <SegmentCounter validation={validation} body={body} />}
           </div>
 
           {message.channel === 'email' && (
             <div>
-              <label className="label" htmlFor="html">HTML body</label>
+              <label className="label" htmlFor="html">
+                HTML body
+              </label>
               <textarea
                 id="html"
                 className="input min-h-48 resize-y font-mono text-[12px] leading-relaxed"
                 value={html}
                 spellCheck={false}
                 placeholder="<p>Hi {{contact.first_name}},</p>"
-                onChange={(event) => { setHtml(event.target.value); }}
+                onChange={(event) => {
+                  setHtml(event.target.value);
+                }}
               />
             </div>
           )}
@@ -334,14 +377,17 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
               <span className="label">Merge fields</span>
               <div className="flex flex-wrap gap-1">
                 {mergeFields.data.fields.map((field) => {
-                  const unusable = field.requiresOrder && !campaign.triggerType.startsWith('order_');
+                  const unusable =
+                    field.requiresOrder && !campaign.triggerType.startsWith('order_');
                   return (
                     <Tooltip
                       key={field.name}
                       content={
                         <>
                           <div className="mb-1 font-mono text-[11px] text-accent">
-                            {'{{'}{field.name}{'}}'}
+                            {'{{'}
+                            {field.name}
+                            {'}}'}
                           </div>
                           <div className="text-ink-dim">
                             {field.description ?? 'No description.'}
@@ -366,7 +412,9 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
                             ? 'border-held/30 bg-held-wash text-held/70'
                             : 'border-line text-ink-dim hover:border-accent-dim hover:text-accent',
                         )}
-                        onClick={() => { setBody(`${body}{{${field.name}}}`); }}
+                        onClick={() => {
+                          setBody(`${body}{{${field.name}}}`);
+                        }}
                       >
                         {field.name}
                       </button>
@@ -399,10 +447,17 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
  * is domain logic. The raw character count is shown next to it precisely so the
  * gap between "155 characters" and "3 segments" is visible.
  */
-function SegmentCounter({ validation, body }: { validation: ValidateResponse | null; body: string }) {
+function SegmentCounter({
+  validation,
+  body,
+}: {
+  validation: ValidateResponse | null;
+  body: string;
+}) {
   const segments = validation?.smsSegments;
   const rendered = validation?.renderedLength;
-  const tone = segments === undefined ? 'quiet' : segments <= 1 ? 'ok' : segments <= 2 ? 'held' : 'bad';
+  const tone =
+    segments === undefined ? 'quiet' : segments <= 1 ? 'ok' : segments <= 2 ? 'held' : 'bad';
 
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
@@ -421,7 +476,9 @@ function SegmentCounter({ validation, body }: { validation: ValidateResponse | n
         }
       >
         <Pill tone={tone}>
-          {segments === undefined ? '— segments' : `${String(segments)} segment${segments === 1 ? '' : 's'}`}
+          {segments === undefined
+            ? '— segments'
+            : `${String(segments)} segment${segments === 1 ? '' : 's'}`}
         </Pill>
       </Tooltip>
       <span className="text-ink-faint">
@@ -455,17 +512,21 @@ function Validation({
         <div className="space-y-3 p-4">
           <div className="flex items-center gap-2">
             <Pill tone={validation.ok ? 'ok' : 'bad'}>
-              {validation.ok ? 'Passes' : `${String(validation.errors.length)} error${validation.errors.length === 1 ? '' : 's'}`}
+              {validation.ok
+                ? 'Passes'
+                : `${String(validation.errors.length)} error${validation.errors.length === 1 ? '' : 's'}`}
             </Pill>
             {validation.warnings.length > 0 && (
-              <Pill tone="held">{validation.warnings.length} warning{validation.warnings.length === 1 ? '' : 's'}</Pill>
+              <Pill tone="held">
+                {validation.warnings.length} warning{validation.warnings.length === 1 ? '' : 's'}
+              </Pill>
             )}
             <Tooltip
               content={
                 <div className="text-ink-dim">
                   A delivered message with nothing to click must never sit in the denominator of a
-                  click rate (I12). If this stays false, the campaign will have no click rate at
-                  all — which is correct, and worth knowing now rather than later.
+                  click rate (I12). If this stays false, the campaign will have no click rate at all
+                  — which is correct, and worth knowing now rather than later.
                 </div>
               }
             >
@@ -477,14 +538,18 @@ function Validation({
 
           {validation.errors.length === 0 && validation.warnings.length === 0 ? (
             <p className="text-[12px] leading-relaxed text-ink-faint">
-              No problems. {category === 'lifecycle' || category === 'promotional'
+              No problems.{' '}
+              {category === 'lifecycle' || category === 'promotional'
                 ? 'A resolvable opt-out was found, which is what a marketing template needs before it can be activated (I7).'
                 : 'This category is not required to carry an opt-out.'}
             </p>
           ) : (
             <ul className="space-y-1.5">
               {validation.errors.map((issue, index) => (
-                <li key={`e${String(index)}`} className="flex gap-2 rounded border border-bad/25 bg-bad-wash px-2 py-1.5 text-[12px]">
+                <li
+                  key={`e${String(index)}`}
+                  className="flex gap-2 rounded border border-bad/25 bg-bad-wash px-2 py-1.5 text-[12px]"
+                >
                   {issue.field !== undefined && (
                     <code className="shrink-0 font-mono text-[11px] text-bad">{issue.field}</code>
                   )}
@@ -492,7 +557,10 @@ function Validation({
                 </li>
               ))}
               {validation.warnings.map((issue, index) => (
-                <li key={`w${String(index)}`} className="flex gap-2 rounded border border-held/25 bg-held-wash px-2 py-1.5 text-[12px]">
+                <li
+                  key={`w${String(index)}`}
+                  className="flex gap-2 rounded border border-held/25 bg-held-wash px-2 py-1.5 text-[12px]"
+                >
                   {issue.field !== undefined && (
                     <code className="shrink-0 font-mono text-[11px] text-held">{issue.field}</code>
                   )}
@@ -508,7 +576,9 @@ function Validation({
               {validation.mergeFields.length === 0
                 ? '—'
                 : validation.mergeFields.map((field) => (
-                    <code key={field} className="mr-1 font-mono text-ink-dim">{field}</code>
+                    <code key={field} className="mr-1 font-mono text-ink-dim">
+                      {field}
+                    </code>
                   ))}
             </div>
             <div>
@@ -516,7 +586,9 @@ function Validation({
               {validation.links.length === 0
                 ? '—'
                 : validation.links.map((link) => (
-                    <code key={link} className="mr-1 font-mono break-all text-ink-dim">{link}</code>
+                    <code key={link} className="mr-1 font-mono break-all text-ink-dim">
+                      {link}
+                    </code>
                   ))}
             </div>
           </div>
@@ -547,14 +619,18 @@ function HtmlPreview({ html, body, subject }: { html: string; body: string; subj
           <button
             type="button"
             className={clsx('btn btn-ghost', mode === 'html' && 'text-accent')}
-            onClick={() => { setMode('html'); }}
+            onClick={() => {
+              setMode('html');
+            }}
           >
             HTML
           </button>
           <button
             type="button"
             className={clsx('btn btn-ghost', mode === 'text' && 'text-accent')}
-            onClick={() => { setMode('text'); }}
+            onClick={() => {
+              setMode('text');
+            }}
           >
             Plain text
           </button>

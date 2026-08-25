@@ -31,7 +31,9 @@ export function OverviewTab() {
 
   const patch = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch(`/campaigns/${campaignId}`, body),
-    onMutate: () => { setError(null); },
+    onMutate: () => {
+      setError(null);
+    },
     onSuccess: reload,
     onError: setError,
   });
@@ -48,11 +50,34 @@ export function OverviewTab() {
           value={int(enrolledStage?.count)}
           hint="contacts, from /funnel"
         />
-        <StatCard label="Queued" value={int(stats.data?.counts.queued)} hint="pending + processing" />
-        <StatCard label="Sent" value={int(stats.data?.counts.sent)} hint="sent_at is not null" tone="accent" />
-        <StatCard label="Delivered" value={int(stats.data?.counts.delivered)} hint="receipt received" tone="ok" />
-        <StatCard label="Bounced" value={int(stats.data?.counts.bounced)} hint="hard + soft" tone="bad" />
-        <StatCard label="Messages" value={int(messages.length)} hint={`${String(messages.filter((m) => m.isEnabled).length)} enabled`} />
+        <StatCard
+          label="Queued"
+          value={int(stats.data?.counts.queued)}
+          hint="pending + processing"
+        />
+        <StatCard
+          label="Sent"
+          value={int(stats.data?.counts.sent)}
+          hint="sent_at is not null"
+          tone="accent"
+        />
+        <StatCard
+          label="Delivered"
+          value={int(stats.data?.counts.delivered)}
+          hint="receipt received"
+          tone="ok"
+        />
+        <StatCard
+          label="Bounced"
+          value={int(stats.data?.counts.bounced)}
+          hint="hard + soft"
+          tone="bad"
+        />
+        <StatCard
+          label="Messages"
+          value={int(messages.length)}
+          hint={`${String(messages.filter((m) => m.isEnabled).length)} enabled`}
+        />
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
@@ -63,27 +88,36 @@ export function OverviewTab() {
           </div>
           <div className="space-y-3 p-4">
             <div>
-              <label className="label" htmlFor="name">Name</label>
+              <label className="label" htmlFor="name">
+                Name
+              </label>
               <input
                 id="name"
                 className="input"
                 defaultValue={campaign.name}
                 onBlur={(event) => {
-                  if (event.target.value !== campaign.name && event.target.value.trim().length > 0) {
+                  if (
+                    event.target.value !== campaign.name &&
+                    event.target.value.trim().length > 0
+                  ) {
                     patch.mutate({ name: event.target.value });
                   }
                 }}
               />
             </div>
             <div>
-              <label className="label" htmlFor="description">Description</label>
+              <label className="label" htmlFor="description">
+                Description
+              </label>
               <textarea
                 id="description"
                 className="input min-h-16 resize-y"
                 defaultValue={campaign.description ?? ''}
                 onBlur={(event) => {
                   if (event.target.value !== (campaign.description ?? '')) {
-                    patch.mutate({ description: event.target.value.length === 0 ? null : event.target.value });
+                    patch.mutate({
+                      description: event.target.value.length === 0 ? null : event.target.value,
+                    });
                   }
                 }}
               />
@@ -91,15 +125,21 @@ export function OverviewTab() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label" htmlFor="category">Category</label>
+                <label className="label" htmlFor="category">
+                  Category
+                </label>
                 <select
                   id="category"
                   className="input"
                   value={campaign.category}
-                  onChange={(event) => { patch.mutate({ category: event.target.value }); }}
+                  onChange={(event) => {
+                    patch.mutate({ category: event.target.value });
+                  }}
                 >
                   {CampaignCategory.options.map((option) => (
-                    <option key={option} value={option}>{titleCase(option)}</option>
+                    <option key={option} value={option}>
+                      {titleCase(option)}
+                    </option>
                   ))}
                 </select>
                 <p className="mt-1 text-[11px] leading-relaxed text-ink-faint">
@@ -109,15 +149,21 @@ export function OverviewTab() {
                 </p>
               </div>
               <div>
-                <label className="label" htmlFor="trigger">Trigger</label>
+                <label className="label" htmlFor="trigger">
+                  Trigger
+                </label>
                 <select
                   id="trigger"
                   className="input"
                   value={campaign.triggerType}
-                  onChange={(event) => { patch.mutate({ triggerType: event.target.value }); }}
+                  onChange={(event) => {
+                    patch.mutate({ triggerType: event.target.value });
+                  }}
                 >
                   {TriggerType.options.map((option) => (
-                    <option key={option} value={option}>{option}</option>
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
                   ))}
                 </select>
                 <p className="mt-1 text-[11px] leading-relaxed text-ink-faint">
@@ -157,7 +203,9 @@ export function OverviewTab() {
                 type="checkbox"
                 className="mt-0.5 accent-accent"
                 checked={campaign.oneTimePerContact}
-                onChange={(event) => { patch.mutate({ oneTimePerContact: event.target.checked }); }}
+                onChange={(event) => {
+                  patch.mutate({ oneTimePerContact: event.target.checked });
+                }}
               />
               <span>
                 <span className="text-ink">Send at most once per contact</span>
@@ -172,7 +220,9 @@ export function OverviewTab() {
 
         <div className="space-y-3">
           <section className="panel">
-            <div className="panel-head"><span className="panel-title">Current state</span></div>
+            <div className="panel-head">
+              <span className="panel-title">Current state</span>
+            </div>
             <dl className="divide-y divide-line text-[12px]">
               <Row label="Status">
                 <span className="text-ink">{titleCase(campaign.status)}</span>
@@ -186,7 +236,9 @@ export function OverviewTab() {
                 {campaign.activeVersionId === null ? (
                   <span className="text-ink-faint">— never activated</span>
                 ) : (
-                  <code className="font-mono text-[11px] text-ink-dim">{campaign.activeVersionId}</code>
+                  <code className="font-mono text-[11px] text-ink-dim">
+                    {campaign.activeVersionId}
+                  </code>
                 )}
               </Row>
               <Row label="Send window">
@@ -205,12 +257,14 @@ export function OverviewTab() {
           </section>
 
           <section className="panel">
-            <div className="panel-head"><span className="panel-title">Where enrolments went</span></div>
+            <div className="panel-head">
+              <span className="panel-title">Where enrolments went</span>
+            </div>
             {funnel.isPending ? (
               <LoadingState rows={3} label="Loading skip reasons" />
             ) : funnel.isError ? (
               <ErrorState error={funnel.error} onRetry={() => void funnel.refetch()} />
-            ) : (funnel.data.skipsByReason.length === 0 ? (
+            ) : funnel.data.skipsByReason.length === 0 ? (
               <p className="px-4 py-3 text-[12px] text-ink-faint">
                 No skip decisions recorded for this campaign yet. That is a genuine zero — the
                 decision log has rows only when something was decided.
@@ -218,13 +272,18 @@ export function OverviewTab() {
             ) : (
               <ul className="divide-y divide-line">
                 {funnel.data.skipsByReason.map((skip) => (
-                  <li key={skip.reasonCode} className="flex items-center justify-between gap-3 px-4 py-2">
-                    <Pill tone="quiet" mono>{skip.reasonCode}</Pill>
+                  <li
+                    key={skip.reasonCode}
+                    className="flex items-center justify-between gap-3 px-4 py-2"
+                  >
+                    <Pill tone="quiet" mono>
+                      {skip.reasonCode}
+                    </Pill>
                     <span className="num text-ink-dim">{int(skip.count)}</span>
                   </li>
                 ))}
               </ul>
-            ))}
+            )}
           </section>
         </div>
       </div>
@@ -266,7 +325,10 @@ function TestSend({ campaignId }: { campaignId: string }) {
   const send = useMutation({
     mutationFn: (address: string) =>
       api.post<TestSendResult>(`/campaigns/${campaignId}/test-send`, { to: address }),
-    onMutate: () => { setError(null); setResult(null); },
+    onMutate: () => {
+      setError(null);
+      setResult(null);
+    },
     onSuccess: setResult,
     onError: setError,
   });
@@ -291,7 +353,9 @@ function TestSend({ campaignId }: { campaignId: string }) {
             className="input max-w-sm"
             placeholder="you@example.com or +15550100"
             value={to}
-            onChange={(event) => { setTo(event.target.value); }}
+            onChange={(event) => {
+              setTo(event.target.value);
+            }}
           />
           <button type="submit" className="btn" disabled={send.isPending || to.trim().length === 0}>
             {send.isPending ? 'Queueing…' : 'Queue test'}
@@ -303,11 +367,17 @@ function TestSend({ campaignId }: { campaignId: string }) {
         {result !== null && (
           <div className="mt-3 rounded border border-line bg-ground/50 p-3 text-[12px]">
             <div className="mb-2 text-ink">
-              Queued <code className="font-mono text-[11px] text-accent">{result.queuedMessageId ?? 'nothing (deduplicated)'}</code>{' '}
+              Queued{' '}
+              <code className="font-mono text-[11px] text-accent">
+                {result.queuedMessageId ?? 'nothing (deduplicated)'}
+              </code>{' '}
               for {result.to}
             </div>
             {result.warnings.map((warning, index) => (
-              <p key={index} className="mb-2 rounded border border-held/30 bg-held-wash px-2 py-1.5 text-held">
+              <p
+                key={index}
+                className="mb-2 rounded border border-held/30 bg-held-wash px-2 py-1.5 text-held"
+              >
                 {warning}
               </p>
             ))}

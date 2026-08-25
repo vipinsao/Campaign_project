@@ -209,7 +209,10 @@ describe("tenant A's token cannot WRITE tenant B's rows", () => {
       [`/campaigns/${b.campaignId}/duplicate`, { method: 'POST', body: '{}' }],
       [
         `/campaigns/${b.campaignId}/messages`,
-        { method: 'POST', body: JSON.stringify({ channel: 'email', sequenceOrder: 9, bodyTemplate: 'x' }) },
+        {
+          method: 'POST',
+          body: JSON.stringify({ channel: 'email', sequenceOrder: 9, bodyTemplate: 'x' }),
+        },
       ],
       [`/queue/${b.queuedMessageId}/cancel`, { method: 'POST' }],
       [
@@ -241,9 +244,9 @@ describe("tenant A's token cannot WRITE tenant B's rows", () => {
 
 describe("list endpoints return only the caller's tenant", () => {
   it('lists campaigns, queue rows, decisions and suppressions for A only', async () => {
-    const campaigns = (await (
-      await app.request('/campaigns', { headers: asA() })
-    ).json()) as { campaigns: { id: string; tenantId: string }[] };
+    const campaigns = (await (await app.request('/campaigns', { headers: asA() })).json()) as {
+      campaigns: { id: string; tenantId: string }[];
+    };
     expect(campaigns.campaigns.map((c) => c.id)).toEqual([a.campaignId]);
     expect(campaigns.campaigns.every((c) => c.tenantId === a.tenantId)).toBe(true);
 
@@ -268,10 +271,9 @@ describe("list endpoints return only the caller's tenant", () => {
   it("does not find B's order by number, even with B's store id", async () => {
     // The tenant is not one filter among several: adding ?storeId= must not be a
     // way around it.
-    const response = await app.request(
-      `/orders/lookup?number=ORDER-Beta&storeId=${b.storeId}`,
-      { headers: asA() },
-    );
+    const response = await app.request(`/orders/lookup?number=ORDER-Beta&storeId=${b.storeId}`, {
+      headers: asA(),
+    });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ kind: 'none' });
   });

@@ -12,7 +12,13 @@
  */
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { resetDb, closeTestDb, testDb } from '../support/db.ts';
-import { seedTenant, seedContact, seedCampaign, seedCampaignMessage, optIn } from '../support/fixtures.ts';
+import {
+  seedTenant,
+  seedContact,
+  seedCampaign,
+  seedCampaignMessage,
+  optIn,
+} from '../support/fixtures.ts';
 import { harness } from '../support/delivery.ts';
 import {
   evaluateTrigger,
@@ -65,7 +71,11 @@ describe('a post-purchase journey, from delivery to send', () => {
     const db = testDb();
     const clock = new FakeClock('2026-06-15T10:00:00Z');
 
-    const tenantId = await seedTenant(db, { timezone: 'UTC', quietStart: '08:00', quietEnd: '21:00' });
+    const tenantId = await seedTenant(db, {
+      timezone: 'UTC',
+      quietStart: '08:00',
+      quietEnd: '21:00',
+    });
     const storeId = await seedStore(tenantId, 'main');
     const contactId = await seedContact(db, tenantId, {
       email: 'jane@example.com',
@@ -168,9 +178,7 @@ describe('a post-purchase journey, from delivery to send', () => {
     expect(second.enrolled, 'a redelivered webhook must not double-enrol').toBe(0);
     expect(second.skipped[0]?.reason).toBe('already_enrolled');
 
-    const { rows } = await db.query<{ n: string }>(
-      `SELECT count(*)::text AS n FROM message_queue`,
-    );
+    const { rows } = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM message_queue`);
     expect(Number(rows[0]!.n)).toBe(1);
   });
 
@@ -236,9 +244,10 @@ describe('a post-purchase journey, from delivery to send', () => {
     // But the decision log knows exactly who WOULD have been mailed. This is the
     // cheapest insurance in the system: ship a campaign in observe for a day and
     // read this before anyone is contacted.
-    const { rows: decisions } = await db.query<{ reason_code: string; inputs: { wouldEnrol: boolean } }>(
-      `SELECT reason_code, inputs FROM send_decisions`,
-    );
+    const { rows: decisions } = await db.query<{
+      reason_code: string;
+      inputs: { wouldEnrol: boolean };
+    }>(`SELECT reason_code, inputs FROM send_decisions`);
     expect(decisions[0]!.reason_code).toBe('observe_mode_no_enqueue');
     expect(decisions[0]!.inputs.wouldEnrol).toBe(true);
   });
@@ -367,7 +376,9 @@ describe('time triggers fail closed', () => {
     for (let i = 0; i < 5; i++) {
       const id = await seedContact(db, tenantId, { email: `lapsed${i}@example.com` });
       await optIn(db, tenantId, id);
-      await db.query(`UPDATE contacts SET last_order_at = '2026-01-01T00:00:00Z' WHERE id = $1`, [id]);
+      await db.query(`UPDATE contacts SET last_order_at = '2026-01-01T00:00:00Z' WHERE id = $1`, [
+        id,
+      ]);
     }
     expect(campaignId).toBeTruthy();
 
@@ -441,11 +452,14 @@ describe('stop conditions cancel what is still queued', () => {
       number: 'ORD-STOP',
       delivered: '2026-06-14T12:00:00Z',
     });
-    await evaluateTrigger({ db, clock, publicBaseUrl: BASE_URL }, {
-      type: 'order_delivered',
-      tenantId,
-      orderId,
-    });
+    await evaluateTrigger(
+      { db, clock, publicBaseUrl: BASE_URL },
+      {
+        type: 'order_delivered',
+        tenantId,
+        orderId,
+      },
+    );
 
     // The customer replies.
     await db.query(

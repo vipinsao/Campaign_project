@@ -40,18 +40,43 @@ import { DASH, dayName, sendDaysLabel } from '../../lib/format.ts';
 const ZONES: readonly { id: string; label: string; why: string }[] = [
   { id: 'America/Los_Angeles', label: 'Los Angeles', why: 'UTC−8/−7, observes DST.' },
   { id: 'America/New_York', label: 'New York', why: 'UTC−5/−4, observes DST.' },
-  { id: 'Europe/London', label: 'London', why: 'UTC+0/+1 — the zone an operator most often mistakes for UTC.' },
+  {
+    id: 'Europe/London',
+    label: 'London',
+    why: 'UTC+0/+1 — the zone an operator most often mistakes for UTC.',
+  },
   { id: 'Europe/Berlin', label: 'Berlin', why: 'UTC+1/+2, observes DST.' },
-  { id: 'Asia/Kolkata', label: 'Kolkata', why: 'UTC+5:30 — a half-hour offset, which breaks integer-hour maths.' },
-  { id: 'Asia/Tokyo', label: 'Tokyo', why: 'UTC+9, no DST at all, and usually the next calendar day already.' },
+  {
+    id: 'Asia/Kolkata',
+    label: 'Kolkata',
+    why: 'UTC+5:30 — a half-hour offset, which breaks integer-hour maths.',
+  },
+  {
+    id: 'Asia/Tokyo',
+    label: 'Tokyo',
+    why: 'UTC+9, no DST at all, and usually the next calendar day already.',
+  },
 ];
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-type Parts = { year: number; month: number; day: number; hour: number; minute: number; weekday: number };
+type Parts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  weekday: number;
+};
 
 const WEEKDAY_INDEX: Record<string, number> = {
-  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
 };
 
 const PARTS_FORMAT = new Map<string, Intl.DateTimeFormat>();
@@ -103,7 +128,13 @@ function offsetMinutes(instant: Date, zone: string): number {
  * everywhere outside the one-hour gap itself, and a time inside a spring-forward
  * gap does not exist — the caller steps over it, exactly as core does.
  */
-function instantOf(zone: string, year: number, month: number, day: number, minuteOfDay: number): Date {
+function instantOf(
+  zone: string,
+  year: number,
+  month: number,
+  day: number,
+  minuteOfDay: number,
+): Date {
   const naive = Date.UTC(year, month - 1, day, Math.floor(minuteOfDay / 60), minuteOfDay % 60);
   let guess = new Date(naive - offsetMinutes(new Date(naive), zone) * 60_000);
   guess = new Date(naive - offsetMinutes(guess, zone) * 60_000);
@@ -123,7 +154,14 @@ function hhmm(minuteOfDay: number): string {
 
 type Verdict =
   | { kind: 'now'; local: string; localDay: string }
-  | { kind: 'held'; local: string; localDay: string; releaseLocal: string; releaseDay: string; releaseInstant: Date }
+  | {
+      kind: 'held';
+      local: string;
+      localDay: string;
+      releaseLocal: string;
+      releaseDay: string;
+      releaseInstant: Date;
+    }
   | { kind: 'exempt'; local: string; localDay: string }
   | { kind: 'impossible'; reason: string };
 
@@ -242,30 +280,38 @@ export function ScheduleTab() {
 
           <div className="space-y-3 p-4">
             <p className="text-[12px] leading-relaxed text-ink-dim">
-              These times are <b className="text-ink">recipient-local</b>. They are not the operator&rsquo;s
-              times, and they are not the server&rsquo;s — a server running UTC makes the two look
-              identical for roughly one sixth of the world.
+              These times are <b className="text-ink">recipient-local</b>. They are not the
+              operator&rsquo;s times, and they are not the server&rsquo;s — a server running UTC
+              makes the two look identical for roughly one sixth of the world.
             </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label" htmlFor="window-start">Opens</label>
+                <label className="label" htmlFor="window-start">
+                  Opens
+                </label>
                 <input
                   id="window-start"
                   className={clsx('input font-mono', !startValid && 'border-bad')}
                   placeholder="09:00"
                   value={start}
-                  onChange={(event) => { setStart(event.target.value); }}
+                  onChange={(event) => {
+                    setStart(event.target.value);
+                  }}
                 />
               </div>
               <div>
-                <label className="label" htmlFor="window-end">Closes</label>
+                <label className="label" htmlFor="window-end">
+                  Closes
+                </label>
                 <input
                   id="window-end"
                   className={clsx('input font-mono', !endValid && 'border-bad')}
                   placeholder="18:00"
                   value={end}
-                  onChange={(event) => { setEnd(event.target.value); }}
+                  onChange={(event) => {
+                    setEnd(event.target.value);
+                  }}
                 />
               </div>
             </div>
@@ -323,7 +369,12 @@ export function ScheduleTab() {
               type="button"
               className="btn btn-primary w-full justify-center"
               disabled={
-                !dirty || save.isPending || !startValid || !endValid || inverted || days.length === 0
+                !dirty ||
+                save.isPending ||
+                !startValid ||
+                !endValid ||
+                inverted ||
+                days.length === 0
               }
               onClick={() => {
                 save.mutate({
@@ -374,8 +425,8 @@ export function ScheduleTab() {
                     <code className="font-mono text-ink-dim">GET /auth/me</code>, which returns the
                     user and no tenant settings. The strip below therefore previews the{' '}
                     <b>campaign</b> window only. The floor can narrow it further, never widen it, so
-                    every &ldquo;held&rdquo; row below is still held and some &ldquo;sends now&rdquo;
-                    rows may not be.
+                    every &ldquo;held&rdquo; row below is still held and some &ldquo;sends
+                    now&rdquo; rows may not be.
                   </>
                 }
               />
@@ -393,9 +444,9 @@ export function ScheduleTab() {
                   This campaign is <b className="text-held">exempt</b> from quiet hours. The
                   exemption is keyed on the campaign category, which is a closed set enforced by a
                   database constraint — so a campaign cannot quietly grant itself the exemption,
-                  because changing the category also changes how consent is handled. A
-                  &ldquo;your order is out for delivery&rdquo; SMS at 21:30 is wanted; a promotional
-                  one at the same time is not.
+                  because changing the category also changes how consent is handled. A &ldquo;your
+                  order is out for delivery&rdquo; SMS at 21:30 is wanted; a promotional one at the
+                  same time is not.
                 </>
               ) : (
                 <>
@@ -422,7 +473,9 @@ export function ScheduleTab() {
               type="datetime-local"
               className="input w-56"
               value={when}
-              onChange={(event) => { setWhen(event.target.value); }}
+              onChange={(event) => {
+                setWhen(event.target.value);
+              }}
             />
           </div>
         </div>

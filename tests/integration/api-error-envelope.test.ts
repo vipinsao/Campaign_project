@@ -48,7 +48,11 @@ async function envelopeOf(response: Response): Promise<Envelope> {
   return (await response.json()) as Envelope;
 }
 
-async function seedOperator(db: Pool, tenantId: string, password = 'correct horse'): Promise<string> {
+async function seedOperator(
+  db: Pool,
+  tenantId: string,
+  password = 'correct horse',
+): Promise<string> {
   const hash = await hashPassword(password);
   const { rows } = await db.query<{ id: string }>(
     `INSERT INTO users (tenant_id, email, password_hash, role)
@@ -253,7 +257,9 @@ describe('details survives to the client', () => {
     expect(response.status).toBe(429);
     const body = await envelopeOf(response);
     expect(body.error.details).toMatchObject({ bucket: 'login', limit: 1 });
-    expect((body.error.details as { retryAfterSeconds: number }).retryAfterSeconds).toBeGreaterThan(0);
+    expect((body.error.details as { retryAfterSeconds: number }).retryAfterSeconds).toBeGreaterThan(
+      0,
+    );
     expect(response.headers.get('retry-after')).not.toBeNull();
   });
 });

@@ -273,7 +273,11 @@ describe('I7 — a rendered marketing email carries a link that resolves', () =>
 
     // The ledger records WHO asked and HOW, and the address is suppressed so a
     // re-import of the same person cannot resurrect it.
-    const consent = await testDb().query<{ state: string; source: string; evidence: Record<string, unknown> }>(
+    const consent = await testDb().query<{
+      state: string;
+      source: string;
+      evidence: Record<string, unknown>;
+    }>(
       `SELECT state, source, evidence FROM contact_consents
         WHERE contact_id = $1 AND state = 'opted_out'`,
       [world.contactId],

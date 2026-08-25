@@ -48,17 +48,25 @@ export function Layout() {
       }
       if (event.key === 'g') {
         setChord(true);
-        window.setTimeout(() => { setChord(false); }, 1200);
+        window.setTimeout(() => {
+          setChord(false);
+        }, 1200);
       }
     };
     window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); };
+    return () => {
+      window.removeEventListener('keydown', onKey);
+    };
   }, [chord, navigate]);
 
   useEffect(() => {
-    const onSignOut = () => { void navigate('/login', { replace: true }); };
+    const onSignOut = () => {
+      void navigate('/login', { replace: true });
+    };
     window.addEventListener('campaign:signed-out', onSignOut);
-    return () => { window.removeEventListener('campaign:signed-out', onSignOut); };
+    return () => {
+      window.removeEventListener('campaign:signed-out', onSignOut);
+    };
   }, [navigate]);
 
   return (
@@ -70,7 +78,9 @@ export function Layout() {
           </span>
           <div className="min-w-0">
             <div className="truncate text-[13px] leading-tight font-semibold">Campaign Engine</div>
-            <div className="truncate text-[10px] leading-tight text-ink-faint">operator console</div>
+            <div className="truncate text-[10px] leading-tight text-ink-faint">
+              operator console
+            </div>
           </div>
         </div>
 
@@ -115,7 +125,9 @@ export function Layout() {
         )}
 
         <div className="border-t border-line px-3 py-2.5">
-          <div className="truncate text-[12px] text-ink-dim">{operator?.email ?? 'not signed in'}</div>
+          <div className="truncate text-[12px] text-ink-dim">
+            {operator?.email ?? 'not signed in'}
+          </div>
           <div className="mt-0.5 flex items-center justify-between gap-2">
             <span
               className="truncate font-mono text-[10px] text-ink-faint"
@@ -126,7 +138,9 @@ export function Layout() {
             <button
               type="button"
               className="text-[11px] text-ink-faint hover:text-bad"
-              onClick={() => { clearSession(); }}
+              onClick={() => {
+                clearSession();
+              }}
             >
               sign out
             </button>

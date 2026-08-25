@@ -65,7 +65,9 @@ export function QueuePage() {
       searchRef.current?.focus();
     };
     window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); };
+    return () => {
+      window.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   const queue = useQuery({
@@ -81,8 +83,12 @@ export function QueuePage() {
 
   const cancel = useMutation({
     mutationFn: (id: string) => api.post<{ cancelled: boolean }>(`/queue/${id}/cancel`),
-    onMutate: () => { setActionError(null); },
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['queue'] }); },
+    onMutate: () => {
+      setActionError(null);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['queue'] });
+    },
     onError: setActionError,
   });
 
@@ -123,9 +129,13 @@ export function QueuePage() {
                 className="input w-72 pl-7"
                 placeholder="Address, campaign, subject, error code"
                 value={search}
-                onChange={(event) => { setSearch(event.target.value); }}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                }}
               />
-              <span className="pointer-events-none absolute top-1.5 left-2 text-[12px] text-ink-faint">⌕</span>
+              <span className="pointer-events-none absolute top-1.5 left-2 text-[12px] text-ink-faint">
+                ⌕
+              </span>
               {search.length === 0 && (
                 <span className="kbd pointer-events-none absolute top-1.5 right-2">/</span>
               )}
@@ -143,7 +153,9 @@ export function QueuePage() {
                 label="all"
                 count={Object.values(counts).reduce((sum, value) => sum + value, 0)}
                 active={status === null}
-                onClick={() => { setStatus(null); }}
+                onClick={() => {
+                  setStatus(null);
+                }}
                 loading={queue.isPending}
               />
               {visibleStatuses.map((entry) => (
@@ -152,7 +164,9 @@ export function QueuePage() {
                   label={entry}
                   count={counts[entry]}
                   active={status === entry}
-                  onClick={() => { setStatus(status === entry ? null : entry); }}
+                  onClick={() => {
+                    setStatus(status === entry ? null : entry);
+                  }}
                   loading={queue.isPending}
                 />
               ))}
@@ -163,7 +177,9 @@ export function QueuePage() {
                 <button
                   key={option}
                   type="button"
-                  onClick={() => { setChannel(channel === option ? null : option); }}
+                  onClick={() => {
+                    setChannel(channel === option ? null : option);
+                  }}
                   className={clsx(
                     'rounded border px-1.5 py-px text-[11px] transition-colors',
                     channel === option
@@ -180,7 +196,9 @@ export function QueuePage() {
       />
 
       <Scroll>
-        {actionError !== null && <ErrorState error={actionError} title="The message was not cancelled" />}
+        {actionError !== null && (
+          <ErrorState error={actionError} title="The message was not cancelled" />
+        )}
 
         {queue.isPending ? (
           <LoadingState rows={12} label="Loading queue" />
@@ -262,8 +280,12 @@ export function QueuePage() {
                   key={row.id}
                   row={row}
                   expanded={expanded === row.id}
-                  onToggle={() => { setExpanded(expanded === row.id ? null : row.id); }}
-                  onCancel={() => { cancel.mutate(row.id); }}
+                  onToggle={() => {
+                    setExpanded(expanded === row.id ? null : row.id);
+                  }}
+                  onCancel={() => {
+                    cancel.mutate(row.id);
+                  }}
                   cancelling={cancel.isPending && cancel.variables === row.id}
                 />
               ))}
@@ -274,8 +296,8 @@ export function QueuePage() {
         {!queue.isPending && !queue.isError && (
           <div className="px-5 py-3 text-[11px] leading-relaxed text-ink-faint">
             {rows.length} of {all.length} loaded · page limit {queue.data.page.limit} · the status
-            counts above are tenant-wide, the rows are this page only. Text search filters the loaded
-            page in the browser and the server is not asked again.
+            counts above are tenant-wide, the rows are this page only. Text search filters the
+            loaded page in the browser and the server is not asked again.
           </div>
         )}
       </Scroll>
@@ -308,9 +330,7 @@ function StatusChip({
       )}
     >
       {label}
-      <span className="num text-[10px] text-ink-faint">
-        {loading ? '·' : int(count)}
-      </span>
+      <span className="num text-[10px] text-ink-faint">{loading ? '·' : int(count)}</span>
     </button>
   );
 }
@@ -352,7 +372,9 @@ function Row({
             <ChannelBadge channel={row.channel} />
             <Link
               to={`/contacts/${row.contact_id}`}
-              onClick={(event) => { event.stopPropagation(); }}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
               className="truncate text-[12px] text-ink hover:text-accent"
             >
               {row.recipient_address}
@@ -365,7 +387,9 @@ function Row({
         <td className="cell max-w-[14rem]">
           <Link
             to={`/campaigns/${row.campaign_id}/overview`}
-            onClick={(event) => { event.stopPropagation(); }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
             className="block truncate text-[12px] text-ink-dim hover:text-accent"
           >
             {row.campaign_name}
@@ -378,7 +402,11 @@ function Row({
           {shortTimestamp(row.scheduled_at)}
         </td>
         <td className="cell text-[11px] whitespace-nowrap text-ink-dim">
-          {row.sent_at === null ? <span className="text-ink-faint">{DASH}</span> : shortTimestamp(row.sent_at)}
+          {row.sent_at === null ? (
+            <span className="text-ink-faint">{DASH}</span>
+          ) : (
+            shortTimestamp(row.sent_at)
+          )}
         </td>
         <td className="cell num text-right">{int(row.attempts)}</td>
         <td className={clsx('cell num text-right', row.deferrals > 0 && 'text-held')}>
@@ -413,9 +441,7 @@ function Row({
               )}
             </div>
           ) : (
-            <span className="text-[11px] text-ink-faint">
-              {row.provider ?? DASH}
-            </span>
+            <span className="text-[11px] text-ink-faint">{row.provider ?? DASH}</span>
           )}
         </td>
         <td className="cell text-right">
@@ -443,13 +469,17 @@ function Row({
                 <code className="font-mono text-[11px] break-all text-ink-dim">{row.id}</code>
               </Detail>
               <Detail label="Provider">
-                {row.provider ?? <span className="text-ink-faint">{DASH} — not handed to a provider yet</span>}
+                {row.provider ?? (
+                  <span className="text-ink-faint">{DASH} — not handed to a provider yet</span>
+                )}
               </Detail>
               <Detail label="Tracking id">
                 {row.tracking_id === null ? (
                   <span className="text-ink-faint">{DASH}</span>
                 ) : (
-                  <code className="font-mono text-[11px] break-all text-ink-dim">{row.tracking_id}</code>
+                  <code className="font-mono text-[11px] break-all text-ink-dim">
+                    {row.tracking_id}
+                  </code>
                 )}
               </Detail>
               <Detail label="Created">{timestamp(row.created_at)}</Detail>
@@ -481,7 +511,9 @@ function Row({
                 {row.enrollment_id === null ? (
                   <span className="text-ink-faint">{DASH}</span>
                 ) : (
-                  <code className="font-mono text-[11px] break-all text-ink-dim">{row.enrollment_id}</code>
+                  <code className="font-mono text-[11px] break-all text-ink-dim">
+                    {row.enrollment_id}
+                  </code>
                 )}
               </Detail>
             </div>
@@ -492,7 +524,9 @@ function Row({
                   <span className="text-[11px] tracking-wide text-bad uppercase">
                     the provider&rsquo;s own words
                   </span>
-                  <Pill tone="bad" mono>{row.provider_error_code ?? 'no code'}</Pill>
+                  <Pill tone="bad" mono>
+                    {row.provider_error_code ?? 'no code'}
+                  </Pill>
                 </div>
                 <p className="font-mono text-[11px] leading-relaxed break-words text-ink-dim">
                   {row.provider_error_message}

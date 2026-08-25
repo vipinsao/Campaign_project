@@ -61,7 +61,9 @@ describe('V7 — the token budget refuses at the ceiling', () => {
     // The model was never asked, and nothing was written that would let this look
     // like a successful classification later.
     expect(model.calls).toBe(0);
-    const { rows } = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM classifications`);
+    const { rows } = await db.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM classifications`,
+    );
     expect(Number(rows[0]!.n)).toBe(0);
   });
 
@@ -71,7 +73,9 @@ describe('V7 — the token budget refuses at the ceiling', () => {
     const tenantId = await seedTriageTenant(db, { monthlyTokenBudget: 1000 });
     await reserveTokens(db, { tenantId, tokens: 900, clock });
 
-    const error = await reserveTokens(db, { tenantId, tokens: 200, clock }).catch((e: unknown) => e);
+    const error = await reserveTokens(db, { tenantId, tokens: 200, clock }).catch(
+      (e: unknown) => e,
+    );
     expect(error).toBeInstanceOf(TokenBudgetExceededError);
     const budgetError = error as TokenBudgetExceededError;
     expect(budgetError.budget).toBe(1000);
@@ -87,7 +91,9 @@ describe('V7 — the token budget refuses at the ceiling', () => {
     const state = await reserveTokens(db, { tenantId, tokens: 1000, clock });
     expect(state.used).toBe(1000);
     expect(state.remaining).toBe(0);
-    await expect(reserveTokens(db, { tenantId, tokens: 1, clock })).rejects.toThrow(TokenBudgetExceededError);
+    await expect(reserveTokens(db, { tenantId, tokens: 1, clock })).rejects.toThrow(
+      TokenBudgetExceededError,
+    );
   });
 
   it('holds under concurrent reservations from separate connections', async () => {
@@ -125,7 +131,10 @@ describe('V7 — the token budget refuses at the ceiling', () => {
     const body = 'A short question about sizing.';
     const model = new MockModelClient({ fixtures: fixtureFor(prompt, body, validAnswer()) });
 
-    await classifyReply(triageDeps({ db, prompt, model, clock }), await seedReply(db, tenantId, body));
+    await classifyReply(
+      triageDeps({ db, prompt, model, clock }),
+      await seedReply(db, tenantId, body),
+    );
 
     // The fixture reports 400 input + 60 output. The reservation booked the prompt
     // plus the full max_tokens; settlement brings it back to the truth.
@@ -148,7 +157,10 @@ describe('V7 — the token budget refuses at the ceiling', () => {
     const model = new MockModelClient({ fixtures: {} });
 
     await expect(
-      classifyReply(triageDeps({ db, prompt, model, clock }), await seedReply(db, tenantId, 'anything')),
+      classifyReply(
+        triageDeps({ db, prompt, model, clock }),
+        await seedReply(db, tenantId, 'anything'),
+      ),
     ).rejects.toThrow(/No recorded model response/);
 
     const state = await budgetState(db, tenantId, clock);

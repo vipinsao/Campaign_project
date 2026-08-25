@@ -49,29 +49,31 @@ describe('the error classification table', () => {
     },
   );
 
-  it.each(ERROR_TABLE.filter((rule) => rule.class === 'terminal').map((rule) => [rule.provider, rule.code] as const))(
-    'never retries the terminal code %s/%s',
-    (provider, code) => {
-      const classification = classify(provider, code);
-      expect(classification.maxAttempts).toBe(TERMINAL_MAX_ATTEMPTS);
-      // One attempt has already happened by the time anything is classified, so a
-      // terminal code must refuse a retry from the very first attempt onwards.
-      expect(shouldRetry(provider, code, 1)).toBe(false);
-      expect(shouldRetry(provider, code, 0)).toBe(false);
-    },
-  );
+  it.each(
+    ERROR_TABLE.filter((rule) => rule.class === 'terminal').map(
+      (rule) => [rule.provider, rule.code] as const,
+    ),
+  )('never retries the terminal code %s/%s', (provider, code) => {
+    const classification = classify(provider, code);
+    expect(classification.maxAttempts).toBe(TERMINAL_MAX_ATTEMPTS);
+    // One attempt has already happened by the time anything is classified, so a
+    // terminal code must refuse a retry from the very first attempt onwards.
+    expect(shouldRetry(provider, code, 1)).toBe(false);
+    expect(shouldRetry(provider, code, 0)).toBe(false);
+  });
 
-  it.each(ERROR_TABLE.filter((rule) => rule.class === 'transient').map((rule) => [rule.provider, rule.code, rule] as const))(
-    'gives the transient code %s/%s a finite retry budget',
-    (provider, code, rule) => {
-      const classification = classify(provider, code);
-      expect(classification.maxAttempts).toBeGreaterThanOrEqual(1);
-      expect(classification.maxAttempts).toBeLessThanOrEqual(TRANSIENT_MAX_ATTEMPTS);
-      expect(classification.maxAttempts).toBe(rule.maxAttempts ?? TRANSIENT_MAX_ATTEMPTS);
-      expect(shouldRetry(provider, code, classification.maxAttempts - 1)).toBe(true);
-      expect(shouldRetry(provider, code, classification.maxAttempts)).toBe(false);
-    },
-  );
+  it.each(
+    ERROR_TABLE.filter((rule) => rule.class === 'transient').map(
+      (rule) => [rule.provider, rule.code, rule] as const,
+    ),
+  )('gives the transient code %s/%s a finite retry budget', (provider, code, rule) => {
+    const classification = classify(provider, code);
+    expect(classification.maxAttempts).toBeGreaterThanOrEqual(1);
+    expect(classification.maxAttempts).toBeLessThanOrEqual(TRANSIENT_MAX_ATTEMPTS);
+    expect(classification.maxAttempts).toBe(rule.maxAttempts ?? TRANSIENT_MAX_ATTEMPTS);
+    expect(shouldRetry(provider, code, classification.maxAttempts - 1)).toBe(true);
+    expect(shouldRetry(provider, code, classification.maxAttempts)).toBe(false);
+  });
 
   it('caps credential and account failures below the transient default', () => {
     // These are operator problems, and the cap is what stops a wrong password

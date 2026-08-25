@@ -15,7 +15,14 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { testDb, resetDb, closeTestDb } from '../support/db.ts';
 import { classifyReply, contentHash, MockModelClient } from '@campaign/triage';
-import { fixtureFor, seedReply, seedTriageTenant, syncedPrompt, triageDeps, validAnswer } from './triage-harness.ts';
+import {
+  fixtureFor,
+  seedReply,
+  seedTriageTenant,
+  syncedPrompt,
+  triageDeps,
+  validAnswer,
+} from './triage-harness.ts';
 
 afterAll(closeTestDb);
 beforeEach(resetDb);
@@ -100,7 +107,10 @@ describe('V2 — every model call lands in model_calls', () => {
       synthesise: () => {
         call += 1;
         return {
-          raw: call === 1 ? '{"label":"complaint"}' : JSON.stringify(validAnswer({ label: 'complaint' })),
+          raw:
+            call === 1
+              ? '{"label":"complaint"}'
+              : JSON.stringify(validAnswer({ label: 'complaint' })),
           modelId: 'claude-sonnet-5',
           inputTokens: 400,
           outputTokens: 40,
@@ -108,7 +118,10 @@ describe('V2 — every model call lands in model_calls', () => {
       },
     });
 
-    const result = await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, body));
+    const result = await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, body),
+    );
     expect(result.label).toBe('complaint');
     expect(result.parseStatus).toBe('retry_ok');
 
@@ -126,7 +139,12 @@ describe('V2 — every model call lands in model_calls', () => {
     const prompt = await syncedPrompt(db, 1);
     const model = new MockModelClient({
       fixtures: {},
-      synthesise: () => ({ raw: 'sorry, I cannot do that', modelId: 'claude-sonnet-5', inputTokens: 400, outputTokens: 8 }),
+      synthesise: () => ({
+        raw: 'sorry, I cannot do that',
+        modelId: 'claude-sonnet-5',
+        inputTokens: 400,
+        outputTokens: 8,
+      }),
     });
 
     const result = await classifyReply(

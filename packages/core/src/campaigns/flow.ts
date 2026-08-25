@@ -21,13 +21,7 @@ import type { Channel, SendCondition } from '@campaign/shared';
  *     caused it would have been "moved a box slightly to the left".
  */
 
-export type FlowNodeType =
-  | 'trigger'
-  | 'delay'
-  | 'send_email'
-  | 'send_sms'
-  | 'condition'
-  | 'exit';
+export type FlowNodeType = 'trigger' | 'delay' | 'send_email' | 'send_sms' | 'condition' | 'exit';
 
 export type FlowNode = {
   readonly id: string;
@@ -112,10 +106,16 @@ export function validateFlow(graph: FlowGraph): FlowValidation {
   // node is deleted client-side and the edge cleanup misses one.
   for (const edge of graph.edges) {
     if (!byId.has(edge.source)) {
-      issues.push({ severity: 'error', message: `An edge starts from a node that no longer exists (${edge.source}).` });
+      issues.push({
+        severity: 'error',
+        message: `An edge starts from a node that no longer exists (${edge.source}).`,
+      });
     }
     if (!byId.has(edge.target)) {
-      issues.push({ severity: 'error', message: `An edge points at a node that no longer exists (${edge.target}).` });
+      issues.push({
+        severity: 'error',
+        message: `An edge points at a node that no longer exists (${edge.target}).`,
+      });
     }
   }
 
@@ -130,7 +130,11 @@ export function validateFlow(graph: FlowGraph): FlowValidation {
     }
     if (node.type === 'send_email') {
       if (!node.data?.subject?.trim()) {
-        issues.push({ nodeId: node.id, severity: 'error', message: 'An email needs a subject line.' });
+        issues.push({
+          nodeId: node.id,
+          severity: 'error',
+          message: 'An email needs a subject line.',
+        });
       }
       if (!node.data?.body?.trim() && !node.data?.html?.trim()) {
         issues.push({ nodeId: node.id, severity: 'error', message: 'An email needs a body.' });
@@ -144,14 +148,22 @@ export function validateFlow(graph: FlowGraph): FlowValidation {
       }
     }
     if (node.type === 'delay' && (node.data?.delayMinutes ?? 0) <= 0) {
-      issues.push({ nodeId: node.id, severity: 'error', message: 'A delay must be greater than zero.' });
+      issues.push({
+        nodeId: node.id,
+        severity: 'error',
+        message: 'A delay must be greater than zero.',
+      });
     }
     if (node.type === 'condition') {
       const handles = new Set(
         graph.edges.filter((e) => e.source === node.id).map((e) => e.sourceHandle ?? 'yes'),
       );
       if (handles.size === 0) {
-        issues.push({ nodeId: node.id, severity: 'error', message: 'This condition leads nowhere.' });
+        issues.push({
+          nodeId: node.id,
+          severity: 'error',
+          message: 'This condition leads nowhere.',
+        });
       }
     }
   }

@@ -19,10 +19,7 @@ import { processQueue } from '@campaign/core';
 afterAll(closeTestDb);
 beforeEach(resetDb);
 
-const ANCHORS = Array.from(
-  { length: 8 },
-  (_, i) => `0000000${i}-0000-4000-8000-00000000000${i}`,
-);
+const ANCHORS = Array.from({ length: 8 }, (_, i) => `0000000${i}-0000-4000-8000-00000000000${i}`);
 
 async function seedWithCap(capCount: number, capWindow = '7 days') {
   const seeded = await seedAll(testDb(), {
@@ -84,10 +81,9 @@ describe('I10 — the frequency cap is enforced where it counts', () => {
       seeded.contactId,
     ]);
     await optIn(testDb(), seeded.tenantId, seeded.contactId, 'sms');
-    await testDb().query(
-      `UPDATE campaigns SET channels = '{email,sms}' WHERE id = $1`,
-      [seeded.campaignId],
-    );
+    await testDb().query(`UPDATE campaigns SET channels = '{email,sms}' WHERE id = $1`, [
+      seeded.campaignId,
+    ]);
     const smsMessageId = (
       await testDb().query<{ id: string }>(
         `INSERT INTO campaign_messages (tenant_id, campaign_id, channel, sequence_order, body_template)

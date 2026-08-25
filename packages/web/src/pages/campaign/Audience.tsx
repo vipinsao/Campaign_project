@@ -65,8 +65,12 @@ export function AudienceTab() {
   // does a COUNT over the tenant's contacts. 400ms is long enough to swallow a
   // burst of typing and short enough to feel live.
   useEffect(() => {
-    const timer = window.setTimeout(() => { setDebounced(definition); }, 400);
-    return () => { window.clearTimeout(timer); };
+    const timer = window.setTimeout(() => {
+      setDebounced(definition);
+    }, 400);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [definition]);
 
   useEffect(() => {
@@ -84,12 +88,17 @@ export function AudienceTab() {
         setEstimateError(caught);
         setEstimate(null);
       })
-      .finally(() => { if (!cancelled) setEstimating(false); });
-    return () => { cancelled = true; };
+      .finally(() => {
+        if (!cancelled) setEstimating(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [debounced]);
 
   const save = useMutation({
-    mutationFn: (next: AudienceDefinition) => api.patch(`/campaigns/${campaignId}`, { audience: next }),
+    mutationFn: (next: AudienceDefinition) =>
+      api.patch(`/campaigns/${campaignId}`, { audience: next }),
     onSuccess: reload,
   });
 
@@ -119,7 +128,9 @@ export function AudienceTab() {
               <button
                 type="button"
                 className={clsx('btn btn-ghost', raw && 'text-accent')}
-                onClick={() => { setRaw(!raw); }}
+                onClick={() => {
+                  setRaw(!raw);
+                }}
               >
                 {raw ? 'Builder' : 'Edit as JSON'}
               </button>
@@ -127,7 +138,9 @@ export function AudienceTab() {
                 type="button"
                 className="btn btn-primary"
                 disabled={!dirty || save.isPending}
-                onClick={() => { save.mutate(definition); }}
+                onClick={() => {
+                  save.mutate(definition);
+                }}
               >
                 {save.isPending ? 'Saving…' : dirty ? 'Save segment' : 'Saved'}
               </button>
@@ -172,7 +185,9 @@ export function AudienceTab() {
                   key={group}
                   group={group}
                   rules={definition[group] ?? []}
-                  onChange={(rules) => { updateRules(group, rules); }}
+                  onChange={(rules) => {
+                    updateRules(group, rules);
+                  }}
                 />
               ))}
               {GROUPS.every((group) => (definition[group] ?? []).length === 0) && (
@@ -189,19 +204,23 @@ export function AudienceTab() {
           <button
             type="button"
             className="panel-head w-full cursor-pointer text-left"
-            onClick={() => { setShowSql(!showSql); }}
+            onClick={() => {
+              setShowSql(!showSql);
+            }}
             aria-expanded={showSql}
           >
             <span className="panel-title">
-              <span className="mr-1.5 inline-block font-mono text-ink-faint">{showSql ? '▾' : '▸'}</span>
+              <span className="mr-1.5 inline-block font-mono text-ink-faint">
+                {showSql ? '▾' : '▸'}
+              </span>
               Show compiled SQL
             </span>
             <span className="text-[11px] text-ink-faint">
               placeholders intact — no operator value is ever spliced into the text
             </span>
           </button>
-          {showSql && (
-            estimate === null ? (
+          {showSql &&
+            (estimate === null ? (
               <p className="px-4 py-3 text-[12px] text-ink-faint">
                 Nothing compiled yet — the estimate below has not returned.
               </p>
@@ -213,7 +232,9 @@ export function AudienceTab() {
                 <div>
                   <div className="label">Bound parameters</div>
                   {estimate.params.length === 0 ? (
-                    <p className="text-[12px] text-ink-faint">None — this predicate binds no values.</p>
+                    <p className="text-[12px] text-ink-faint">
+                      None — this predicate binds no values.
+                    </p>
                   ) : (
                     <ol className="space-y-1">
                       {estimate.params.map((param, index) => (
@@ -226,8 +247,7 @@ export function AudienceTab() {
                   )}
                 </div>
               </div>
-            )
-          )}
+            ))}
         </section>
       </div>
 
@@ -308,7 +328,10 @@ export function AudienceTab() {
                   {contact.tags.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
                       {contact.tags.slice(0, 4).map((tag) => (
-                        <span key={tag} className="rounded bg-raised px-1 font-mono text-[10px] text-ink-faint">
+                        <span
+                          key={tag}
+                          className="rounded bg-raised px-1 font-mono text-[10px] text-ink-faint"
+                        >
                           {tag}
                         </span>
                       ))}
@@ -350,7 +373,9 @@ function RuleGroup({
         <button
           type="button"
           className="btn btn-ghost ml-auto"
-          onClick={() => { onChange([...rules, { field: 'tags', op: 'contains', value: '' }]); }}
+          onClick={() => {
+            onChange([...rules, { field: 'tags', op: 'contains', value: '' }]);
+          }}
         >
           + rule
         </button>
@@ -370,10 +395,15 @@ function RuleGroup({
                   copy[index] = next;
                   onChange(copy);
                 }}
-                onRemove={() => { onChange(rules.filter((_, position) => position !== index)); }}
+                onRemove={() => {
+                  onChange(rules.filter((_, position) => position !== index));
+                }}
               />
             ) : (
-              <div key={index} className="rounded border border-held/30 bg-held-wash px-2 py-1.5 font-mono text-[11px] text-held">
+              <div
+                key={index}
+                className="rounded border border-held/30 bg-held-wash px-2 py-1.5 font-mono text-[11px] text-held"
+              >
                 nested group — edit as JSON
               </div>
             ),
@@ -411,7 +441,9 @@ function LeafRow({
         }}
       >
         {Object.keys(AUDIENCE_FIELDS).map((field) => (
-          <option key={field} value={field}>{field}</option>
+          <option key={field} value={field}>
+            {field}
+          </option>
         ))}
         <option value="__attribute">attributes.…</option>
       </select>
@@ -421,7 +453,9 @@ function LeafRow({
           className="input w-44 font-mono text-[12px]"
           value={leaf.field}
           placeholder="attributes.plan"
-          onChange={(event) => { onChange({ ...leaf, field: event.target.value }); }}
+          onChange={(event) => {
+            onChange({ ...leaf, field: event.target.value });
+          }}
         />
       )}
 
@@ -436,7 +470,9 @@ function LeafRow({
         }}
       >
         {AudienceOperator.options.map((op) => (
-          <option key={op} value={op}>{op}</option>
+          <option key={op} value={op}>
+            {op}
+          </option>
         ))}
       </select>
 
@@ -444,11 +480,18 @@ function LeafRow({
         <input
           className="input min-w-40 flex-1 font-mono text-[12px]"
           placeholder={isList ? 'comma, separated, values' : isDays ? 'number of days' : 'value'}
-          value={Array.isArray(leaf.value) ? (leaf.value as unknown[]).join(', ') : String(leaf.value ?? '')}
+          value={
+            Array.isArray(leaf.value)
+              ? (leaf.value as unknown[]).join(', ')
+              : String(leaf.value ?? '')
+          }
           onChange={(event) => {
             const text = event.target.value;
             const value: LeafValue = isList
-              ? text.split(',').map((part) => part.trim()).filter((part) => part.length > 0)
+              ? text
+                  .split(',')
+                  .map((part) => part.trim())
+                  .filter((part) => part.length > 0)
               : isDays
                 ? Number(text)
                 : text;
@@ -457,7 +500,12 @@ function LeafRow({
         />
       )}
 
-      <button type="button" className="btn btn-ghost px-2" onClick={onRemove} aria-label="remove rule">
+      <button
+        type="button"
+        className="btn btn-ghost px-2"
+        onClick={onRemove}
+        aria-label="remove rule"
+      >
         ✕
       </button>
     </div>

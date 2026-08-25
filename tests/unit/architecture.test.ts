@@ -21,7 +21,8 @@ async function* walk(dir: string): AsyncGenerator<string> {
     return;
   }
   for (const entry of entries) {
-    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name.startsWith('.')) continue;
+    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name.startsWith('.'))
+      continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) yield* walk(full);
     else if (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) yield full;
@@ -108,10 +109,7 @@ describe('the domain stays a domain', () => {
   });
 
   it('has no hardcoded tenant identifier anywhere', async () => {
-    const files = [
-      ...(await sourceFiles('packages')),
-      ...(await sourceFiles('scripts')),
-    ];
+    const files = [...(await sourceFiles('packages')), ...(await sourceFiles('scripts'))];
     const UUID = /['"][0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}['"]/i;
     const offenders: string[] = [];
     for (const file of files) {
@@ -122,7 +120,8 @@ describe('the domain stays a domain', () => {
     expect(
       offenders,
       'Every query takes an explicit tenant. A hardcoded tenant constant is the ' +
-        'thing a reviewer greps for first:\n' + offenders.join('\n'),
+        'thing a reviewer greps for first:\n' +
+        offenders.join('\n'),
     ).toEqual([]);
   });
 });
@@ -137,7 +136,11 @@ describe('I1 — there is exactly one send path', () => {
     ];
 
     const callers = files
-      .filter((f) => /\bprovider\.send\s*\(/.test(f.text) || /\.send\(\s*\{[\s\S]{0,200}trackingId/.test(f.text))
+      .filter(
+        (f) =>
+          /\bprovider\.send\s*\(/.test(f.text) ||
+          /\.send\(\s*\{[\s\S]{0,200}trackingId/.test(f.text),
+      )
       .map((f) => f.path);
 
     expect(

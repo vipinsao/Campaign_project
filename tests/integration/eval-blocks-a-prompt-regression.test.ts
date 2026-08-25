@@ -37,7 +37,9 @@ import {
 afterAll(closeTestDb);
 beforeEach(resetDb);
 
-const CORPUS = fileURLToPath(new URL('../../packages/triage/fixtures/golden-corpus.json', import.meta.url));
+const CORPUS = fileURLToPath(
+  new URL('../../packages/triage/fixtures/golden-corpus.json', import.meta.url),
+);
 const DATASET = 'reply-classification';
 
 type CorpusCase = { body: string; expectedLabel: string; notes: string };
@@ -71,7 +73,10 @@ describe('V4 — a prompt regression fails the build', () => {
     const model = await MockModelClient.fromDisk();
 
     const shipped = await runEval({ db, clock, tenantId, prompt: v1, model }, { dataset: DATASET });
-    const regressed = await runEval({ db, clock, tenantId, prompt: v2, model }, { dataset: DATASET });
+    const regressed = await runEval(
+      { db, clock, tenantId, prompt: v2, model },
+      { dataset: DATASET },
+    );
 
     expect(shipped.errored, renderEvalReport(shipped)).toEqual([]);
     expect(regressed.errored, renderEvalReport(regressed)).toEqual([]);
@@ -88,7 +93,9 @@ describe('V4 — a prompt regression fails the build', () => {
     // "complaint recall 0.5000 < baseline 0.7500" is.
     expect(regressed.failures.join('\n')).toMatch(/complaint recall/);
     expect(regressed.failures.join('\n')).toMatch(/accuracy/);
-    expect(() => { assertNoRegression(regressed); }).toThrow(/below the baseline/);
+    expect(() => {
+      assertNoRegression(regressed);
+    }).toThrow(/below the baseline/);
   });
 
   it('records both runs, passing and failing, so the trend survives', async () => {
@@ -101,15 +108,26 @@ describe('V4 — a prompt regression fails the build', () => {
     const model = await MockModelClient.fromDisk();
     for (const version of [1, 2]) {
       const prompt = (await getPrompt(db, DATASET, version))!;
-      await runEval({ db, clock, tenantId, prompt, model, gitSha: 'deadbeef' }, { dataset: DATASET });
+      await runEval(
+        { db, clock, tenantId, prompt, model, gitSha: 'deadbeef' },
+        { dataset: DATASET },
+      );
     }
 
-    const { rows } = await db.query<{ passed: boolean; accuracy: string; macro_f1: string; dataset_version: string }>(
+    const { rows } = await db.query<{
+      passed: boolean;
+      accuracy: string;
+      macro_f1: string;
+      dataset_version: string;
+    }>(
       `SELECT r.passed, r.accuracy::text, r.macro_f1::text, r.dataset_version
          FROM eval_runs r JOIN prompts p ON p.id = r.prompt_id
         ORDER BY p.version ASC`,
     );
-    expect(rows.map((r) => r.passed), 'a table of only the good runs cannot show a trend').toEqual([true, false]);
+    expect(
+      rows.map((r) => r.passed),
+      'a table of only the good runs cannot show a trend',
+    ).toEqual([true, false]);
     // Both runs cite the same dataset version, which is what makes the two numbers
     // comparable at all.
     expect(rows[0]!.dataset_version).toBe(rows[1]!.dataset_version);
@@ -124,7 +142,10 @@ describe('V4 — a prompt regression fails the build', () => {
     const prompt = (await getPrompt(db, DATASET, 1))!;
 
     await expect(
-      runEval({ db, clock, tenantId, prompt, model: await MockModelClient.fromDisk() }, { dataset: 'nothing-here' }),
+      runEval(
+        { db, clock, tenantId, prompt, model: await MockModelClient.fromDisk() },
+        { dataset: 'nothing-here' },
+      ),
     ).rejects.toThrow(/empty/i);
   });
 
@@ -136,7 +157,10 @@ describe('V4 — a prompt regression fails the build', () => {
     await seedGoldenSet();
     const prompt = (await getPrompt(db, DATASET, 1))!;
 
-    await runEval({ db, clock, tenantId, prompt, model: await MockModelClient.fromDisk() }, { dataset: DATASET });
+    await runEval(
+      { db, clock, tenantId, prompt, model: await MockModelClient.fromDisk() },
+      { dataset: DATASET },
+    );
 
     // Golden cases are not people. Several of them are opt-out bodies, and if the
     // eval path could write a suppression it would be one SELECT away from

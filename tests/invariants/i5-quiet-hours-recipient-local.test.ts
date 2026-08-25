@@ -74,7 +74,9 @@ describe('I5 — quiet hours are recipient-local', () => {
       }
     }
 
-    expect(violations, `scheduled outside 08:00-21:00 local:\n${violations.join('\n')}`).toEqual([]);
+    expect(violations, `scheduled outside 08:00-21:00 local:\n${violations.join('\n')}`).toEqual(
+      [],
+    );
   });
 
   it('falls back to the tenant timezone when the contact has none — never to the server', () => {
@@ -173,9 +175,9 @@ describe('I5 — the tenant floor is a floor, not a suggestion', () => {
     // 22:00-23:00 clamps to start 22:00 / end 21:00 — an empty range. Throwing here
     // is deliberate: returning it would send the day-advancing loop looking for a
     // slot that cannot exist on any day.
-    expect(() =>
-      effectiveWindow({ ...FLOOR, windowStart: '22:00', windowEnd: '23:00' }),
-    ).toThrow(/does not intersect/i);
+    expect(() => effectiveWindow({ ...FLOOR, windowStart: '22:00', windowEnd: '23:00' })).toThrow(
+      /does not intersect/i,
+    );
   });
 });
 

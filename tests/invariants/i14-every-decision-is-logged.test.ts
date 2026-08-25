@@ -141,7 +141,10 @@ describe('I14 — every outcome leaves a reason behind', () => {
     expect(Object.keys(perGate).sort()).toEqual([...GATE_NAMES].sort());
     for (const [gate, expected] of Object.entries(perGate)) {
       for (const code of expected) {
-        expect(codes, `${gate} skips with '${code}', which is not a declared reason code`).toContain(code);
+        expect(
+          codes,
+          `${gate} skips with '${code}', which is not a declared reason code`,
+        ).toContain(code);
       }
     }
   });

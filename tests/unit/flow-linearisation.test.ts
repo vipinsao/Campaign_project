@@ -19,8 +19,9 @@ const node = (id: string, type: FlowNode['type'], data?: FlowNode['data']): Flow
   data ? { id, type, data } : { id, type };
 
 const edge = (source: string, target: string, handle?: 'yes' | 'no'): FlowEdge =>
-  handle ? { id: `${source}->${target}:${handle}`, source, target, sourceHandle: handle }
-         : { id: `${source}->${target}`, source, target };
+  handle
+    ? { id: `${source}->${target}:${handle}`, source, target, sourceHandle: handle }
+    : { id: `${source}->${target}`, source, target };
 
 const EMAIL = { subject: 'Hello', body: 'Body {{unsubscribe_url}}', previewText: 'Hi' };
 const SMS = { body: 'Text body' };
@@ -107,7 +108,11 @@ describe('validation', () => {
 
   it('rejects a zero or negative delay', () => {
     const graph: FlowGraph = {
-      nodes: [node('t', 'trigger'), node('d', 'delay', { delayMinutes: 0 }), node('e', 'send_email', EMAIL)],
+      nodes: [
+        node('t', 'trigger'),
+        node('d', 'delay', { delayMinutes: 0 }),
+        node('e', 'send_email', EMAIL),
+      ],
       edges: [edge('t', 'd'), edge('d', 'e')],
     };
     expect(validateFlow(graph).valid).toBe(false);
@@ -125,7 +130,12 @@ describe('linearisation', () => {
       delayMinutes: 4320,
     });
     // The SMS inherits the same accumulated delay: nothing adds between them.
-    expect(messages[1]).toMatchObject({ nodeId: 's', channel: 'sms', sequenceOrder: 2, delayMinutes: 4320 });
+    expect(messages[1]).toMatchObject({
+      nodeId: 's',
+      channel: 'sms',
+      sequenceOrder: 2,
+      delayMinutes: 4320,
+    });
   });
 
   it('orders across channels, not within them', () => {

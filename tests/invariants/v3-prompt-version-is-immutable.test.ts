@@ -43,7 +43,11 @@ async function promptDir(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), 'ce-prompts-'));
   await mkdir(path.join(root, 'reply-classification'), { recursive: true });
   for (const [name, body] of Object.entries(files)) {
-    await writeFile(path.join(root, 'reply-classification', name), `${FRONT_MATTER}${body}`, 'utf8');
+    await writeFile(
+      path.join(root, 'reply-classification', name),
+      `${FRONT_MATTER}${body}`,
+      'utf8',
+    );
   }
   return root;
 }
@@ -53,14 +57,18 @@ describe('V3 — a prompt version is immutable', () => {
     const db = testDb();
     await syncPrompts(db);
     await expect(
-      db.query(`UPDATE prompts SET content = 'edited' WHERE name = 'reply-classification' AND version = 1`),
+      db.query(
+        `UPDATE prompts SET content = 'edited' WHERE name = 'reply-classification' AND version = 1`,
+      ),
     ).rejects.toThrow();
   });
 
   it('refuses a DELETE too, so history cannot be tidied away', async () => {
     const db = testDb();
     await syncPrompts(db);
-    await expect(db.query(`DELETE FROM prompts WHERE name = 'reply-classification'`)).rejects.toThrow();
+    await expect(
+      db.query(`DELETE FROM prompts WHERE name = 'reply-classification'`),
+    ).rejects.toThrow();
   });
 
   it('throws when a file is edited under an existing version number', async () => {

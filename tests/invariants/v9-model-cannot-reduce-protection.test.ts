@@ -30,12 +30,7 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { testDb, resetDb, closeTestDb } from '../support/db.ts';
-import {
-  addSuppression,
-  activeSuppression,
-  consentState,
-  FakeClock,
-} from '@campaign/core';
+import { addSuppression, activeSuppression, consentState, FakeClock } from '@campaign/core';
 import {
   classifyReply,
   MockModelClient,
@@ -55,8 +50,12 @@ import {
 afterAll(closeTestDb);
 beforeEach(resetDb);
 
-const CLASSIFIER = fileURLToPath(new URL('../../packages/triage/src/classifier.ts', import.meta.url));
-const PROTECTION = fileURLToPath(new URL('../../packages/triage/src/protection.ts', import.meta.url));
+const CLASSIFIER = fileURLToPath(
+  new URL('../../packages/triage/src/classifier.ts', import.meta.url),
+);
+const PROTECTION = fileURLToPath(
+  new URL('../../packages/triage/src/protection.ts', import.meta.url),
+);
 
 /** Code only: block comments, line comments and the doc prose all come out. */
 function stripComments(source: string): string {
@@ -223,7 +222,9 @@ describe('V9 — structurally, the model cannot weaken a protection', () => {
     expect(result.label).toBe('opt_out');
     expect(result.decidedBy).toBe('model');
     expect(result.suppressed, 'a model label is not a legal artefact').toBe(false);
-    expect(await activeSuppression(db, { tenantId, channel: 'email', address, clock })).toBeUndefined();
+    expect(
+      await activeSuppression(db, { tenantId, channel: 'email', address, clock }),
+    ).toBeUndefined();
   });
 
   it('CAN add protection, which is the one direction that is safe', async () => {
@@ -246,7 +247,9 @@ describe('V9 — structurally, the model cannot weaken a protection', () => {
     // The consent ledger is untouched by the classifier: the suppression is
     // address-level and the ledger is written by the consent module on the
     // operator-driven opt-out path, not by an AI classification.
-    const contact = await db.query<{ id: string }>(`SELECT id FROM contacts WHERE tenant_id = $1`, [tenantId]);
+    const contact = await db.query<{ id: string }>(`SELECT id FROM contacts WHERE tenant_id = $1`, [
+      tenantId,
+    ]);
     const state = await consentState(db, {
       tenantId,
       contactId: contact.rows[0]!.id,

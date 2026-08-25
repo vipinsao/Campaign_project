@@ -117,7 +117,9 @@ describe('I8 — terminal is terminal', () => {
     ] as const;
 
     for (const { code, expected } of cases) {
-      expect(deps.classifyError('mock', code).class, `${code} should be ${expected}`).toBe(expected);
+      expect(deps.classifyError('mock', code).class, `${code} should be ${expected}`).toBe(
+        expected,
+      );
     }
     expect(deps.classifyError('mock', 'terminal_anything').maxAttempts).toBe(1);
   });

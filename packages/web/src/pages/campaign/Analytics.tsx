@@ -19,7 +19,12 @@ import type {
   StatsResponse,
 } from '../../lib/types.ts';
 import { useCampaign } from '../CampaignEditor.tsx';
-import { EmptyState, ErrorState, LoadingState, UnavailableState } from '../../components/States.tsx';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  UnavailableState,
+} from '../../components/States.tsx';
 import { ApiRateValue, RateCard, RateValue, StatCard, Unknown } from '../../components/Rate.tsx';
 import { ChannelBadge, Pill, ReasonChip } from '../../components/Pill.tsx';
 import { Tooltip } from '../../components/Tooltip.tsx';
@@ -97,16 +102,43 @@ export function AnalyticsTab() {
       {stats.isPending ? (
         <LoadingState rows={2} label="Loading campaign stats" />
       ) : stats.isError ? (
-        <ErrorState error={stats.error} onRetry={() => void stats.refetch()} title="Stats did not load" />
+        <ErrorState
+          error={stats.error}
+          onRetry={() => void stats.refetch()}
+          title="Stats did not load"
+        />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-            <StatCard label="Queued" value={int(stats.data.counts.queued)} hint="pending + processing" />
-            <StatCard label="Sent" value={int(stats.data.counts.sent)} hint="sent_at is not null" tone="accent" />
-            <StatCard label="Delivered" value={int(stats.data.counts.delivered)} hint="provider receipt only" tone="ok" />
-            <StatCard label="Bounced" value={int(stats.data.counts.bounced)} hint="hard + soft" tone="bad" />
+            <StatCard
+              label="Queued"
+              value={int(stats.data.counts.queued)}
+              hint="pending + processing"
+            />
+            <StatCard
+              label="Sent"
+              value={int(stats.data.counts.sent)}
+              hint="sent_at is not null"
+              tone="accent"
+            />
+            <StatCard
+              label="Delivered"
+              value={int(stats.data.counts.delivered)}
+              hint="provider receipt only"
+              tone="ok"
+            />
+            <StatCard
+              label="Bounced"
+              value={int(stats.data.counts.bounced)}
+              hint="hard + soft"
+              tone="bad"
+            />
             <StatCard label="Complained" value={int(stats.data.counts.complained)} tone="bad" />
-            <StatCard label="Cancelled" value={int(stats.data.counts.cancelled)} hint="opt-out, pause, operator" />
+            <StatCard
+              label="Cancelled"
+              value={int(stats.data.counts.cancelled)}
+              hint="opt-out, pause, operator"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
@@ -193,7 +225,10 @@ export function AnalyticsTab() {
           ) : (
             <ul className="divide-y divide-line">
               {funnel.data.skipsByReason.map((skip) => (
-                <li key={skip.reasonCode} className="flex items-center justify-between gap-3 px-4 py-2">
+                <li
+                  key={skip.reasonCode}
+                  className="flex items-center justify-between gap-3 px-4 py-2"
+                >
                   <ReasonChip code={skip.reasonCode} />
                   <span className="num text-ink-dim">{int(skip.count)}</span>
                 </li>
@@ -230,8 +265,8 @@ export function AnalyticsTab() {
         <div className="panel-head">
           <span className="panel-title">Per message</span>
           <span className="text-[11px] text-ink-faint">
-            every rate below is <code className="font-mono">rate()</code> from the domain — hover for
-            its denominator
+            every rate below is <code className="font-mono">rate()</code> from the domain — hover
+            for its denominator
           </span>
         </div>
         {perMessage.isPending ? (
@@ -278,13 +313,19 @@ export function AnalyticsTab() {
                         {!message.isEnabled && <Pill tone="quiet">off</Pill>}
                       </span>
                     </td>
-                    <td className="cell font-mono text-[11px] text-ink-dim">{message.sendCondition}</td>
+                    <td className="cell font-mono text-[11px] text-ink-dim">
+                      {message.sendCondition}
+                    </td>
                     <td className="cell num text-right">{int(message.queued)}</td>
                     <td className="cell num text-right">{int(message.sent)}</td>
                     <td className="cell num text-right">{int(message.delivered)}</td>
                     <td className="cell num text-right">{int(message.cancelled)}</td>
                     <td className="cell text-right">
-                      <RateValue metricKey="delivery_rate" inputs={inputs} channel={message.channel} />
+                      <RateValue
+                        metricKey="delivery_rate"
+                        inputs={inputs}
+                        channel={message.channel}
+                      />
                     </td>
                     <td className="cell text-right">
                       <RateValue metricKey="open_rate" inputs={inputs} channel={message.channel} />
@@ -347,7 +388,10 @@ function ChannelPanel({
         {definitions.map((definition) => {
           const apiRate = rateFor(definition.key);
           return (
-            <li key={definition.key} className="flex items-center justify-between gap-3 px-3 py-1.5">
+            <li
+              key={definition.key}
+              className="flex items-center justify-between gap-3 px-3 py-1.5"
+            >
               <span className="min-w-0">
                 <span className="block truncate text-[12px] text-ink-dim">{definition.label}</span>
                 <span className="block truncate font-mono text-[10px] text-ink-faint">
@@ -416,7 +460,9 @@ function Funnel({ stages }: { stages: FunnelResponse['stages'] }) {
                   'h-full transition-[width]',
                   stage.unit === 'contacts' ? 'bg-accent-dim/70' : 'bg-ok/25',
                 )}
-                style={{ width: `${String(Math.max((stage.count / peak) * 100, stage.count > 0 ? 1.5 : 0))}%` }}
+                style={{
+                  width: `${String(Math.max((stage.count / peak) * 100, stage.count > 0 ? 1.5 : 0))}%`,
+                }}
               />
               <span className="absolute inset-y-0 left-2 flex items-center gap-2 text-[11px]">
                 <span className="num text-ink">{int(stage.count)}</span>
@@ -431,10 +477,10 @@ function Funnel({ stages }: { stages: FunnelResponse['stages'] }) {
                   align="right"
                   content={
                     <div className="text-ink-dim">
-                      The stage above counts <b className="text-ink">{previous.unit}</b> and this one
-                      counts <b className="text-ink">{stage.unit}</b>. Dividing them would produce a
-                      number that is wrong by the average messages-per-recipient — stable enough that
-                      nobody notices it is wrong, only that it seems low.
+                      The stage above counts <b className="text-ink">{previous.unit}</b> and this
+                      one counts <b className="text-ink">{stage.unit}</b>. Dividing them would
+                      produce a number that is wrong by the average messages-per-recipient — stable
+                      enough that nobody notices it is wrong, only that it seems low.
                     </div>
                   }
                 >
@@ -443,7 +489,10 @@ function Funnel({ stages }: { stages: FunnelResponse['stages'] }) {
                   </span>
                 </Tooltip>
               ) : share === null ? (
-                <span className="num text-ink-faint" title="The stage above is zero, so this share is not computable.">
+                <span
+                  className="num text-ink-faint"
+                  title="The stage above is zero, so this share is not computable."
+                >
                   {DASH}
                 </span>
               ) : (
@@ -547,11 +596,13 @@ function DailySeries({ rows, limit }: { rows: QueueResponse['messages']; limit: 
         what="This is a derived chart, not a reported one"
         because={
           <>
-            The daily rollup lives in <code className="font-mono text-ink-dim">campaign_daily_stats</code>{' '}
-            and is rebuildable from <code className="font-mono text-ink-dim">message_events</code>, but
-            no endpoint returns it — there is no{' '}
-            <code className="font-mono text-ink-dim">GET /campaigns/:id/timeseries</code>. Each point
-            above is a count of queue rows whose <code className="font-mono text-ink-dim">scheduled_at</code>,{' '}
+            The daily rollup lives in{' '}
+            <code className="font-mono text-ink-dim">campaign_daily_stats</code> and is rebuildable
+            from <code className="font-mono text-ink-dim">message_events</code>, but no endpoint
+            returns it — there is no{' '}
+            <code className="font-mono text-ink-dim">GET /campaigns/:id/timeseries</code>. Each
+            point above is a count of queue rows whose{' '}
+            <code className="font-mono text-ink-dim">scheduled_at</code>,{' '}
             <code className="font-mono text-ink-dim">sent_at</code> or{' '}
             <code className="font-mono text-ink-dim">delivered_at</code> falls on that day, computed
             from rows this page actually received. Opens and clicks are not plotted, because those

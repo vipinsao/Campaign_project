@@ -39,9 +39,10 @@ export function LoginPage() {
 
   if (readToken() !== null) return <Navigate to="/campaigns" replace />;
 
-  const candidates = error instanceof ApiError && error.code === 'ambiguous_account'
-    ? candidatesOf(error.details)
-    : [];
+  const candidates =
+    error instanceof ApiError && error.code === 'ambiguous_account'
+      ? candidatesOf(error.details)
+      : [];
 
   async function submit(withTenant: string | null) {
     setBusy(true);
@@ -91,7 +92,9 @@ export function LoginPage() {
             autoComplete="username"
             autoFocus
             value={email}
-            onChange={(event) => { setEmail(event.target.value); }}
+            onChange={(event) => {
+              setEmail(event.target.value);
+            }}
             placeholder="operator@example.com"
           />
 
@@ -104,7 +107,9 @@ export function LoginPage() {
             type="password"
             autoComplete="current-password"
             value={password}
-            onChange={(event) => { setPassword(event.target.value); }}
+            onChange={(event) => {
+              setPassword(event.target.value);
+            }}
             placeholder="••••••••••••"
           />
 
@@ -114,7 +119,9 @@ export function LoginPage() {
               <button
                 type="button"
                 className="text-ink-faint hover:text-ink"
-                onClick={() => { setTenantId(null); }}
+                onClick={() => {
+                  setTenantId(null);
+                }}
               >
                 clear
               </button>
@@ -156,7 +163,9 @@ export function LoginPage() {
           </div>
         )}
 
-        {error !== null && candidates.length === 0 && <ErrorState error={error} title="Sign-in failed" />}
+        {error !== null && candidates.length === 0 && (
+          <ErrorState error={error} title="Sign-in failed" />
+        )}
 
         <p className="mt-5 text-center text-[11px] leading-relaxed text-ink-faint">
           Seeded by <code className="font-mono">npm run seed:demo</code>. The API rejects a bad

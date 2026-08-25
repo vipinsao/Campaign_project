@@ -48,14 +48,21 @@ export async function seedTenant(
 export async function seedContact(
   db: Pool,
   tenantId: string,
-  opts: { email?: string | null; phone?: string | null; timezone?: string | null; tags?: string[] } = {},
+  opts: {
+    email?: string | null;
+    phone?: string | null;
+    timezone?: string | null;
+    tags?: string[];
+  } = {},
 ): Promise<string> {
   const { rows } = await db.query<{ id: string }>(
     `INSERT INTO contacts (tenant_id, email, phone, timezone, tags)
      VALUES ($1,$2,$3,$4,$5) RETURNING id`,
     [
       tenantId,
-      opts.email === undefined ? `c${Math.random().toString(36).slice(2, 10)}@example.com` : opts.email,
+      opts.email === undefined
+        ? `c${Math.random().toString(36).slice(2, 10)}@example.com`
+        : opts.email,
       opts.phone ?? null,
       opts.timezone ?? null,
       opts.tags ?? [],
@@ -100,7 +107,10 @@ export async function seedCampaign(
     [tenantId, campaignId],
   );
   const versionId = v[0]!.id;
-  await db.query(`UPDATE campaigns SET active_version_id = $2 WHERE id = $1`, [campaignId, versionId]);
+  await db.query(`UPDATE campaigns SET active_version_id = $2 WHERE id = $1`, [
+    campaignId,
+    versionId,
+  ]);
   return { campaignId, versionId };
 }
 

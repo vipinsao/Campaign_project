@@ -117,9 +117,11 @@ describe('the mock providers', () => {
       trackingId: 'track-sms',
     });
 
-    const { rows } = await testDb().query<{ subject: string | null; html: string | null; channel: string }>(
-      'SELECT subject, html, channel FROM mock_outbox',
-    );
+    const { rows } = await testDb().query<{
+      subject: string | null;
+      html: string | null;
+      channel: string;
+    }>('SELECT subject, html, channel FROM mock_outbox');
     expect(rows[0]).toEqual({ subject: null, html: null, channel: 'sms' });
   });
 
@@ -213,9 +215,10 @@ describe('the mock providers', () => {
           rng: seededRng(99),
         });
         for (let i = 0; i < 25; i++) await provider.send(emailMessage(tenantId, i));
-        const { rows } = await testDb().query<{ simulated_outcome: string; provider_message_id: string }>(
-          'SELECT simulated_outcome, provider_message_id FROM mock_outbox ORDER BY sent_at, id',
-        );
+        const { rows } = await testDb().query<{
+          simulated_outcome: string;
+          provider_message_id: string;
+        }>('SELECT simulated_outcome, provider_message_id FROM mock_outbox ORDER BY sent_at, id');
         return rows.map((r) => `${r.simulated_outcome}:${r.provider_message_id}`);
       };
       expect(await outcomes()).toEqual(await outcomes());

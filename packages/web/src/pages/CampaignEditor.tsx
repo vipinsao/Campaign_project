@@ -3,7 +3,12 @@ import { NavLink, Outlet, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { ApiError, api, failuresByMessage } from '../lib/api.ts';
-import type { Campaign, CampaignMessage, CampaignResponse, MessagesResponse } from '../lib/types.ts';
+import type {
+  Campaign,
+  CampaignMessage,
+  CampaignResponse,
+  MessagesResponse,
+} from '../lib/types.ts';
 import { PageHeader, Scroll } from '../components/Layout.tsx';
 import { CampaignStatusPill, ChannelBadges, Pill } from '../components/Pill.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
@@ -66,14 +71,17 @@ export function CampaignEditor() {
   };
 
   const activate = useMutation({
-    mutationFn: () => api.post<{ campaign: Campaign; version: { version: number } }>(`/campaigns/${id}/activate`),
+    mutationFn: () =>
+      api.post<{ campaign: Campaign; version: { version: number } }>(`/campaigns/${id}/activate`),
     onMutate: () => {
       setActionError(null);
       setNote(null);
       setActivationFailures(new Map());
     },
     onSuccess: (result) => {
-      setNote(`Activated as version ${String(result.version.version)}. The definition is now frozen for messages already queued.`);
+      setNote(
+        `Activated as version ${String(result.version.version)}. The definition is now frozen for messages already queued.`,
+      );
       invalidate();
     },
     onError: (error) => {
@@ -133,7 +141,9 @@ export function CampaignEditor() {
     messages,
     reload: invalidate,
     activationFailures,
-    clearActivationFailures: () => { setActivationFailures(new Map()); },
+    clearActivationFailures: () => {
+      setActivationFailures(new Map());
+    },
   };
 
   return (
@@ -162,7 +172,9 @@ export function CampaignEditor() {
                 type="button"
                 className="btn btn-primary"
                 disabled={activate.isPending}
-                onClick={() => { activate.mutate(); }}
+                onClick={() => {
+                  activate.mutate();
+                }}
               >
                 {activate.isPending ? 'Checking…' : 'Activate'}
               </button>
@@ -172,7 +184,9 @@ export function CampaignEditor() {
                 type="button"
                 className="btn"
                 disabled={pause.isPending}
-                onClick={() => { pause.mutate(); }}
+                onClick={() => {
+                  pause.mutate();
+                }}
               >
                 Pause
               </button>

@@ -25,7 +25,13 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { testDb, resetDb, closeTestDb } from '../support/db.ts';
 import { classifyReply, MockModelClient, ReplyClassification } from '@campaign/triage';
-import { seedReply, seedTriageTenant, syncedPrompt, triageDeps, validAnswer } from './triage-harness.ts';
+import {
+  seedReply,
+  seedTriageTenant,
+  syncedPrompt,
+  triageDeps,
+  validAnswer,
+} from './triage-harness.ts';
 
 afterAll(closeTestDb);
 beforeEach(resetDb);
@@ -46,11 +52,26 @@ function scripted(raws: readonly string[]): MockModelClient {
 const MALFORMED: readonly { raw: string; why: string }[] = [
   { raw: 'I think this is a complaint.', why: 'prose instead of JSON' },
   { raw: '{"label":"complaint"}', why: 'missing required fields' },
-  { raw: '{"label":"annoyed","confidence":0.9,"summary":"x","urgency":"low","entities":{"order_number_mentioned":null,"product_mentioned":null}}', why: 'a label outside the closed set' },
-  { raw: '{"label":"complaint","confidence":1.7,"summary":"x","urgency":"low","entities":{"order_number_mentioned":null,"product_mentioned":null}}', why: 'confidence out of range' },
-  { raw: '{"label":"complaint","confidence":"high","summary":"x","urgency":"low","entities":{"order_number_mentioned":null,"product_mentioned":null}}', why: 'confidence as a string' },
-  { raw: 'Here is the JSON: {"label":"complaint"} hope that helps', why: 'JSON wrapped in chatter' },
-  { raw: '{"label":"complaint","confidence":0.9,"summary":"x","urgency":"low","entities":{"order_number_mentioned":null,"product_mentioned":null},"action":"resubscribe"}', why: 'an extra key the contract does not allow' },
+  {
+    raw: '{"label":"annoyed","confidence":0.9,"summary":"x","urgency":"low","entities":{"order_number_mentioned":null,"product_mentioned":null}}',
+    why: 'a label outside the closed set',
+  },
+  {
+    raw: '{"label":"complaint","confidence":1.7,"summary":"x","urgency":"low","entities":{"order_number_mentioned":null,"product_mentioned":null}}',
+    why: 'confidence out of range',
+  },
+  {
+    raw: '{"label":"complaint","confidence":"high","summary":"x","urgency":"low","entities":{"order_number_mentioned":null,"product_mentioned":null}}',
+    why: 'confidence as a string',
+  },
+  {
+    raw: 'Here is the JSON: {"label":"complaint"} hope that helps',
+    why: 'JSON wrapped in chatter',
+  },
+  {
+    raw: '{"label":"complaint","confidence":0.9,"summary":"x","urgency":"low","entities":{"order_number_mentioned":null,"product_mentioned":null},"action":"resubscribe"}',
+    why: 'an extra key the contract does not allow',
+  },
 ];
 
 describe('V5 — a schema violation escalates rather than being coerced', () => {
@@ -91,7 +112,10 @@ describe('V5 — a schema violation escalates rather than being coerced', () => 
       synthesise: (request) => {
         seen.push(request.userContent);
         return {
-          raw: seen.length === 1 ? '{"label":"complaint"}' : JSON.stringify(validAnswer({ label: 'complaint' })),
+          raw:
+            seen.length === 1
+              ? '{"label":"complaint"}'
+              : JSON.stringify(validAnswer({ label: 'complaint' })),
           modelId: 'claude-sonnet-5',
           inputTokens: 300,
           outputTokens: 30,
@@ -100,7 +124,10 @@ describe('V5 — a schema violation escalates rather than being coerced', () => 
     });
 
     const body = 'The strap snapped on the second day.';
-    const result = await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, body));
+    const result = await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, body),
+    );
 
     expect(model.calls).toBe(2);
     expect(result.label).toBe('complaint');
@@ -117,7 +144,10 @@ describe('V5 — a schema violation escalates rather than being coerced', () => 
     const prompt = await syncedPrompt(db, 1);
     const model = scripted(['nope', 'still nope', 'third answer that must never be requested']);
 
-    await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, 'Anything at all'));
+    await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, 'Anything at all'),
+    );
     expect(model.calls, 'an unbounded retry loop is a cost incident, not a fallback').toBe(2);
   });
 

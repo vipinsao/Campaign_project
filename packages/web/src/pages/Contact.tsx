@@ -163,7 +163,10 @@ export function ContactPage() {
                   ) : (
                     <span className="flex flex-wrap gap-1">
                       {person.tags.map((tag) => (
-                        <span key={tag} className="rounded bg-raised px-1 font-mono text-[10px] text-ink-faint">
+                        <span
+                          key={tag}
+                          className="rounded bg-raised px-1 font-mono text-[10px] text-ink-faint"
+                        >
                           {tag}
                         </span>
                       ))}
@@ -189,10 +192,10 @@ export function ContactPage() {
                   align="right"
                   content={
                     <div className="text-ink-dim">
-                      Suppression is <b className="text-ink">address-level</b>, not contact-level. It
-                      survives the contact record being recreated by an import, which is exactly the
-                      case where a contact-level flag lets mail start flowing again to somebody who
-                      said stop.
+                      Suppression is <b className="text-ink">address-level</b>, not contact-level.
+                      It survives the contact record being recreated by an import, which is exactly
+                      the case where a contact-level flag lets mail start flowing again to somebody
+                      who said stop.
                     </div>
                   }
                 >
@@ -220,26 +223,27 @@ export function ContactPage() {
                 </ul>
               )}
 
-              {consent.data !== undefined && consent.data.pauses.some((pause) => pause.until !== null) && (
-                <div className="border-t border-line px-4 py-3">
-                  <div className="mb-1.5 text-[10px] tracking-wide text-ink-faint uppercase">
-                    Active pauses
+              {consent.data !== undefined &&
+                consent.data.pauses.some((pause) => pause.until !== null) && (
+                  <div className="border-t border-line px-4 py-3">
+                    <div className="mb-1.5 text-[10px] tracking-wide text-ink-faint uppercase">
+                      Active pauses
+                    </div>
+                    <ul className="space-y-1">
+                      {consent.data.pauses
+                        .filter((pause) => pause.until !== null)
+                        .map((pause) => (
+                          <li key={pause.channel} className="flex items-center gap-2 text-[12px]">
+                            <ChannelBadge channel={pause.channel} />
+                            <span className="text-ink-dim">
+                              held until {timestamp(pause.until)}{' '}
+                              <span className="text-ink-faint">({relative(pause.until)})</span>
+                            </span>
+                          </li>
+                        ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-1">
-                    {consent.data.pauses
-                      .filter((pause) => pause.until !== null)
-                      .map((pause) => (
-                        <li key={pause.channel} className="flex items-center gap-2 text-[12px]">
-                          <ChannelBadge channel={pause.channel} />
-                          <span className="text-ink-dim">
-                            held until {timestamp(pause.until)}{' '}
-                            <span className="text-ink-faint">({relative(pause.until)})</span>
-                          </span>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              )}
+                )}
             </section>
           </div>
 
@@ -274,9 +278,9 @@ export function ContactPage() {
               </div>
               <p className="border-b border-line px-4 py-2 text-[11px] leading-relaxed text-ink-faint">
                 Every row, newest first, including the ones that were superseded. The table refuses{' '}
-                <code className="font-mono">UPDATE</code> and <code className="font-mono">DELETE</code>{' '}
-                at the database level — a correction is a new row, so nothing here can be quietly
-                rewritten later.
+                <code className="font-mono">UPDATE</code> and{' '}
+                <code className="font-mono">DELETE</code> at the database level — a correction is a
+                new row, so nothing here can be quietly rewritten later.
               </p>
               {consent.isPending ? (
                 <LoadingState rows={6} label="Loading the ledger" />
@@ -353,7 +357,9 @@ export function ContactPage() {
                             </Link>
                           </div>
                           {row.rendered_subject !== null && (
-                            <div className="truncate text-[11px] text-ink-faint">{row.rendered_subject}</div>
+                            <div className="truncate text-[11px] text-ink-faint">
+                              {row.rendered_subject}
+                            </div>
                           )}
                         </td>
                         <td className="cell">
@@ -363,7 +369,11 @@ export function ContactPage() {
                           {timestamp(row.scheduled_at)}
                         </td>
                         <td className="cell text-[11px] whitespace-nowrap text-ink-dim">
-                          {row.sent_at === null ? <span className="text-ink-faint">{DASH}</span> : timestamp(row.sent_at)}
+                          {row.sent_at === null ? (
+                            <span className="text-ink-faint">{DASH}</span>
+                          ) : (
+                            timestamp(row.sent_at)
+                          )}
                         </td>
                         <td className="cell text-[11px] whitespace-nowrap">
                           {row.delivered_at === null ? (
@@ -374,7 +384,9 @@ export function ContactPage() {
                         </td>
                         <td className="cell">
                           {row.provider_error_code === null ? (
-                            <span className="text-[11px] text-ink-faint">{row.provider ?? DASH}</span>
+                            <span className="text-[11px] text-ink-faint">
+                              {row.provider ?? DASH}
+                            </span>
                           ) : (
                             <Pill tone={row.error_class === 'terminal' ? 'bad' : 'held'} mono>
                               {row.provider_error_code}
@@ -414,7 +426,9 @@ function ResolvedGrid({ resolved }: { resolved: ConsentResponse['resolved'] }) {
           <tr className="border-b border-line">
             <th className="th">Channel</th>
             {categories.map((category) => (
-              <th key={category} className="th">{titleCase(category)}</th>
+              <th key={category} className="th">
+                {titleCase(category)}
+              </th>
             ))}
           </tr>
         </thead>
@@ -433,8 +447,8 @@ function ResolvedGrid({ resolved }: { resolved: ConsentResponse['resolved'] }) {
                         content={
                           <div className="text-ink-dim">
                             No opt-in and no opt-out on record. For a marketing category the send
-                            gate refuses with <span className="font-mono">consent_never_given</span>,
-                            which is a different refusal from{' '}
+                            gate refuses with <span className="font-mono">consent_never_given</span>
+                            , which is a different refusal from{' '}
                             <span className="font-mono">consent_opted_out</span> and is logged as
                             such.
                           </div>
@@ -465,7 +479,15 @@ function ResolvedGrid({ resolved }: { resolved: ConsentResponse['resolved'] }) {
 
 // ── the ledger timeline ──────────────────────────────────────────────────────
 
-function LedgerItem({ row, first, last }: { row: ConsentLedgerRow; first: boolean; last: boolean }) {
+function LedgerItem({
+  row,
+  first,
+  last,
+}: {
+  row: ConsentLedgerRow;
+  first: boolean;
+  last: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const optedIn = row.state === 'opted_in';
   const evidence = row.evidence;
@@ -491,8 +513,8 @@ function LedgerItem({ row, first, last }: { row: ConsentLedgerRow; first: boolea
               <Tooltip
                 content={
                   <div className="text-ink-dim">
-                    A wildcard record: it applies to every category, and any later
-                    category-specific record overrides it for that category.
+                    A wildcard record: it applies to every category, and any later category-specific
+                    record overrides it for that category.
                   </div>
                 }
               >
@@ -508,19 +530,26 @@ function LedgerItem({ row, first, last }: { row: ConsentLedgerRow; first: boolea
             {row.source}
           </span>
           {first && <Pill tone="accent">current</Pill>}
-          <span className="ml-auto text-[11px] whitespace-nowrap text-ink-faint" title={timestamp(row.occurred_at)}>
+          <span
+            className="ml-auto text-[11px] whitespace-nowrap text-ink-faint"
+            title={timestamp(row.occurred_at)}
+          >
             {relative(row.occurred_at)}
           </span>
         </div>
 
-        <div className="mt-0.5 font-mono text-[11px] text-ink-faint">{timestamp(row.occurred_at)}</div>
+        <div className="mt-0.5 font-mono text-[11px] text-ink-faint">
+          {timestamp(row.occurred_at)}
+        </div>
 
         {evidence !== null && Object.keys(evidence).length > 0 ? (
           <>
             <button
               type="button"
               className="mt-1 text-[11px] text-accent hover:underline"
-              onClick={() => { setOpen(!open); }}
+              onClick={() => {
+                setOpen(!open);
+              }}
               aria-expanded={open}
             >
               {open ? 'hide evidence' : 'show evidence'}
@@ -549,7 +578,9 @@ function SuppressionItem({ row }: { row: SuppressionRow }) {
     <li className="px-4 py-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <ChannelBadge channel={row.channel} />
-        <Pill tone={expired ? 'quiet' : 'bad'} mono>{row.reason}</Pill>
+        <Pill tone={expired ? 'quiet' : 'bad'} mono>
+          {row.reason}
+        </Pill>
         {expired && <Pill tone="quiet">expired</Pill>}
       </div>
       <div className="mt-1 truncate font-mono text-[11px] text-ink-dim">{row.address}</div>
@@ -618,7 +649,9 @@ function RecordConsent({ contactId, onRecorded }: { contactId: string; onRecorde
       <button
         type="button"
         className="flex w-full items-center justify-between px-4 py-2.5 text-left"
-        onClick={() => { setOpen(!open); }}
+        onClick={() => {
+          setOpen(!open);
+        }}
         aria-expanded={open}
       >
         <span className="text-[12px] text-ink-dim">
@@ -632,39 +665,55 @@ function RecordConsent({ contactId, onRecorded }: { contactId: string; onRecorde
         <div className="space-y-3 border-t border-line p-4">
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="label" htmlFor="consent-channel">Channel</label>
+              <label className="label" htmlFor="consent-channel">
+                Channel
+              </label>
               <select
                 id="consent-channel"
                 className="input"
                 value={channel}
-                onChange={(event) => { setChannel(event.target.value as Chan); }}
+                onChange={(event) => {
+                  setChannel(event.target.value as Chan);
+                }}
               >
                 {Channel.options.map((option) => (
-                  <option key={option} value={option}>{option}</option>
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="label" htmlFor="consent-category">Category</label>
+              <label className="label" htmlFor="consent-category">
+                Category
+              </label>
               <select
                 id="consent-category"
                 className="input"
                 value={category}
-                onChange={(event) => { setCategory(event.target.value as Category | ''); }}
+                onChange={(event) => {
+                  setCategory(event.target.value as Category | '');
+                }}
               >
                 <option value="">all (wildcard)</option>
                 {CampaignCategory.options.map((option) => (
-                  <option key={option} value={option}>{option}</option>
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="label" htmlFor="consent-state">State</label>
+              <label className="label" htmlFor="consent-state">
+                State
+              </label>
               <select
                 id="consent-state"
                 className="input"
                 value={state}
-                onChange={(event) => { setState(event.target.value as 'opted_in' | 'opted_out'); }}
+                onChange={(event) => {
+                  setState(event.target.value as 'opted_in' | 'opted_out');
+                }}
               >
                 <option value="opted_out">opted_out</option>
                 <option value="opted_in">opted_in</option>
@@ -673,27 +722,35 @@ function RecordConsent({ contactId, onRecorded }: { contactId: string; onRecorde
           </div>
 
           <div>
-            <label className="label" htmlFor="consent-note">Evidence</label>
+            <label className="label" htmlFor="consent-note">
+              Evidence
+            </label>
             <input
               id="consent-note"
               className="input"
               placeholder="e.g. asked to be removed on call #4821"
               value={note}
-              onChange={(event) => { setNote(event.target.value); }}
+              onChange={(event) => {
+                setNote(event.target.value);
+              }}
             />
             <p className="mt-1 text-[11px] leading-relaxed text-ink-faint">
-              Recorded with <code className="font-mono">source: operator</code> and your user id, not
-              as though the customer did it themselves.
+              Recorded with <code className="font-mono">source: operator</code> and your user id,
+              not as though the customer did it themselves.
             </p>
           </div>
 
-          {record.isError && <ErrorState error={record.error} title="The consent event was not recorded" />}
+          {record.isError && (
+            <ErrorState error={record.error} title="The consent event was not recorded" />
+          )}
 
           <button
             type="button"
             className="btn btn-primary"
             disabled={record.isPending}
-            onClick={() => { record.mutate(); }}
+            onClick={() => {
+              record.mutate();
+            }}
           >
             {record.isPending ? 'Appending…' : 'Append to ledger'}
           </button>

@@ -14,7 +14,13 @@ import type {
   QueueRow,
 } from '../lib/types.ts';
 import { PageHeader, Scroll } from '../components/Layout.tsx';
-import { ChannelBadge, DecisionChip, Pill, QueueStatusPill, ReasonChip } from '../components/Pill.tsx';
+import {
+  ChannelBadge,
+  DecisionChip,
+  Pill,
+  QueueStatusPill,
+  ReasonChip,
+} from '../components/Pill.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { Tooltip } from '../components/Tooltip.tsx';
 import { DASH, initials, money, relative, timestamp } from '../lib/format.ts';
@@ -56,8 +62,19 @@ type Lookup =
   | { readonly state: 'idle' }
   | { readonly state: 'searching' }
   | { readonly state: 'none'; readonly query: string; readonly mode: 'order' | 'email' }
-  | { readonly state: 'ambiguous-orders'; readonly query: string; readonly candidates: readonly OrderSummary[]; readonly message: string; readonly disambiguateBy: string }
-  | { readonly state: 'ambiguous-contacts'; readonly query: string; readonly candidates: EstimateResponse['sample']; readonly total: number }
+  | {
+      readonly state: 'ambiguous-orders';
+      readonly query: string;
+      readonly candidates: readonly OrderSummary[];
+      readonly message: string;
+      readonly disambiguateBy: string;
+    }
+  | {
+      readonly state: 'ambiguous-contacts';
+      readonly query: string;
+      readonly candidates: EstimateResponse['sample'];
+      readonly total: number;
+    }
   | { readonly state: 'resolved'; readonly target: Target }
   | { readonly state: 'failed'; readonly error: unknown };
 
@@ -80,7 +97,9 @@ export function InspectPage() {
       inputRef.current?.focus();
     };
     window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); };
+    return () => {
+      window.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   async function resolve(raw: string) {
@@ -109,7 +128,12 @@ export function InspectPage() {
             target: { kind: 'contact', contactId: first.id, via: `email ${query}` },
           });
         } else {
-          setLookup({ state: 'ambiguous-contacts', query, candidates: found.sample, total: found.count });
+          setLookup({
+            state: 'ambiguous-contacts',
+            query,
+            candidates: found.sample,
+            total: found.count,
+          });
         }
         return;
       }
@@ -118,7 +142,10 @@ export function InspectPage() {
       if (result.kind === 'none') {
         setLookup({ state: 'none', query, mode: 'order' });
       } else if (result.kind === 'single') {
-        setLookup({ state: 'resolved', target: { kind: 'order', order: result.match, via: `order ${query}` } });
+        setLookup({
+          state: 'resolved',
+          target: { kind: 'order', order: result.match, via: `order ${query}` },
+        });
       } else {
         setLookup({
           state: 'ambiguous-orders',
@@ -144,7 +171,9 @@ export function InspectPage() {
           </>
         }
         actions={
-          lookup.state === 'resolved' || lookup.state === 'ambiguous-orders' || lookup.state === 'ambiguous-contacts' ? (
+          lookup.state === 'resolved' ||
+          lookup.state === 'ambiguous-orders' ||
+          lookup.state === 'ambiguous-contacts' ? (
             <button
               type="button"
               className="btn"
@@ -177,9 +206,13 @@ export function InspectPage() {
                 value={term}
                 spellCheck={false}
                 autoComplete="off"
-                onChange={(event) => { setTerm(event.target.value); }}
+                onChange={(event) => {
+                  setTerm(event.target.value);
+                }}
               />
-              <span className="pointer-events-none absolute top-3 left-3 text-[14px] text-ink-faint">⌖</span>
+              <span className="pointer-events-none absolute top-3 left-3 text-[14px] text-ink-faint">
+                ⌖
+              </span>
               <span className="absolute top-2.5 right-2.5 flex items-center gap-2">
                 {term.trim().length > 0 && (
                   <span className="rounded border border-line-strong bg-raised px-1.5 py-px font-mono text-[10px] text-ink-faint">
@@ -213,7 +246,11 @@ export function InspectPage() {
         )}
         {lookup.state === 'searching' && <LoadingState rows={4} label="Resolving recipient" />}
         {lookup.state === 'failed' && (
-          <ErrorState error={lookup.error} title="The lookup failed" onRetry={() => void resolve(term)} />
+          <ErrorState
+            error={lookup.error}
+            title="The lookup failed"
+            onRetry={() => void resolve(term)}
+          />
         )}
         {lookup.state === 'none' && (
           <EmptyState
@@ -230,7 +267,10 @@ export function InspectPage() {
           <OrderChooser
             lookup={lookup}
             onPick={(order) => {
-              setLookup({ state: 'resolved', target: { kind: 'order', order, via: `order ${lookup.query}` } });
+              setLookup({
+                state: 'resolved',
+                target: { kind: 'order', order, via: `order ${lookup.query}` },
+              });
             }}
           />
         )}
@@ -298,12 +338,16 @@ function OrderChooser({
           <li key={candidate.id}>
             <button
               type="button"
-              onClick={() => { onPick(candidate); }}
+              onClick={() => {
+                onPick(candidate);
+              }}
               className="w-full rounded-md border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-accent-dim hover:bg-raised focus-visible:border-accent"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[13px] font-medium text-ink">{candidate.storeName}</div>
+                  <div className="truncate text-[13px] font-medium text-ink">
+                    {candidate.storeName}
+                  </div>
                   <div className="font-mono text-[11px] text-ink-faint">
                     {lookup.disambiguateBy}={candidate.storeId.slice(0, 8)}… · {candidate.storeCode}
                   </div>
@@ -352,8 +396,8 @@ function ContactChooser({
           {total} contacts match {query}
         </div>
         <p className="text-[12px] leading-relaxed text-ink-dim">
-          The same rule applies as for an ambiguous order number: nothing is chosen for you. Pick the
-          contact whose story you want.
+          The same rule applies as for an ambiguous order number: nothing is chosen for you. Pick
+          the contact whose story you want.
         </p>
         {candidates.length < total && (
           <p className="mt-1.5 text-[12px] text-ink-faint">
@@ -366,7 +410,9 @@ function ContactChooser({
           <li key={candidate.id}>
             <button
               type="button"
-              onClick={() => { onPick(candidate.id); }}
+              onClick={() => {
+                onPick(candidate.id);
+              }}
               className="w-full rounded-md border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-accent-dim hover:bg-raised"
             >
               <div className="truncate text-[13px] text-ink">
@@ -375,7 +421,9 @@ function ContactChooser({
               <div className="truncate font-mono text-[11px] text-ink-faint">
                 {candidate.email ?? candidate.phone ?? DASH}
               </div>
-              <div className="mt-1 font-mono text-[10px] text-ink-faint">{candidate.id.slice(0, 8)}…</div>
+              <div className="mt-1 font-mono text-[10px] text-ink-faint">
+                {candidate.id.slice(0, 8)}…
+              </div>
             </button>
           </li>
         ))}
@@ -430,7 +478,11 @@ function Story({ target }: { target: Target }) {
   const refusals = decisions.filter((row) => row.decision !== 'proceed');
 
   const decisionsPending = byContact.isPending || (orderId !== null && byOrder.isPending);
-  const decisionsError = byContact.isError ? byContact.error : byOrder.isError ? byOrder.error : null;
+  const decisionsError = byContact.isError
+    ? byContact.error
+    : byOrder.isError
+      ? byOrder.error
+      : null;
 
   return (
     <div className="space-y-3 p-3">
@@ -476,8 +528,8 @@ function Story({ target }: { target: Target }) {
                   <Tooltip
                     content={
                       <div className="text-ink-dim">
-                        No timezone on this contact, so quiet hours fall back to the tenant default —
-                        never to the server&rsquo;s zone.
+                        No timezone on this contact, so quiet hours fall back to the tenant default
+                        — never to the server&rsquo;s zone.
                       </div>
                     }
                   >
@@ -488,9 +540,7 @@ function Story({ target }: { target: Target }) {
                 )}
               </Fact>
               <Fact label="Orders">{contact.data.contact.orderCount}</Fact>
-              <Fact label="Lifetime value">
-                {money(contact.data.contact.lifetimeValue, 'USD')}
-              </Fact>
+              <Fact label="Lifetime value">{money(contact.data.contact.lifetimeValue, 'USD')}</Fact>
               <Fact label="Queued">{contact.data.messages.queued}</Fact>
               <Fact label="Sent">{contact.data.messages.sent}</Fact>
               <Fact label="Cancelled">{contact.data.messages.cancelled}</Fact>
@@ -507,7 +557,9 @@ function Story({ target }: { target: Target }) {
               </div>
               <Fact label="Store">
                 {target.order.storeName}{' '}
-                <span className="font-mono text-[11px] text-ink-faint">{target.order.storeCode}</span>
+                <span className="font-mono text-[11px] text-ink-faint">
+                  {target.order.storeCode}
+                </span>
               </Fact>
               <Fact label="Status">
                 <Pill tone="quiet">{target.order.status}</Pill>
@@ -633,8 +685,8 @@ function Story({ target }: { target: Target }) {
       </section>
 
       <p className="px-1 pb-2 text-[11px] leading-relaxed text-ink-faint">
-        Both lists above are capped at the endpoint&rsquo;s maximum page of 200 rows. Nothing on this
-        page is computed from a counter: the messages come from{' '}
+        Both lists above are capped at the endpoint&rsquo;s maximum page of 200 rows. Nothing on
+        this page is computed from a counter: the messages come from{' '}
         <code className="font-mono">message_queue</code> and the refusals from{' '}
         <code className="font-mono">send_decisions</code>, which the send path writes as it decides.
       </p>
@@ -754,9 +806,9 @@ function PendingRow({ row }: { row: QueueRow }) {
           <Tooltip
             content={
               <div className="text-ink-dim">
-                Held back {row.deferrals} time{row.deferrals === 1 ? '' : 's'} — quiet hours, a pause
-                or a frequency cap. A deferral is the system working and does not consume a delivery
-                attempt.
+                Held back {row.deferrals} time{row.deferrals === 1 ? '' : 's'} — quiet hours, a
+                pause or a frequency cap. A deferral is the system working and does not consume a
+                delivery attempt.
               </div>
             }
           >
@@ -784,7 +836,12 @@ function RefusalRow({ row, glossary }: { row: DecisionRow; glossary: Record<stri
   const inputs = row.inputs;
 
   return (
-    <li className={clsx('px-4 py-3', row.decision === 'skip' ? 'border-l-2 border-bad' : 'border-l-2 border-held')}>
+    <li
+      className={clsx(
+        'px-4 py-3',
+        row.decision === 'skip' ? 'border-l-2 border-bad' : 'border-l-2 border-held',
+      )}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <DecisionChip decision={row.decision} />
         <ReasonChip code={row.reason_code} />
@@ -813,18 +870,25 @@ function RefusalRow({ row, glossary }: { row: DecisionRow; glossary: Record<stri
 
       <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px]">
         {row.campaign_id !== null && (
-          <Link to={`/campaigns/${row.campaign_id}/overview`} className="text-ink-faint hover:text-accent">
+          <Link
+            to={`/campaigns/${row.campaign_id}/overview`}
+            className="text-ink-faint hover:text-accent"
+          >
             campaign {row.campaign_id.slice(0, 8)}…
           </Link>
         )}
         {row.message_queue_id !== null && (
-          <span className="font-mono text-ink-faint">queue {row.message_queue_id.slice(0, 8)}…</span>
+          <span className="font-mono text-ink-faint">
+            queue {row.message_queue_id.slice(0, 8)}…
+          </span>
         )}
         {inputs !== null && Object.keys(inputs).length > 0 && (
           <button
             type="button"
             className="text-accent hover:underline"
-            onClick={() => { setOpen(!open); }}
+            onClick={() => {
+              setOpen(!open);
+            }}
             aria-expanded={open}
           >
             {open ? 'hide' : 'show'} the inputs it was evaluated from

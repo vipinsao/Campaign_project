@@ -22,7 +22,14 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { testDb, resetDb, closeTestDb } from '../support/db.ts';
 import { classifyReply, MockModelClient } from '@campaign/triage';
-import { fixtureFor, seedReply, seedTriageTenant, syncedPrompt, triageDeps, validAnswer } from './triage-harness.ts';
+import {
+  fixtureFor,
+  seedReply,
+  seedTriageTenant,
+  syncedPrompt,
+  triageDeps,
+  validAnswer,
+} from './triage-harness.ts';
 
 afterAll(closeTestDb);
 beforeEach(resetDb);
@@ -37,7 +44,10 @@ describe('V6 — low confidence routes to a human', () => {
       fixtures: fixtureFor(prompt, body, validAnswer({ label: 'complaint', confidence: 0.42 })),
     });
 
-    const result = await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, body));
+    const result = await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, body),
+    );
 
     expect(result.status).toBe('needs_review');
     expect(result.label, 'the label is kept — a blank row is harder to review').toBe('complaint');
@@ -59,7 +69,10 @@ describe('V6 — low confidence routes to a human', () => {
       fixtures: fixtureFor(prompt, body, validAnswer({ label: 'complaint', confidence: 0.75 })),
     });
 
-    const result = await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, body));
+    const result = await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, body),
+    );
     // Exactly at the threshold passes: the tenant's number is a floor they set, and
     // a strict `>` would make 0.75 mean "0.7500001" in a way nobody expects.
     expect(result.status).toBe('auto');
@@ -75,11 +88,19 @@ describe('V6 — low confidence routes to a human', () => {
     const strict = await seedTriageTenant(db, { confidenceThreshold: 0.95 });
 
     const relaxedResult = await classifyReply(
-      triageDeps({ db, prompt, model: new MockModelClient({ fixtures: fixtureFor(prompt, body, answer) }) }),
+      triageDeps({
+        db,
+        prompt,
+        model: new MockModelClient({ fixtures: fixtureFor(prompt, body, answer) }),
+      }),
       await seedReply(db, relaxed, body),
     );
     const strictResult = await classifyReply(
-      triageDeps({ db, prompt, model: new MockModelClient({ fixtures: fixtureFor(prompt, body, answer) }) }),
+      triageDeps({
+        db,
+        prompt,
+        model: new MockModelClient({ fixtures: fixtureFor(prompt, body, answer) }),
+      }),
       await seedReply(db, strict, body),
     );
 
@@ -98,7 +119,9 @@ describe('V6 — low confidence routes to a human', () => {
       ['Second uncertain reply', 0.6],
       ['A confident reply', 0.99],
     ] as const) {
-      const model = new MockModelClient({ fixtures: fixtureFor(prompt, body, validAnswer({ confidence })) });
+      const model = new MockModelClient({
+        fixtures: fixtureFor(prompt, body, validAnswer({ confidence })),
+      });
       await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, body));
     }
 
@@ -115,9 +138,14 @@ describe('V6 — low confidence routes to a human', () => {
     const tenantId = await seedTriageTenant(db, { confidenceThreshold: 0.9, autoSend: true });
     const prompt = await syncedPrompt(db, 1);
     const body = 'Maybe a question, maybe a complaint.';
-    const model = new MockModelClient({ fixtures: fixtureFor(prompt, body, validAnswer({ confidence: 0.5 })) });
+    const model = new MockModelClient({
+      fixtures: fixtureFor(prompt, body, validAnswer({ confidence: 0.5 })),
+    });
 
-    const result = await classifyReply(triageDeps({ db, prompt, model }), await seedReply(db, tenantId, body));
+    const result = await classifyReply(
+      triageDeps({ db, prompt, model }),
+      await seedReply(db, tenantId, body),
+    );
     expect(result.status).toBe('needs_review');
     expect(result.autoSendAllowed).toBe(false);
   });

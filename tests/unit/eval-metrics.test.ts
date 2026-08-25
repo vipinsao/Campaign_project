@@ -68,7 +68,12 @@ describe('eval metrics', () => {
   });
 
   it('matches the hand-computed per-label precision and recall', () => {
-    expect(metrics.perLabel['question']).toMatchObject({ support: 10, truePositives: 8, falsePositives: 4, falseNegatives: 2 });
+    expect(metrics.perLabel['question']).toMatchObject({
+      support: 10,
+      truePositives: 8,
+      falsePositives: 4,
+      falseNegatives: 2,
+    });
     expect(metrics.perLabel['question']!.precision).toBeCloseTo(8 / 12, 10);
     expect(metrics.perLabel['question']!.recall).toBeCloseTo(0.8, 10);
     expect(metrics.perLabel['question']!.f1).toBeCloseTo(0.7272727272727273, 10);
@@ -109,7 +114,10 @@ describe('eval metrics', () => {
   it('counts a null prediction as wrong rather than excluding the row', () => {
     // A prompt that fails to parse on 20% of inputs must not report 100% on the
     // 80% it managed to answer.
-    const withFailures = computeMetrics([...rows(8, 'question', 'question'), ...rows(2, 'question', null)], LABELS);
+    const withFailures = computeMetrics(
+      [...rows(8, 'question', 'question'), ...rows(2, 'question', null)],
+      LABELS,
+    );
     expect(withFailures.total).toBe(10);
     expect(withFailures.accuracy).toBeCloseTo(0.8, 10);
     expect(withFailures.perLabel['question']!.falseNegatives).toBe(2);
@@ -119,7 +127,10 @@ describe('eval metrics', () => {
   it('averages over every label, including one with no cases', () => {
     // Dropping empty labels from the macro average silently raises the score
     // whenever the golden set happens not to contain a hard class.
-    const onlyTwo = computeMetrics([...rows(5, 'question', 'question'), ...rows(5, 'positive', 'positive')], LABELS);
+    const onlyTwo = computeMetrics(
+      [...rows(5, 'question', 'question'), ...rows(5, 'positive', 'positive')],
+      LABELS,
+    );
     expect(onlyTwo.accuracy).toBe(1);
     expect(onlyTwo.macroF1, 'five labels, three of them zero').toBeCloseTo(2 / 5, 10);
   });
@@ -155,11 +166,14 @@ describe('eval metrics', () => {
   it('reports a baseline floor for a label the golden set does not cover', () => {
     // Silently passing here would let a class be dropped from the set and its
     // floor go unenforced without anything failing.
-    const comparison = compareToBaseline(computeMetrics(rows(3, 'question', 'question'), ['question']), {
-      accuracy: 0.5,
-      macroF1: 0.5,
-      perLabel: { complaint: { recall: 0.8 } },
-    });
+    const comparison = compareToBaseline(
+      computeMetrics(rows(3, 'question', 'question'), ['question']),
+      {
+        accuracy: 0.5,
+        macroF1: 0.5,
+        perLabel: { complaint: { recall: 0.8 } },
+      },
+    );
     expect(comparison.passed).toBe(false);
     expect(comparison.failures[0]).toMatch(/no cases in the golden set/);
   });

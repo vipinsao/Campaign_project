@@ -21,8 +21,7 @@ const SECRET = new TextEncoder().encode('api-routes-suite-secret');
 const KEY = Buffer.alloc(32, 0x33);
 
 const MARKETING_BODY =
-  'Hi {{contact.first_name}}, thanks for shopping with us. ' +
-  'Unsubscribe: {{unsubscribe_url}}';
+  'Hi {{contact.first_name}}, thanks for shopping with us. ' + 'Unsubscribe: {{unsubscribe_url}}';
 
 function boot(): App {
   return createApp(
@@ -98,7 +97,10 @@ async function createCampaign(overrides: Record<string, unknown> = {}): Promise<
   return body.campaign.id;
 }
 
-async function addMessage(campaignId: string, overrides: Record<string, unknown> = {}): Promise<string> {
+async function addMessage(
+  campaignId: string,
+  overrides: Record<string, unknown> = {},
+): Promise<string> {
   const response = await app.request(`/campaigns/${campaignId}/messages`, {
     method: 'POST',
     headers: headers(),
@@ -526,7 +528,11 @@ describe('suppressions, queue and the decision log', () => {
     const added = await app.request('/suppressions', {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ channel: 'email', address: 'bounced@example.com', reason: 'hard_bounce' }),
+      body: JSON.stringify({
+        channel: 'email',
+        address: 'bounced@example.com',
+        reason: 'hard_bounce',
+      }),
     });
     expect(added.status).toBe(201);
 
@@ -538,10 +544,10 @@ describe('suppressions, queue and the decision log', () => {
     // rather than vanishing — "why was this blocked?" needs the history.
     expect(listed.suppressions[0]!.is_active).toBe(true);
 
-    const removed = await app.request(
-      '/suppressions?channel=email&address=bounced@example.com',
-      { method: 'DELETE', headers: headers() },
-    );
+    const removed = await app.request('/suppressions?channel=email&address=bounced@example.com', {
+      method: 'DELETE',
+      headers: headers(),
+    });
     expect(removed.status).toBe(200);
 
     // Lifting a block is a consent event. Deleting the row alone would let mail
@@ -589,9 +595,10 @@ describe('suppressions, queue and the decision log', () => {
     });
     expect(second.status).toBe(409);
 
-    const decisions = await json<{ decisions: { reason_code: string }[]; glossary: Record<string, string> }>(
-      await app.request(`/decisions?campaignId=${campaignId}`, { headers: headers() }),
-    );
+    const decisions = await json<{
+      decisions: { reason_code: string }[];
+      glossary: Record<string, string>;
+    }>(await app.request(`/decisions?campaignId=${campaignId}`, { headers: headers() }));
     expect(decisions.decisions.length).toBeGreaterThanOrEqual(2);
     // The glossary travels with the log so a client never keeps its own copy of
     // the reason-code vocabulary, which would drift the first time one is added.

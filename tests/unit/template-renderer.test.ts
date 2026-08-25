@@ -58,7 +58,9 @@ describe('merge rendering', () => {
   });
 
   it('finds the merge fields a template references', () => {
-    const fields = extractMergeFields('{{contact.first_name}} {{order.number}} {{unsubscribe_url}}');
+    const fields = extractMergeFields(
+      '{{contact.first_name}} {{order.number}} {{unsubscribe_url}}',
+    );
     expect(fields.sort()).toEqual(['contact.first_name', 'order.number', 'unsubscribe_url']);
   });
 });
@@ -105,8 +107,10 @@ describe('save-time validation', () => {
 
   it('requires a subject on email and not on SMS', () => {
     expect(
-      validateTemplate({ channel: 'email', subject: '', body: 'x {{unsubscribe_url}}' }, 'lifecycle')
-        .errors.some((e) => e.field === 'subject'),
+      validateTemplate(
+        { channel: 'email', subject: '', body: 'x {{unsubscribe_url}}' },
+        'lifecycle',
+      ).errors.some((e) => e.field === 'subject'),
     ).toBe(true);
     expect(
       validateTemplate({ channel: 'sms', body: 'x {{unsubscribe_url}}' }, 'lifecycle').errors,
