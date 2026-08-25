@@ -31,7 +31,12 @@ export default defineConfig(
         // sit outside the application tsconfig: widening that tsconfig to reach
         // them would weaken the type-check gate this config exists to enforce.
         projectService: {
-          allowDefaultProject: ['eslint.config.js', 'vitest.config.ts', '*.config.ts'],
+          allowDefaultProject: [
+            'eslint.config.js',
+            'vitest.config.ts',
+            '*.config.ts',
+            'scripts/dev.mjs',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -190,6 +195,25 @@ export default defineConfig(
         },
       ],
     },
+  },
+
+  // Plain-JS launcher scripts. Linted for real mistakes but not type-linted: they
+  // sit outside the application tsconfig deliberately, and widening that tsconfig
+  // to reach them would weaken the type-check gate everything else depends on.
+  {
+    files: ['**/*.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+      },
+    },
+    rules: { ...tseslint.configs.disableTypeChecked.rules, 'no-console': 'off' },
   },
 
   {

@@ -26,6 +26,9 @@ const DATABASE_URL = `postgresql://campaign:campaign@127.0.0.1:${PORT}/postgres`
 const children = [];
 let pg;
 
+/** embedded-postgres is chatty on stdout; the dev banner below is more useful. */
+const silence = () => undefined;
+
 async function shutdown(code = 0) {
   for (const child of children) child.kill('SIGTERM');
   if (pg) {
@@ -77,8 +80,8 @@ async function main() {
     port: PORT,
     // Persistent, so restarting `npm run dev` keeps whatever you seeded.
     persistent: true,
-    onLog: () => {},
-    onError: () => {},
+    onLog: silence,
+    onError: silence,
   });
 
   const fresh = !(await exists(path.join(DATA_DIR, 'PG_VERSION')));

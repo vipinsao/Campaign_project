@@ -217,7 +217,7 @@ async function main() {
 
     console.log('\nWhy messages did NOT send (the decision log):');
     if (skips.length === 0) console.log('  nothing was skipped');
-    for (const row of skips) console.log(`  ${String(row.n).padStart(5)}  ${row.reason_code}`);
+    for (const row of skips) console.log(`  ${row.n.padStart(5)}  ${row.reason_code}`);
 
     console.log('\nOpen http://localhost:5173/inspect and search an order number.');
   } finally {
