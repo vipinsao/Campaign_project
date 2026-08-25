@@ -60,7 +60,7 @@ const SAMPLE: MergeContext = {
     first_name: 'Konstantinos',
     last_name: 'Papadopoulos',
     email: 'sample@example.test',
-    phone: '+15550100',
+    phone: '+12025550100',
     locale: 'en',
   },
   order: {

@@ -92,18 +92,18 @@ describe('mock webhook signatures', () => {
 
 describe('Twilio webhook signatures', () => {
   const AUTH_TOKEN = '12345';
-  const URL = 'https://mycompany.com/myapp.php?foo=1&bar=2';
+  const URL = 'https://api.example.com/webhooks/twilio?foo=1&bar=2';
   const PARAMS: readonly (readonly [string, string])[] = [
     ['CallSid', 'CA1234567890ABCDE'],
-    ['Caller', '+14158675310'],
+    ['Caller', '+12025550111'],
     ['Digits', '1234'],
-    ['From', '+14158675310'],
-    ['To', '+18005551212'],
+    ['From', '+12025550111'],
+    ['To', '+12025550122'],
   ];
 
   function provider(): TwilioProvider {
     return new TwilioProvider(
-      { accountSid: 'AC0', authToken: AUTH_TOKEN, from: '+15550000000' },
+      { accountSid: 'AC0', authToken: AUTH_TOKEN, from: '+12025550100' },
       new FakeClock('2026-03-01T09:00:00Z'),
     );
   }
@@ -123,12 +123,12 @@ describe('Twilio webhook signatures', () => {
     // alphabetical order of key, with no separators and no encoding -- and the
     // digest is derived from it rather than from the implementation.
     const canonical =
-      'https://mycompany.com/myapp.php?foo=1&bar=2' +
+      'https://api.example.com/webhooks/twilio?foo=1&bar=2' +
       'CallSidCA1234567890ABCDE' +
-      'Caller+14158675310' +
+      'Caller+12025550111' +
       'Digits1234' +
-      'From+14158675310' +
-      'To+18005551212';
+      'From+12025550111' +
+      'To+12025550122';
     const expected = createHmac('sha1', AUTH_TOKEN).update(canonical, 'utf8').digest('base64');
     expect(twilioSignature(URL, PARAMS, AUTH_TOKEN)).toBe(expected);
   });
