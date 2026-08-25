@@ -6,6 +6,8 @@ import { renderError } from './errors.ts';
 import { requestLogger } from './middleware/logging.ts';
 import { createRateLimiter, rateLimit, type RateLimiter } from './middleware/rate-limit.ts';
 import { requireApiKey, requireOperator } from './middleware/auth.ts';
+import { flowRoutes } from './routes/flow.ts';
+import { operationsRoutes } from './routes/operations.ts';
 import { authRoutes, sessionRoutes } from './routes/auth.ts';
 import { healthRoutes } from './routes/health.ts';
 import { publicRoutes } from './routes/public.ts';
@@ -175,6 +177,9 @@ export function createApp(deps: ApiDeps, options: CreateAppOptions = {}): App {
     '/queue',
     '/queue/*',
     '/decisions',
+    '/flow/*',
+    '/tenant',
+    '/mock-outbox',
   ]) {
     app.use(prefix, requireOperator(deps), operatorLimit);
   }
@@ -189,6 +194,8 @@ export function createApp(deps: ApiDeps, options: CreateAppOptions = {}): App {
   app.route('/', suppressionRoutes(deps));
   app.route('/', queueRoutes(deps));
   app.route('/', decisionRoutes(deps));
+  app.route('/', flowRoutes(deps));
+  app.route('/', operationsRoutes(deps));
 
   return app;
 }

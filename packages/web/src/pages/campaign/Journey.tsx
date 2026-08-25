@@ -177,7 +177,7 @@ function NodeLabel({ glyph, text, tone }: { glyph: string; text: string; tone: s
   );
 }
 
-function TriggerNodeView({ data, selected = false }: NodeProps<TriggerNode>) {
+function TriggerNodeView({ data, selected }: NodeProps<TriggerNode>) {
   return (
     <Shell tone="trigger" selected={selected} problems={data.problems}>
       <NodeLabel glyph="◉" text="Trigger" tone="text-info" />
@@ -188,7 +188,7 @@ function TriggerNodeView({ data, selected = false }: NodeProps<TriggerNode>) {
   );
 }
 
-function DelayNodeView({ data, selected = false }: NodeProps<DelayNode>) {
+function DelayNodeView({ data, selected }: NodeProps<DelayNode>) {
   return (
     <Shell tone="delay" selected={selected} problems={data.problems}>
       <NodeLabel glyph="◷" text="Delay" tone="text-held" />
@@ -207,7 +207,7 @@ function DelayNodeView({ data, selected = false }: NodeProps<DelayNode>) {
  * on the edges — an operator reading this canvas has to be able to tell which way
  * "not opened" goes without hovering anything.
  */
-function ConditionNodeView({ data, selected = false }: NodeProps<ConditionNode>) {
+function ConditionNodeView({ data, selected }: NodeProps<ConditionNode>) {
   return (
     <Shell tone="condition" selected={selected} problems={data.problems}>
       <NodeLabel glyph="◇" text="Condition" tone="text-accent" />
@@ -223,7 +223,7 @@ function ConditionNodeView({ data, selected = false }: NodeProps<ConditionNode>)
   );
 }
 
-function SendNodeView({ data, selected = false }: NodeProps<SendNode>) {
+function SendNodeView({ data, selected }: NodeProps<SendNode>) {
   return (
     <Shell tone="send" selected={selected} problems={data.problems}>
       <div className="flex items-center justify-between gap-1.5">
@@ -395,7 +395,28 @@ export function JourneyTab() {
   const [selected, setSelected] = useState<string | null>(null);
   const [attempted, setAttempted] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [saveFailures, setSaveFailures] = useState<Map<string, string[]>>(new Map());
   const [note, setNote] = useState<string | null>(null);
+
+  /**
+   * Re-seed from the server whenever the server's answer changes.
+   *
+   * Without this, a step created here keeps its temporary `new-…` key after the
+   * save that gave it a real id, and the next save would POST it a second time.
+   * Comparing against a signature of what the API returned is also what makes
+   * `dirty` mean "different from what is stored" rather than "edited at some
+   * point" — the difference between a Save button that goes quiet after a
+   * successful write and one that stays lit forever.
+   */
+  const incoming = messages.map(toStep);
+  const signature = JSON.stringify(incoming);
+  const [baseline, setBaseline] = useState(signature);
+  if (baseline !== signature) {
+    setBaseline(signature);
+    setSteps(incoming);
+    setSelected(null);
+    setAttempted(false);
+  }
 
   const orderAnchored = campaign.triggerType.startsWith('order_');
   const problems = validate(steps, campaign.channels, orderAnchored);
@@ -409,9 +430,11 @@ export function JourneyTab() {
    * has never seen it.
    */
   const serverProblems: ProblemMap = new Map();
-  for (const [messageId, texts] of activationFailures) {
-    const key = messageId === '__campaign' ? 'trigger' : messageId;
-    for (const text of texts) addProblem(serverProblems, key, text, 'activation');
+  for (const source of [activationFailures, saveFailures]) {
+    for (const [messageId, texts] of source) {
+      const key = messageId === '__campaign' ? 'trigger' : messageId;
+      for (const text of texts) addProblem(serverProblems, key, text, 'activation');
+    }
   }
 
   const problemsFor = (key: string): readonly Problem[] => [
@@ -564,6 +587,7 @@ export function JourneyTab() {
     onMutate: () => {
       setSaveError(null);
       setNote(null);
+      setSaveFailures(new Map());
     },
     onSuccess: (plan) => {
       setNote(
@@ -576,11 +600,7 @@ export function JourneyTab() {
       // A 422 from the message endpoints carries per-message failures in exactly
       // the same shape activation does, so it lands on the nodes too rather than
       // in a banner that names no node.
-      if (error instanceof ApiError) {
-        for (const [messageId, texts] of failuresByMessage(error.details)) {
-          for (const text of texts) addProblem(serverProblems, messageId, text, 'activation');
-        }
-      }
+      if (error instanceof ApiError) setSaveFailures(failuresByMessage(error.details));
       setSaveError(error);
     },
   });
@@ -623,7 +643,7 @@ export function JourneyTab() {
     setSteps(steps.map((step) => (step.key === key ? { ...step, ...patch } : step)));
   }
 
-  const dirty = JSON.stringify(steps) !== JSON.stringify(messages.map(toStep));
+  const dirty = JSON.stringify(steps) !== signature;
   const selectedStep =
     selected === null ? undefined : steps.find((step) => selected.startsWith(step.key));
 

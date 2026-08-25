@@ -18,7 +18,7 @@ import boundaries from 'eslint-plugin-boundaries';
  *     assertable in milliseconds instead of three days.
  */
 export default defineConfig(
-  { ignores: ['**/dist/**', '**/node_modules/**', 'coverage/**', 'packages/web/**'] },
+  { ignores: ['**/dist/**', '**/node_modules/**', 'coverage/**'] },
 
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
@@ -214,6 +214,43 @@ export default defineConfig(
       },
     },
     rules: { ...tseslint.configs.disableTypeChecked.rules, 'no-console': 'off' },
+  },
+
+  // The operator UI. typescript-eslint's project service picks up
+  // packages/web/tsconfig.json automatically, so this is genuinely type-aware
+  // rather than a syntax-only pass. It was previously ignored entirely, which
+  // meant the surface a reviewer actually clicks had no lint gate at all.
+  {
+    files: ['packages/web/**/*.{ts,tsx}'],
+    rules: {
+      'boundaries/dependencies': 'off',
+      // Off HERE and nowhere else, and the reason matters.
+      //
+      // `no-unnecessary-condition` trusts the declared types. Inside packages/
+      // that trust is earned, because those types describe values the process
+      // constructed. In the web app the types describe JSON that arrived over a
+      // network and are asserted rather than validated, so a defensive `?? ` on a
+      // field the type calls non-nullable is CORRECT - the type is a hope.
+      //
+      // The right fix is to parse responses with zod at the client boundary, the
+      // way the server parses requests, at which point the types become facts and
+      // this rule can go back on. That is owed work, recorded in TRACKER.md rather
+      // than papered over here.
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      // Allows the `const { [key]: _discard, ...rest }` idiom for removing a key
+      // without a dynamic delete.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      // A React event handler returning a promise is the normal shape, and the
+      // rule's default flags every one of them.
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksVoidReturn: { attributes: false } },
+      ],
+    },
   },
 
   {

@@ -121,3 +121,29 @@ export function sendDaysLabel(days: readonly number[] | null | undefined): strin
     .map(dayName)
     .join(', ');
 }
+
+/**
+ * Stringify a value of unknown shape for display.
+ *
+ * `String(x)` on an object produces "[object Object]", which is worse than showing
+ * nothing: it looks like a value, occupies the space a real diagnosis would have
+ * occupied, and tells the operator nothing. Anything that is not a primitive is
+ * JSON-encoded instead, and anything that cannot be encoded returns null so the
+ * caller can render an em dash.
+ */
+export function displayUnknown(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value);
+  }
+  try {
+    // JSON.stringify is typed as returning string, but returns undefined for a
+    // function or a symbol. The lib typing is optimistic; the runtime is not.
+    const encoded: string | undefined = JSON.stringify(value);
+    return typeof encoded === 'string' ? encoded : null;
+  } catch {
+    // Circular structure, or a toJSON that throws.
+    return null;
+  }
+}

@@ -1,7 +1,7 @@
 import type { Logger } from 'pino';
 import { pino } from 'pino';
 import type { Registry } from 'prom-client';
-import type { Clock, Db } from '@campaign/core';
+import type { Clock, Db, SendMode } from '@campaign/core';
 import { SystemClock, getPool } from '@campaign/core';
 import { buildRegistry } from './observability/metrics.ts';
 
@@ -41,6 +41,19 @@ export type ApiDeps = {
   readonly rateLimit: RateLimitConfig;
   /** Token lifetime for operator sessions. */
   readonly tokenTtlSeconds: number;
+
+  /**
+   * Whether this deployment sends for real.
+   *
+   * The API does not send anything itself - that is the worker's job, and there is
+   * exactly one send path - but it does need to know, because the mock outbox is
+   * only meaningful when the mock provider is in use. Exposing message bodies
+   * through an operator route in a live deployment would be a data-disclosure
+   * surface for no benefit, so that route refuses when SEND_MODE is live.
+   *
+   * Defaults to 'off', like everywhere else (I2).
+   */
+  readonly sendMode: SendMode;
 };
 
 export type RateLimitConfig = {
@@ -93,6 +106,13 @@ export function decodeEncryptionKey(raw: string): Buffer {
 
 export type DepsOverrides = Partial<ApiDeps> & { readonly env?: NodeJS.ProcessEnv };
 
+/** Anything not in {off, mock, live} is treated as `off`, not as an error at this
+ *  layer: a typo in SEND_MODE must fail CLOSED, and check-env.ts is where a
+ *  malformed value is reported loudly at boot. */
+function parseSendMode(raw: string | undefined): SendMode {
+  return raw === 'live' || raw === 'mock' ? raw : 'off';
+}
+
 /** Assemble deps from the environment, with every piece overridable for tests. */
 export function buildDeps(overrides: DepsOverrides = {}): ApiDeps {
   const env = overrides.env ?? process.env;
@@ -117,5 +137,6 @@ export function buildDeps(overrides: DepsOverrides = {}): ApiDeps {
     ),
     rateLimit: overrides.rateLimit ?? DEFAULT_RATE_LIMIT,
     tokenTtlSeconds: overrides.tokenTtlSeconds ?? 12 * 3_600,
+    sendMode: overrides.sendMode ?? parseSendMode(env['SEND_MODE']),
   };
 }

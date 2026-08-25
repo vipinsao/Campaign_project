@@ -142,7 +142,7 @@ function decide(
   exempt: boolean,
 ): Verdict {
   const parts = partsIn(instant, zone);
-  const local = `${hhmm(parts.hour * 60 + parts.minute)}`;
+  const local = hhmm(parts.hour * 60 + parts.minute);
   const localDay = `${dayName(parts.weekday)} ${String(parts.day).padStart(2, '0')}`;
 
   if (exempt) return { kind: 'exempt', local, localDay };

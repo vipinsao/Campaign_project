@@ -58,8 +58,8 @@ const CAMPAIGN_STATUS: Record<CampaignStatus, Tone> = {
 
 export function CampaignStatusPill({ status }: { status: CampaignStatus }) {
   return (
-    <Pill tone={CAMPAIGN_STATUS[status] ?? 'quiet'}>
-      <Dot tone={CAMPAIGN_STATUS[status] ?? 'quiet'} />
+    <Pill tone={CAMPAIGN_STATUS[status]}>
+      <Dot tone={CAMPAIGN_STATUS[status]} />
       {titleCase(status)}
     </Pill>
   );

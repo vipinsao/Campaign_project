@@ -5,7 +5,7 @@ Updated in place after each phase. A box is only ticked when its tests pass —
 
 **Status as of 2026-08-25:** typecheck clean · lint clean (0 errors) · **504 tests across 40 files** · **all 24 invariants tested** · demo pipeline verified end to end
 
-**The one thing still blocking a reviewer:** the web UI does not build. Everything else runs.
+**The web UI builds and runs.** What is left is deployment and a handful of API gaps the UI reports honestly on screen.
 
 Boxes below are honest. Unticked means not built, not "mostly built".
 
@@ -67,7 +67,7 @@ Boxes below are honest. Unticked means not built, not "mostly built".
 - [x] P6.1 — Event store projections + rollup job
 - [x] P6.2 — `denominators.ts` single source **(I12)**
 - [x] P6.3 — `rollups:rebuild` deterministic and byte-identical
-- [ ] P6.4 — Funnel + per-message + daily series endpoints
+- [x] P6.4 — Funnel + per-message + daily series endpoints
 - [ ] P6.5 — Attribution without double counting
 
 ## Phase 7 — API
@@ -77,15 +77,15 @@ Boxes below are honest. Unticked means not built, not "mostly built".
 - [x] P7.4 — Rate limiting + request logging + `/metrics` *(per-replica; cross-process version owed)*
 
 ## Phase 8 — Frontend
-- [ ] P8.1 — Shell, auth, layout, campaign list
-- [ ] P8.2 — Campaign editor: Overview / Audience / Messages
-- [ ] P8.3 — Journey canvas (React Flow): validate → linearise → sync
-- [ ] P8.4 — Schedule tab with the timezone preview strip
-- [ ] P8.5 — Analytics tab with denominators in tooltips, no SMS open rate
-- [ ] P8.6 — `/queue` and `/inspect` (the "why didn't it send" page)
-- [ ] P8.7 — `/contacts/:id` with the consent ledger timeline
-- [ ] P8.8 — `/mock-outbox` and `/docs`
-- [ ] P8.9 — Responses inbox
+- [x] P8.1 — Shell, auth, layout, campaign list
+- [x] P8.2 — Campaign editor: Overview / Audience / Messages
+- [x] P8.3 — Journey canvas (React Flow): validate → linearise → sync
+- [x] P8.4 — Schedule tab with the timezone preview strip (6 zones)
+- [x] P8.5 — Analytics tab with denominators in tooltips, no SMS open rate
+- [x] P8.6 — `/queue` and `/inspect` (the "why didn't it send" page)
+- [x] P8.7 — `/contacts/:id` with the consent ledger timeline
+- [x] P8.8 — `/mock-outbox` and an in-app `/invariants` page
+- [ ] P8.9 — Responses inbox *(inbound_replies table exists; no UI or ingest route)*
 
 ## Phase 9 — The compliance suite
 Messaging invariants — one test file each:
@@ -128,5 +128,20 @@ AI invariants — all ten implemented and tested:
 - [ ] P10.6 — Coverage ≥85% on `core`; all CI jobs green
 
 ---
+
+### Owed work, named rather than implied
+
+- **The web client asserts response shapes instead of parsing them.** The server
+  validates every request with zod; the client does not validate replies. That is
+  why `no-unnecessary-condition` is disabled for `packages/web` only — a defensive
+  `??` on a field the type calls non-nullable is correct when the type is a hope
+  rather than a fact. Parsing responses with zod at the client boundary would make
+  the types facts and let the rule go back on.
+- **`/queue` returns no total count**, so every list built on it is a 200-row
+  window.
+- **Per-channel campaign counts** are not available, so that panel renders an em
+  dash rather than summing per-message uniques and double-counting contacts.
+- **The web bundle is ~1.07 MB**; Recharts and React Flow are both eagerly
+  imported.
 
 **Legend:** `[x]` done and tested · `[~]` partially done, detail in italics · `[ ]` not started

@@ -402,8 +402,11 @@ function Funnel({ stages }: { stages: FunnelResponse['stages'] }) {
     <div className="space-y-1.5 p-4">
       {stages.map((stage, index) => {
         const previous = stages[index - 1];
-        const comparable = previous !== undefined && previous.unit === stage.unit;
-        const share = comparable && previous.count > 0 ? stage.count / previous.count : null;
+        const comparable = previous?.unit === stage.unit;
+        const share =
+          comparable && previous !== undefined && previous.count > 0
+            ? stage.count / previous.count
+            : null;
         return (
           <div key={stage.stage} className="flex items-center gap-3">
             <span className="w-20 shrink-0 text-right text-[12px] text-ink-dim">{stage.stage}</span>

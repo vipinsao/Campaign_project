@@ -16,8 +16,9 @@ from those events rather than from counters.
 > decisions here are deliberately *different* from what that experience exposed me to,
 > and those differences are the parts I most want to talk about.
 
-**Status:** in progress. See [TRACKER.md](TRACKER.md) — it is accurate, including
-about what is not built.
+**Status:** the engine, the AI layer and the operator UI all build and run; 504
+tests pass; the demo replays 30 days in about a minute. Not deployed yet. See
+[TRACKER.md](TRACKER.md), which is accurate about what is not built.
 
 ---
 
@@ -38,17 +39,22 @@ This repository encodes fourteen of those as named tests that run as their own C
 | **I4** | Deduplication is a **UNIQUE index on a generated column**, and a conflicting insert is an idempotent no-op. | Duplicate sends from concurrent triggers, webhook redeliveries and retried API calls. Application-level check-then-insert is banned. | [`i4`](tests/invariants/i4-dedup-is-a-database-constraint.test.ts) |
 | **I5** | Quiet hours are computed in the **recipient's** timezone, falling back to the tenant default and never to the server's. Campaign config can narrow the window, never widen it. | Messages delivered at 02:03 local time. | [`i5`](tests/invariants/i5-quiet-hours-recipient-local.test.ts) |
 | **I6** | Consent is an **append-only ledger**; suppression is an **address-level list**. Opting out cancels messages already queued. | Opt-outs honoured only for contacts carrying a flag; queued mail going out after the customer said stop; consent history destroyed by an UPDATE. | [`i6`](tests/invariants/i6-optout-cancels-queued.test.ts) |
-| **I7** | A marketing message cannot be scheduled unless its rendered body contains a **resolvable** opt-out — asserted by booting the app and fetching the generated URL. | An unsubscribe link pointing at a route that does not exist. Every recipient reaches a blank page, for the entire life of the system, because nobody ever clicked one. | *in progress* |
+| **I7** | A marketing message cannot be scheduled unless its rendered body contains a **resolvable** opt-out — asserted by booting the app and fetching the generated URL. | An unsubscribe link pointing at a route that does not exist. Every recipient reaches a blank page, for the entire life of the system, because nobody ever clicked one. | [`i7`](tests/invariants/i7-unsubscribe-link-resolves.test.ts) |
 | **I8** | Provider errors are classified terminal or transient from an explicit table. Terminal errors are **never** retried, and the provider's own error code is persisted. | Carrier-rejected messages resent three times each; forensics impossible because the stored error is the framework's, not the provider's. | [`i8`](tests/invariants/i8-terminal-errors-never-retried.test.ts) |
 | **I9** | `delivered` is written **only** by a provider receipt. It is never inferred from `sent`. | A delivery-rate metric that reads 100% because the code marks delivered on the line after sent. | [`i9`](tests/invariants/i9-delivered-requires-receipt.test.ts) |
 | **I10** | A frequency cap is enforced at send time, and **a test asserts that changing the config changes the behaviour**. | Five cadence columns in the schema with zero backend readers. 48 messages to one recipient in seven days. | [`i10`](tests/invariants/i10-frequency-cap-enforced.test.ts) |
-| **I11** | Webhook signature validation iterates **all** active credentials for a tenant and fails **closed**, retaining the raw payload for replay. | A single-row credential lookup that breaks when a tenant has three senders — every provider callback rejected with 403, for months, silently. | *in progress* |
-| **I12** | Every rate has an explicit denominator, defined once and shown in the UI. Open rate is unique opens ÷ **delivered**. SMS has no open rate and the UI must not render one. | Rates computed over `sent`, or over a population including messages with no clickable link, grading campaigns wrongly. | *not built* |
-| **I13** | Resolving a recipient from an order number returns `none \| single \| ambiguous`. It never silently picks the most recent match. | Order numbers are unique per store, not globally. Picking the newest match sends one customer's details to a different customer. | *in progress* |
+| **I11** | Webhook signature validation iterates **all** active credentials for a tenant and fails **closed**, retaining the raw payload for replay. | A single-row credential lookup that breaks when a tenant has three senders — every provider callback rejected with 403, for months, silently. | [`i11`](tests/invariants/i11-webhook-multi-credential.test.ts) |
+| **I12** | Every rate has an explicit denominator, defined once and shown in the UI. Open rate is unique opens ÷ **delivered**. SMS has no open rate and the UI must not render one. | Rates computed over `sent`, or over a population including messages with no clickable link, grading campaigns wrongly. | [`i12`](tests/invariants/i12-metric-denominators.test.ts) |
+| **I13** | Resolving a recipient from an order number returns `none \| single \| ambiguous`. It never silently picks the most recent match. | Order numbers are unique per store, not globally. Picking the newest match sends one customer's details to a different customer. | [`i13`](tests/invariants/i13-ambiguous-recipient.test.ts) |
 | **I14** | Every enqueue **and every skip** writes a decision row with a machine-readable reason code and the inputs it was evaluated from. | An operator with no way to answer "why didn't this fire?" other than reading source code. | [`i14`](tests/invariants/i14-every-decision-is-logged.test.ts) |
 
-Three of these are not finished. They are marked as such here and in
-[TRACKER.md](TRACKER.md) rather than quietly omitted.
+All fourteen have passing tests, and so do the ten AI invariants (V1–V10) covering
+the deterministic/model boundary, versioned prompts, a golden eval set that blocks a
+merge on regression, a per-tenant token budget, and — the one worth reading —
+**V9: the model can only ever ADD a suppression, never remove one**, enforced by
+handing the classifier a narrowed capability object rather than by a rule.
+
+Full write-ups in [`docs/INVARIANTS.md`](docs/INVARIANTS.md).
 
 ---
 
@@ -182,18 +188,21 @@ Knowing what was left out matters as much as the list above.
 
 Distinct from the above, and tracked in [TRACKER.md](TRACKER.md):
 
-- **The web UI is incomplete and does not currently build.** Seven pages exist
-  (login, campaign list, overview, audience, messages); the journey canvas,
-  schedule, analytics, queue, `/inspect` and contact timeline do not.
-- **No `demo:simulate`.** `seed:demo` is written but has not been run end to end,
-  so there is no click-through demo yet.
-- **No CI workflow**, so the badges this README would like to show do not exist.
-- **No deployment** — no Dockerfile, no `render.yaml`, no live URL.
-- **I12's byte-identical rollup-rebuild test** is not written; the denominators and
-  the rebuild itself are.
+- **Not deployed.** The Dockerfile, `docker-compose.yml` and `render.yaml` exist
+  and the CI workflow is written, but nothing has been pushed or deployed, so there
+  is no live URL and no green badge yet.
+- **Five API endpoints the UI wants do not exist**, and the affected panels say so
+  on screen rather than inventing data: `GET /mock-outbox`, a tenant-settings
+  endpoint for the quiet-hours floor, `GET /campaigns/:id/timeseries`, contact
+  lookup by email, and per-channel campaign counts.
+- **`/queue` has no total count**, so every list built on it is a 200-row window.
+  Each one says so.
+- **The web bundle is 1.07 MB** — Recharts and React Flow are both eagerly
+  imported. Route-level lazy loading would roughly halve it.
+- **`packages/web` is excluded from ESLint**, so the UI has no lint gate; the
+  type-check is currently the only thing catching it.
 
-The backend is complete and tested end to end. The parts above are not, and saying
-so is cheaper than having a reviewer discover it.
+Saying this is cheaper than having a reviewer discover it.
 
 ---
 

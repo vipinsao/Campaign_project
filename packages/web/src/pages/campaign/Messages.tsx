@@ -100,7 +100,7 @@ export function MessagesTab() {
                         {failures.length > 0 && <Pill tone="bad">{failures.length}</Pill>}
                       </span>
                       <span className="mt-0.5 block truncate text-[12px] text-ink">
-                        {message.subjectTemplate ?? message.bodyTemplate.slice(0, 40) || '(empty)'}
+                        {message.subjectTemplate ?? (message.bodyTemplate.slice(0, 40) || '(empty)')}
                       </span>
                       <span className="block truncate text-[11px] text-ink-faint">
                         {minutes(message.delayMinutes)} after {message.delayAnchor}

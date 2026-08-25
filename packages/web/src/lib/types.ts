@@ -212,7 +212,10 @@ export type QueueResponse = {
 export type DecisionRow = {
   readonly id: string;
   readonly stage: string;
-  readonly decision: 'proceed' | 'skip' | 'defer' | string;
+  // `(string & {})` keeps the literal suggestions in an editor while still
+  // accepting any code the server sends. A bare union with `string` collapses
+  // to `string` and loses the suggestions it was written for.
+  readonly decision: 'proceed' | 'skip' | 'defer' | (string & {});
   readonly reason_code: string;
   readonly reason_detail: string | null;
   readonly inputs: Record<string, unknown> | null;

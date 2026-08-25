@@ -42,7 +42,8 @@ const NO_VALUE_OPS = new Set(['is_set', 'is_not_set']);
 const LIST_OPS = new Set(['in', 'not_in']);
 const DAY_OPS = new Set(['within_days', 'not_within_days']);
 
-type Leaf = { field: string; op: string; value?: unknown };
+type LeafValue = string | number | boolean | (string | number)[];
+type Leaf = { field: string; op: AudienceOperator; value?: LeafValue };
 
 function isLeaf(rule: AudienceRule): rule is Leaf {
   return typeof rule === 'object' && 'field' in rule;
@@ -101,10 +102,11 @@ export function AudienceTab() {
   }
 
   function updateRules(group: Group, rules: AudienceRule[]) {
-    const next = { ...definition };
-    if (rules.length === 0) delete next[group];
-    else next[group] = rules;
-    update(next);
+    // Rebuilt without the key rather than copied-then-deleted: a dynamic delete on
+    // a fresh object is just a more roundabout way of not copying it in the first
+    // place, and it leaves the shape depending on statement order.
+    const { [group]: _removed, ...rest } = definition;
+    update(rules.length === 0 ? rest : { ...rest, [group]: rules });
   }
 
   return (
@@ -427,7 +429,7 @@ function LeafRow({
         className="input w-40"
         value={leaf.op}
         onChange={(event) => {
-          const op = event.target.value;
+          const op = event.target.value as AudienceOperator;
           const next: Leaf = { field: leaf.field, op };
           if (!NO_VALUE_OPS.has(op)) next.value = LIST_OPS.has(op) ? [] : (leaf.value ?? '');
           onChange(next);
@@ -445,7 +447,7 @@ function LeafRow({
           value={Array.isArray(leaf.value) ? (leaf.value as unknown[]).join(', ') : String(leaf.value ?? '')}
           onChange={(event) => {
             const text = event.target.value;
-            const value: unknown = isList
+            const value: LeafValue = isList
               ? text.split(',').map((part) => part.trim()).filter((part) => part.length > 0)
               : isDays
                 ? Number(text)

@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router';
 import { ApiError, api, readToken, storeSession } from '../lib/api.ts';
 import type { LoginResponse } from '../lib/types.ts';
 import { ErrorState } from '../components/States.tsx';
+import { displayUnknown } from '../lib/format.ts';
 
 type Candidate = { tenantId: string; userId: string; role: string };
 
@@ -14,8 +15,8 @@ function candidatesOf(details: unknown): Candidate[] {
     .filter((row) => typeof row.tenantId === 'string')
     .map((row) => ({
       tenantId: String(row.tenantId),
-      userId: String(row.userId ?? ''),
-      role: String(row.role ?? ''),
+      userId: displayUnknown(row.userId) ?? '',
+      role: displayUnknown(row.role) ?? '',
     }));
 }
 

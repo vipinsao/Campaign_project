@@ -14,6 +14,8 @@
  * still a diagnosis.
  */
 
+import { displayUnknown } from './format.ts';
+
 const BASE = '/api';
 const TOKEN_KEY = 'campaign.operator.token';
 const USER_KEY = 'campaign.operator.user';
@@ -39,7 +41,7 @@ export class ApiError extends Error {
 /** Thrown when the request never reached the API at all. Distinct on purpose:
  *  "the server said no" and "there was no server" call for different screens. */
 export class NetworkError extends Error {
-  readonly cause: unknown;
+  override readonly cause: unknown;
   constructor(cause: unknown) {
     super('The API could not be reached. Is `npm run dev` running on :3000?');
     this.name = 'NetworkError';
@@ -195,7 +197,7 @@ type Failure = { code?: unknown; message?: unknown; field?: unknown; campaignMes
  */
 export function explainDetails(details: unknown): readonly DetailLine[] {
   if (details === undefined || details === null) return [];
-  if (typeof details !== 'object') return [{ at: null, text: String(details) }];
+  if (typeof details !== 'object') return [{ at: null, text: displayUnknown(details) ?? '' }];
 
   const bag = details as Record<string, unknown>;
 
