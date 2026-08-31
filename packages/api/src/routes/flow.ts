@@ -154,11 +154,37 @@ export function flowRoutes(deps: ApiDeps): Hono<AppEnv> {
         );
       }
 
-      // Anything still negative belonged to no node in the new graph.
+      /**
+       * Anything still negative belonged to no node in the new graph.
+       *
+       * These CANNOT go back to the number they came from. `sequence_order` is
+       * unique per campaign, and the number a removed node used to hold is exactly
+       * the number the new graph's first message has just taken — so restoring it
+       * collided, and the everyday act of deleting a box from a journey and pressing
+       * save returned 409 with nothing to explain it.
+       *
+       * They are parked above the live range instead, keeping their relative order.
+       * The rows are disabled and kept rather than deleted because queued messages
+       * reference them: deleting would cascade away sends that are already
+       * scheduled, and the operator's action was moving a box on a canvas.
+       */
       await tx.query(
-        `UPDATE campaign_messages
-            SET sequence_order = -sequence_order, is_enabled = false
-          WHERE campaign_id = $1 AND sequence_order < 0`,
+        `WITH live AS (
+           SELECT COALESCE(MAX(sequence_order), 0) AS top
+             FROM campaign_messages
+            WHERE campaign_id = $1 AND sequence_order > 0
+         ),
+         orphaned AS (
+           SELECT id, row_number() OVER (ORDER BY sequence_order DESC) AS offset_
+             FROM campaign_messages
+            WHERE campaign_id = $1 AND sequence_order < 0
+         )
+         UPDATE campaign_messages cm
+            SET sequence_order = live.top + orphaned.offset_,
+                is_enabled = false,
+                updated_at = now()
+           FROM orphaned, live
+          WHERE cm.id = orphaned.id`,
         [campaignId],
       );
 

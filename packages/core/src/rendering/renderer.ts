@@ -363,7 +363,30 @@ const OPT_OUT_SEGMENTS = new Set([
  * not a token, and the difference decides whether a real marketing link keeps its
  * click tracking.
  */
+/**
+ * Any path segment at least this long is treated as an opaque token.
+ *
+ * `mintUnsubscribeToken()` emits 43 characters. Twenty is far below that and far
+ * above any word a route uses, so the check is decided by length before it is ever
+ * decided by the contents of the random bytes.
+ */
+const MINTED_TOKEN_FLOOR = 20;
+
 function looksMinted(segment: string): boolean {
+  // Length alone settles every token this system actually mints. 32 random bytes
+  // as base64url is 43 characters, and no route segment anyone types by hand is
+  // that long, so this arm never depends on what the random bytes happened to be.
+  if (segment.length >= MINTED_TOKEN_FLOOR) return true;
+
+  // Below that, fall back to character-class mixing, which is what distinguishes a
+  // short opaque identifier from a word.
+  //
+  // This arm CANNOT be the only rule. An earlier version required two classes at
+  // any length, and roughly one base64url token in 7,700 is all letters — which,
+  // upper-cased on its way through a mail client, collapses to a single class and
+  // stops looking minted. At 2,000 tokens a run that is a coin-flip's worth of
+  // flakiness in the test, and in production it is an unsubscribe link quietly
+  // routed through click tracking.
   if (segment.length < 8) return false;
   const classes =
     Number(/[a-z]/.test(segment)) +

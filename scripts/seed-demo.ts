@@ -181,6 +181,16 @@ async function main() {
       'delivered',
       'cancelled',
     ] as const;
+    // Counted from what the database actually stored, not from the loop bound.
+    //
+    // Two things drop rows on the way in, both on purpose: an order whose delivery
+    // date lands in the future is skipped, and `ON CONFLICT DO NOTHING` discards a
+    // duplicate (tenant, store, order_number) — the order numbers deliberately
+    // collide across stores so the I13 ambiguity demo is reachable. Reporting the
+    // loop bound therefore overstated the seed by ~13% every run, and a demo whose
+    // pitch is that its numbers are honest cannot open by printing a number it did
+    // not verify.
+    let inserted = 0;
     let delivered = 0;
     for (let i = 0; i < ORDERS; i++) {
       const contactId = pick(contactIds);
@@ -200,9 +210,8 @@ async function main() {
         status === 'cancelled' ? new Date(placedAt.getTime() + between(1, 24) * 3_600_000) : null;
 
       if (deliveredAt && deliveredAt > now) continue;
-      if (deliveredAt) delivered++;
 
-      await db.query(
+      const result = await db.query(
         `INSERT INTO orders (tenant_id, store_id, contact_id, order_number, status, total,
                              placed_at, shipped_at, delivered_at, cancelled_at,
                              carrier, tracking_number, items)
@@ -226,6 +235,11 @@ async function main() {
           JSON.stringify([{ sku: `SKU-${between(1, 60)}`, qty: between(1, 3) }]),
         ],
       );
+
+      if ((result.rowCount ?? 0) > 0) {
+        inserted++;
+        if (deliveredAt) delivered++;
+      }
     }
 
     await db.query(
@@ -285,7 +299,7 @@ async function main() {
 
     console.log(`Seeded demo tenant ${tenantId}`);
     console.log(`  contacts     ${contactIds.length}`);
-    console.log(`  orders       ${ORDERS} (${delivered} delivered)`);
+    console.log(`  orders       ${inserted} (${delivered} delivered)`);
     console.log(`  campaigns    ${campaigns.length}`);
     console.log(`  operator     operator@example.com / demo-password-change-me`);
     console.log('');

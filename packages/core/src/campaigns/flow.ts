@@ -69,6 +69,10 @@ export type LinearisedMessage = {
   readonly htmlTemplate: string | null;
 };
 
+/** Above these, `validateFlow` refuses rather than walks. See the note there. */
+export const MAX_NODES = 500;
+export const MAX_EDGES = 1000;
+
 export type FlowValidation = {
   readonly issues: readonly FlowIssue[];
   readonly valid: boolean;
@@ -82,6 +86,35 @@ export type FlowValidation = {
  */
 export function validateFlow(graph: FlowGraph): FlowValidation {
   const issues: FlowIssue[] = [];
+
+  /**
+   * A size bound, checked before anything walks the graph.
+   *
+   * `reachableFrom` and `findCycle` both rescan the whole edge list per node, so
+   * the work is O(nodes x edges) and the caller chooses both. Ten thousand nodes
+   * is a hundred million comparisons of pure event-loop time for one authenticated
+   * request, on a budget of 600 requests a minute — the server pays far more than
+   * the caller does, which is the shape of every accidental denial of service.
+   *
+   * The bound is generous: a journey with more than a few dozen boxes has stopped
+   * being something a human can reason about. Refusing at 500 costs nobody a real
+   * journey and turns an outage into an error message.
+   */
+  if (graph.nodes.length > MAX_NODES || graph.edges.length > MAX_EDGES) {
+    return {
+      valid: false,
+      issues: [
+        {
+          severity: 'error',
+          message:
+            `This journey is too large to validate: ${graph.nodes.length} nodes and ` +
+            `${graph.edges.length} connections, against a limit of ${MAX_NODES} and ` +
+            `${MAX_EDGES}. Split it into separate campaigns.`,
+        },
+      ],
+    };
+  }
+
   const byId = new Map(graph.nodes.map((n) => [n.id, n]));
 
   const triggers = graph.nodes.filter((n) => n.type === 'trigger');
@@ -213,56 +246,65 @@ function reachableFrom(graph: FlowGraph, start: string | undefined): Set<string>
   return seen;
 }
 
-/** Depth-first search returning the nodes on the first cycle found, if any. */
+/**
+ * Depth-first search returning the nodes on the first cycle found, if any.
+ *
+ * Iterative, with its own explicit stack. The recursive version used one JavaScript
+ * frame per node along a path, so a ten-thousand-node chain — which a caller
+ * supplies in a single request body — overflowed the call stack. A `RangeError` is
+ * not an `ApiError`: it escaped the handler as a 500 rather than a refusal, and the
+ * size bound in `validateFlow` now catches that case first. This removes the sharp
+ * edge underneath it as well, because a bound is a policy and a stack overflow is a
+ * crash.
+ */
 function findCycle(graph: FlowGraph): string[] | undefined {
   const WHITE = 0;
   const GREY = 1;
   const BLACK = 2;
   const colour = new Map<string, number>(graph.nodes.map((n) => [n.id, WHITE]));
-  const path: string[] = [];
 
-  const visit = (id: string): string[] | undefined => {
-    colour.set(id, GREY);
-    path.push(id);
-    for (const edge of graph.edges) {
-      if (edge.source !== id) continue;
-      const next = edge.target;
-      if (!colour.has(next)) continue;
+  // Adjacency once, rather than rescanning every edge per node.
+  const out = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    const list = out.get(edge.source);
+    if (list) list.push(edge.target);
+    else out.set(edge.source, [edge.target]);
+  }
+
+  for (const start of graph.nodes) {
+    if (colour.get(start.id) !== WHITE) continue;
+
+    const path: string[] = [];
+    // `next` is the index of the edge to try when this frame is resumed.
+    const stack: { id: string; next: number }[] = [{ id: start.id, next: 0 }];
+    colour.set(start.id, GREY);
+    path.push(start.id);
+
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1];
+      if (frame === undefined) break;
+      const targets = out.get(frame.id) ?? [];
+
+      if (frame.next >= targets.length) {
+        colour.set(frame.id, BLACK);
+        path.pop();
+        stack.pop();
+        continue;
+      }
+
+      const next = targets[frame.next++];
+      if (next === undefined || !colour.has(next)) continue;
       if (colour.get(next) === GREY) return path.slice(path.indexOf(next));
       if (colour.get(next) === WHITE) {
-        const found = visit(next);
-        if (found) return found;
+        colour.set(next, GREY);
+        path.push(next);
+        stack.push({ id: next, next: 0 });
       }
-    }
-    path.pop();
-    colour.set(id, BLACK);
-    return undefined;
-  };
-
-  for (const node of graph.nodes) {
-    if (colour.get(node.id) === WHITE) {
-      const found = visit(node.id);
-      if (found) return found;
     }
   }
   return undefined;
 }
 
-/**
- * Walk the graph into an ordered message list.
- *
- * Delay accumulates along the path, so a Delay node before two Send nodes delays
- * both. A Condition node adds its wait and then splits: each branch inherits the
- * accumulated delay and carries its handle as `branchPath`, which becomes the
- * `send_condition` applied at send time.
- *
- * KNOWN LIMITATION, stated rather than hidden: this flattens branches into a
- * single ordered sequence, so it cannot express a true rejoin — two branches that
- * converge back onto one node produce that node's messages twice, once per branch.
- * A proper state machine per enrolment is the right model and is the thing I would
- * change first. The validator rejects the cycle case; the rejoin case is accepted
- * and documented.
- */
 export function lineariseFlow(graph: FlowGraph): LinearisedMessage[] {
   const messages: LinearisedMessage[] = [];
   const byId = new Map(graph.nodes.map((n) => [n.id, n]));
@@ -370,6 +412,44 @@ export type MessageSyncPlan = {
  * would cascade away messages that are already scheduled to send, and the
  * operator's action was moving a box on a canvas.
  */
+/**
+ * One row per node, however many paths reach it.
+ *
+ * `lineariseFlow` deliberately emits a node once per PATH — that is what the
+ * editor's preview shows, and both traversals are real. But `campaign_messages` is
+ * keyed by (campaign, node), so a message box wired to both the yes and the no
+ * handle of a condition — the ordinary way to rejoin after a branch — produced two
+ * rows with the same `node_id` and a unique-violation on save. The validator said
+ * the graph was fine and the writer refused it, which left the operator with a
+ * canvas that would not save and no way to find out why.
+ *
+ * When the paths that reach a node disagree about the branch they came from, the
+ * node is reached either way, so the condition is not a condition: it collapses to
+ * `always` with no branch. The delay is the earliest path's, because that is when
+ * the message can first be sent.
+ */
+function collapseRejoins(linearised: readonly LinearisedMessage[]): LinearisedMessage[] {
+  const byNode = new Map<string, LinearisedMessage>();
+  for (const message of linearised) {
+    const seen = byNode.get(message.nodeId);
+    if (!seen) {
+      byNode.set(message.nodeId, message);
+      continue;
+    }
+    const reachedEitherWay =
+      seen.sendCondition !== message.sendCondition || seen.branchPath !== message.branchPath;
+    byNode.set(message.nodeId, {
+      ...seen,
+      delayMinutes: Math.min(seen.delayMinutes, message.delayMinutes),
+      ...(reachedEitherWay ? { sendCondition: 'always' as const, branchPath: null } : {}),
+    });
+  }
+  // Renumber, so sequence_order stays dense after a collapse.
+  return [...byNode.values()]
+    .sort((x, y) => x.sequenceOrder - y.sequenceOrder)
+    .map((message, index) => ({ ...message, sequenceOrder: index + 1 }));
+}
+
 export function planMessageSync(
   linearised: readonly LinearisedMessage[],
   existing: readonly { id: string; node_id: string | null }[],
@@ -381,7 +461,7 @@ export function planMessageSync(
   const create: LinearisedMessage[] = [];
   const update: LinearisedMessage[] = [];
 
-  for (const message of linearised) {
+  for (const message of collapseRejoins(linearised)) {
     if (existingByNode.has(message.nodeId)) update.push(message);
     else create.push(message);
   }
