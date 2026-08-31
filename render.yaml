@@ -1,13 +1,32 @@
-# One-click blueprint. The two processes are deployed as separate services from the
-# same image, because the API must never run a scheduler: three API replicas would
-# otherwise mean every job firing three times, and a long job would block the
-# health check until the platform restarted the container mid-run.
+# One-click blueprint: the architecture as designed, on one paid platform.
+#
+# The processes are separate services from the SAME image, because the API must
+# never run a scheduler: three API replicas would otherwise mean every job firing
+# three times, and a long job would block the health check until the platform
+# restarted the container mid-run. packages/api/src/no-scheduler.ts enforces this
+# at boot rather than by convention.
+#
+# PLANS. Render's free tier covers web services and Postgres; Background Workers
+# and Cron Jobs are paid, and free Postgres is deleted after 30 days. An earlier
+# version of this file claimed `plan: free` on all four, which would not deploy.
+# The plans below are the cheapest ones that actually run.
+#
+# For a ZERO-COST deployment of the same system, see docs/DEPLOY.md: Neon for the
+# database, one free Render web service for the API and SPA, and GitHub Actions
+# cron driving `packages/worker --once` for the jobs. Same code, same gates, same
+# advisory locks — a different trigger.
+#
+# Migrations are NOT a step here. Both processes run them on boot behind a Postgres
+# advisory lock, so the schema is a precondition of the process rather than
+# something a deploy checklist has to remember.
 
 databases:
   - name: campaign-engine-db
     databaseName: campaign
     user: campaign
-    plan: free
+    # Free Postgres on Render is deleted after 30 days. Basic is the cheapest plan
+    # that survives, which matters for something linked from a CV.
+    plan: basic-256mb
     postgresMajorVersion: '18'
 
 services:
@@ -25,6 +44,9 @@ services:
       # the UI says so on every page that can send.
       - key: SEND_MODE
         value: mock
+      # Set by hand AFTER the first deploy, once the URL exists, then redeploy.
+      # This builds every unsubscribe and tracking link: wrong here means every
+      # opt-out link resolves nowhere, which is what I7 exists to catch.
       - key: PUBLIC_BASE_URL
         sync: false
       - key: JWT_SECRET
@@ -36,13 +58,17 @@ services:
     name: campaign-engine-worker
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: free
+    # Background Workers have no free plan.
+    plan: starter
     dockerCommand: node --import tsx packages/worker/src/index.ts
     envVars:
       - key: DATABASE_URL
         fromDatabase: { name: campaign-engine-db, property: connectionString }
       - key: SEND_MODE
         value: mock
+      # Set by hand AFTER the first deploy, once the URL exists, then redeploy.
+      # This builds every unsubscribe and tracking link: wrong here means every
+      # opt-out link resolves nowhere, which is what I7 exists to catch.
       - key: PUBLIC_BASE_URL
         sync: false
       - key: WORKER_ID
@@ -58,7 +84,8 @@ services:
     name: campaign-engine-demo-reset
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: free
+    # Cron Jobs have no free plan.
+    plan: starter
     schedule: '0 4 * * *'
     dockerCommand: sh -c "node --import tsx scripts/seed-demo.ts && node --import tsx scripts/simulate.ts"
     envVars:

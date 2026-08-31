@@ -1,0 +1,36 @@
+# Nightly demo reset.
+#
+# A reviewer arriving at 3am should see the same dataset as one arriving at noon,
+# and nothing should accumulate in a free database indefinitely.
+name: demo-reset
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: demo-reset
+  cancel-in-progress: false
+
+jobs:
+  reseed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Migrate, seed, simulate, rebuild rollups
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
+          SEND_MODE: mock
+        run: |
+          npm run migrate
+          npm run seed:demo
+          npm run demo:simulate
+          npm run rollups:rebuild

@@ -2,6 +2,7 @@
 // tests) are allowed to reach for lives behind one of these.
 export * from './clock.ts';
 export * from './db/pool.ts';
+export * from './db/migrate.ts';
 export * from './scheduling/quiet-hours.ts';
 export * from './queue/message-queue.ts';
 export * from './consent/consent.ts';

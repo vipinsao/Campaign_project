@@ -166,6 +166,49 @@ export function startWorker(): () => Promise<void> {
   return shutdown;
 }
 
+/**
+ * Run every job once and exit.
+ *
+ * The scheduled worker is a long-running process, which on most free hosting tiers
+ * is the one thing you cannot have. This mode lets an external scheduler — a
+ * GitHub Actions cron, a platform cron job, an operator at a terminal — drive the
+ * same jobs, in the same order, through the same `runJob` and therefore the same
+ * advisory lock.
+ *
+ * It is a different TRIGGER, not a different code path. Nothing here reimplements
+ * a job, and nothing skips a gate: the sends still go out through
+ * `deliverClaimed`, which is still the only call site of `provider.send` (I1).
+ *
+ * Returns the number of jobs that failed, so a caller can exit non-zero and a red
+ * cron run means something.
+ */
+export async function runAllJobsOnce(): Promise<number> {
+  const clock = new SystemClock();
+  const db = getPool();
+  const workerId = process.env['WORKER_ID'] ?? `once-${process.pid}`;
+  const sendMode = parseSendMode(process.env['SEND_MODE']);
+
+  const jobs = buildJobs(buildWorkerConfig());
+  const ctx: JobContext = { db, clock, log, workerId };
+  log.info({ workerId, sendMode, jobs: jobs.map((j) => j.name) }, 'running every job once');
+
+  let failed = 0;
+  try {
+    for (const job of jobs) {
+      const outcome = await runJob(job, ctx);
+      if (outcome.status === 'failed') {
+        failed++;
+        log.error({ job: job.name, err: outcome.error }, 'job failed');
+      } else {
+        log.info({ job: job.name, status: outcome.status }, 'job finished');
+      }
+    }
+  } finally {
+    await closePool();
+  }
+  return failed;
+}
+
 export { runJob, advisoryKey } from './job-runner.ts';
 export { buildJobs } from './jobs/index.ts';
 export type { Job, JobContext, JobResult, RunOutcome } from './job-runner.ts';
@@ -175,5 +218,10 @@ export { rebuildRollups } from './jobs/rollups.ts';
 // Only start when executed directly, so tests can import the builders without
 // scheduling anything.
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  startWorker();
+  if (process.argv.includes('--once')) {
+    const failed = await runAllJobsOnce();
+    process.exit(failed > 0 ? 1 : 0);
+  } else {
+    startWorker();
+  }
 }

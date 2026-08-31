@@ -14,7 +14,7 @@ import EmbeddedPostgres from 'embedded-postgres';
 import { fileURLToPath } from 'node:url';
 import { rm } from 'node:fs/promises';
 import type { TestProject } from 'vitest/node';
-import { migrate } from '../../scripts/migrate.ts';
+import { migrate } from '@campaign/core';
 
 /**
  * Port AND data directory are both derived from the process id.

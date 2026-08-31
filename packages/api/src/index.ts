@@ -15,8 +15,10 @@ import { assertNoSchedulerRegistered } from './no-scheduler.ts';
 import { fileURLToPath } from 'node:url';
 import { serve } from '@hono/node-server';
 import { createApp } from './app.ts';
+import { createServerApp, defaultWebRoot } from './server.ts';
 import { buildDeps } from './deps.ts';
 import { buildRegistry } from './observability/metrics.ts';
+import { migrate } from '@campaign/core';
 
 /**
  * The boot-time refusal to schedule.
@@ -31,6 +33,7 @@ import { buildRegistry } from './observability/metrics.ts';
 assertNoSchedulerRegistered();
 
 export { createApp, type App, type CreateAppOptions } from './app.ts';
+export { createServerApp, defaultWebRoot, type ServerAppOptions } from './server.ts';
 export {
   buildDeps,
   decodeEncryptionKey,
@@ -79,9 +82,12 @@ export function startServer(): { close: () => void } {
   // imported, would slip past the module-scope check above.
   assertNoSchedulerRegistered();
 
+  const webRoot = defaultWebRoot();
+  const root = createServerApp(app, { webRoot });
+
   const port = Number(process.env['PORT'] ?? 3001);
-  const server = serve({ fetch: app.fetch, port });
-  deps.logger.info({ port }, 'campaign-engine api listening');
+  const server = serve({ fetch: root.fetch, port });
+  deps.logger.info({ port, webRoot: webRoot ?? '(api only)' }, 'campaign-engine api listening');
   return {
     close: () => {
       server.close();
@@ -89,8 +95,28 @@ export function startServer(): { close: () => void } {
   };
 }
 
+/**
+ * Boot: migrate, then serve.
+ *
+ * Nothing ran the migrations on a deploy. `render.yaml` had no migrate step and
+ * this file only ever started a server, so a fresh database came up with no tables
+ * and every request 500'd. Running them here makes the schema a precondition of
+ * the process rather than a step somebody remembers.
+ *
+ * `migrate()` takes a Postgres advisory lock, so the API and the worker booting
+ * together serialise instead of racing. Set MIGRATE_ON_BOOT=false where a
+ * deployment applies migrations out of band.
+ */
+async function boot(): Promise<void> {
+  const url = process.env['DATABASE_URL'];
+  if (process.env['MIGRATE_ON_BOOT'] !== 'false' && url !== undefined && url !== '') {
+    await migrate(url, { silent: true });
+  }
+  startServer();
+}
+
 // Only when run directly. Importing this module — which the test suite does, to
 // get `createApp` — must never bind a port.
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  startServer();
+  await boot();
 }

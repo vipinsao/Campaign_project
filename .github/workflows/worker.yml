@@ -1,0 +1,48 @@
+# The worker, on a free tier.
+#
+# packages/worker is a long-running node-cron process, and a long-running process
+# is the one thing free hosting does not give you. This runs the SAME jobs through
+# the SAME `runJob` — and therefore the same Postgres advisory lock, so a run that
+# overruns the next tick is skipped rather than doubled.
+#
+# It is a different trigger, not a different code path. Sends still leave through
+# `deliverClaimed`, the only call site of provider.send (I1).
+#
+# GitHub's shortest cron is five minutes and it is best-effort under load, so a
+# message can sit in the queue a little longer than it would on a dedicated worker.
+# For a demo that is the right trade against $7/month. For real delivery, run
+# packages/worker as a process and delete this file.
+name: worker
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  # A queued run behind a slow one would claim the same rows. The lock inside
+  # runJob would hold, but there is no reason to pay for the collision.
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Run every job once
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
+          # The public demo never contacts a real recipient.
+          SEND_MODE: mock
+          WORKER_ID: gha-worker
+          TRIGGER_FLOOR_AT: '2026-01-01T00:00:00Z'
+          LOG_LEVEL: info
+        run: node --import tsx packages/worker/src/index.ts --once
