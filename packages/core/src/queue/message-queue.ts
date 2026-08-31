@@ -167,6 +167,34 @@ export async function claimBatch(
  * symptom is a queue that appears to be draining while a growing tail of messages
  * silently never sends.
  */
+/**
+ * Refresh this row's claim stamp, immediately before it is worked on.
+ *
+ * `claimBatch` stamps one `claimed_at` for the WHOLE batch, and the worker then
+ * walks the batch sequentially. So the hundredth row carried a `claimed_at` from
+ * when the batch started, even though the worker would not reach it for another
+ * forty minutes — and `reclaimStale` measured how long ago the BATCH began rather
+ * than how long THIS row had been in flight.
+ *
+ * With the shipped defaults (batch 100, stale 15 minutes) any batch slower than
+ * about nine messages a minute had its own tail reclaimed and re-sent, on a single
+ * replica, deterministically. No concurrency required.
+ *
+ * Returns false when the row is no longer ours, which is the caller's signal to
+ * skip it rather than send it.
+ */
+export async function refreshClaim(
+  db: Db | PoolClient,
+  opts: { readonly id: string; readonly claimedBy: string; readonly clock: Clock },
+): Promise<boolean> {
+  const result = await db.query(
+    `UPDATE message_queue SET claimed_at = $3, updated_at = $3
+      WHERE id = $1 AND claimed_by = $2 AND status = 'processing'`,
+    [opts.id, opts.claimedBy, opts.clock.now()],
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function reclaimStale(
   db: Db,
   opts: { readonly staleMinutes: number; readonly maxAttempts: number; readonly clock: Clock },
@@ -224,9 +252,14 @@ export async function reclaimStale(
  */
 export async function deferClaimed(
   db: Db | PoolClient,
-  opts: { readonly id: string; readonly until: Date; readonly clock: Clock },
-): Promise<void> {
-  await db.query(
+  opts: {
+    readonly id: string;
+    readonly until: Date;
+    readonly claimedBy: string;
+    readonly clock: Clock;
+  },
+): Promise<boolean> {
+  const result = await db.query(
     `UPDATE message_queue
         SET status           = 'pending',
             claimed_at       = NULL,
@@ -237,10 +270,31 @@ export async function deferClaimed(
             scheduled_at     = $2,
             next_attempt_at  = NULL,
             updated_at       = $3
-      WHERE id = $1`,
-    [opts.id, opts.until, opts.clock.now()],
+      WHERE id = $1 AND sent_at IS NULL ${OWNED.replace('$CLAIMER', '$4')}`,
+    [opts.id, opts.until, opts.clock.now(), opts.claimedBy],
   );
+  return (result.rowCount ?? 0) > 0;
 }
+
+/**
+ * The ownership fence.
+ *
+ * Every terminal writer below carries it, and its absence was the most serious
+ * bug found in this system.
+ *
+ * `claimBatch` stamps `claimed_by`. Nothing used to read it back — every writer
+ * was `UPDATE message_queue SET ... WHERE id = $1`. So when `reclaimStale`
+ * returned a row to `pending` while the original worker was still inside
+ * `provider.send`, a second worker claimed it, sent it, and then BOTH workers
+ * wrote their result. The recipient got the message twice, and the row ended up
+ * in states that should be unrepresentable: `status='failed'` with `sent_at` set,
+ * or a delivered message put back in the claimable queue by a late retry.
+ *
+ * With the fence, a worker that has lost the claim writes nothing. Its UPDATE
+ * matches zero rows, which is the correct outcome: it no longer owns this
+ * message, so it has no business recording an opinion about it.
+ */
+const OWNED = `AND claimed_by = $CLAIMER AND status = 'processing'`;
 
 export async function markSent(
   db: Db | PoolClient,
@@ -248,19 +302,21 @@ export async function markSent(
     readonly id: string;
     readonly provider: string;
     readonly providerMessageId: string;
+    readonly claimedBy: string;
     readonly clock: Clock;
   },
-): Promise<void> {
+): Promise<boolean> {
   // Note the status written here is 'sent', never 'delivered' (I9). Delivery is a
   // fact only the provider can report, and inferring it on the line after the send
   // is how a delivery-rate metric reads 100% forever.
-  await db.query(
+  const result = await db.query(
     `UPDATE message_queue
         SET status = 'sent', sent_at = $4, provider = $2, provider_message_id = $3,
             claimed_at = NULL, claimed_by = NULL, updated_at = $4
-      WHERE id = $1`,
-    [opts.id, opts.provider, opts.providerMessageId, opts.clock.now()],
+      WHERE id = $1 ${OWNED.replace('$CLAIMER', '$5')}`,
+    [opts.id, opts.provider, opts.providerMessageId, opts.clock.now(), opts.claimedBy],
   );
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function markFailed(
@@ -271,17 +327,31 @@ export async function markFailed(
     readonly errorCode: string;
     readonly errorMessage: string;
     readonly errorClass: 'terminal' | 'transient';
+    readonly claimedBy: string;
     readonly clock: Clock;
   },
-): Promise<void> {
-  await db.query(
+): Promise<boolean> {
+  // `sent_at IS NULL` is a second, independent guard. A message that reached the
+  // provider must never be recorded as failed, whatever went wrong afterwards -
+  // a failure in event fan-out or in the decision log has nothing to do with
+  // whether the recipient received the message.
+  const result = await db.query(
     `UPDATE message_queue
         SET status = 'failed', provider = $2, provider_error_code = $3,
             provider_error_message = $4, error_class = $5,
             claimed_at = NULL, claimed_by = NULL, updated_at = $6
-      WHERE id = $1`,
-    [opts.id, opts.provider, opts.errorCode, opts.errorMessage, opts.errorClass, opts.clock.now()],
+      WHERE id = $1 AND sent_at IS NULL ${OWNED.replace('$CLAIMER', '$7')}`,
+    [
+      opts.id,
+      opts.provider,
+      opts.errorCode,
+      opts.errorMessage,
+      opts.errorClass,
+      opts.clock.now(),
+      opts.claimedBy,
+    ],
   );
+  return (result.rowCount ?? 0) > 0;
 }
 
 /** Transient failure: back to pending with a backoff. Terminal never lands here (I8). */
@@ -293,39 +363,46 @@ export async function scheduleRetry(
     readonly errorCode: string;
     readonly errorMessage: string;
     readonly delayMs: number;
+    readonly claimedBy: string;
     readonly clock: Clock;
   },
-): Promise<void> {
+): Promise<boolean> {
   const now = opts.clock.now();
-  await db.query(
+  const retryAt = new Date(now.getTime() + opts.delayMs);
+  // `scheduled_at` moves with `next_attempt_at`. The claim query requires BOTH to
+  // have passed, so writing only one left rows advertising a retry time the claim
+  // query would ignore for as long as the other column said - visible to the
+  // operator in /queue, and wrong.
+  const result = await db.query(
     `UPDATE message_queue
         SET status = 'pending', claimed_at = NULL, claimed_by = NULL,
             provider = $2, provider_error_code = $3, provider_error_message = $4,
-            error_class = 'transient', next_attempt_at = $5, updated_at = $6
-      WHERE id = $1`,
-    [
-      opts.id,
-      opts.provider,
-      opts.errorCode,
-      opts.errorMessage,
-      new Date(now.getTime() + opts.delayMs),
-      now,
-    ],
+            error_class = 'transient', next_attempt_at = $5,
+            scheduled_at = LEAST(scheduled_at, $5), updated_at = $6
+      WHERE id = $1 AND sent_at IS NULL ${OWNED.replace('$CLAIMER', '$7')}`,
+    [opts.id, opts.provider, opts.errorCode, opts.errorMessage, retryAt, now, opts.claimedBy],
   );
+  return (result.rowCount ?? 0) > 0;
 }
 
 /** Terminal gate failure: the message will never be sent. */
 export async function markCancelled(
   db: Db | PoolClient,
-  opts: { readonly id: string; readonly reasonCode: string; readonly clock: Clock },
-): Promise<void> {
-  await db.query(
+  opts: {
+    readonly id: string;
+    readonly reasonCode: string;
+    readonly claimedBy: string;
+    readonly clock: Clock;
+  },
+): Promise<boolean> {
+  const result = await db.query(
     `UPDATE message_queue
         SET status = 'cancelled', claimed_at = NULL, claimed_by = NULL,
             provider_error_code = $2, updated_at = $3
-      WHERE id = $1`,
-    [opts.id, opts.reasonCode, opts.clock.now()],
+      WHERE id = $1 AND sent_at IS NULL ${OWNED.replace('$CLAIMER', '$4')}`,
+    [opts.id, opts.reasonCode, opts.clock.now(), opts.claimedBy],
   );
+  return (result.rowCount ?? 0) > 0;
 }
 
 /**

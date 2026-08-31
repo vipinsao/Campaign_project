@@ -115,12 +115,6 @@ function jsWeekday(dt: DateTime): number {
   return dt.weekday % 7;
 }
 
-/**
- * Set a wall-clock time on a zoned date, stepping over a DST gap if that local
- * time does not exist on that day. Luxon reports non-existent times as invalid;
- * silently accepting the invalid value would produce an Invalid DateTime that
- * serialises to null far away from here.
- */
 /** Luxon declares `isValid` as a plain boolean rather than a type predicate, so a
  *  bare `if (dt.isValid)` does not narrow DateTime<boolean> to DateTime<true>.
  *  This guard does the narrowing once, honestly, instead of casting at each site. */
@@ -128,26 +122,58 @@ function isValidDateTime(dt: DateTime): dt is DateTime<true> {
   return dt.isValid;
 }
 
-function atLocalMinute(day: DateTime, minuteOfDay: number): DateTime<true> {
+/**
+ * Set a wall-clock time on a zoned date.
+ *
+ * An earlier version of this function was built on a premise that is false:
+ * "Luxon reports non-existent times as invalid". It does not. `DateTime.set()`
+ * into a spring-forward gap returns a VALID DateTime, silently shifted forward by
+ * the size of the gap. The validity guard therefore never fired, the 180-iteration
+ * fallback loop behind it was unreachable, and the shifted instant was returned
+ * unchecked.
+ *
+ * So a caller CANNOT assume it got the minute it asked for. What it gets is a real
+ * instant; `minutesOfDay` on the result is the only honest way to learn where that
+ * instant actually landed. `windowOpeningOn` is the caller that checks.
+ */
+function atLocalMinute(day: DateTime<true>, minuteOfDay: number): DateTime<true> {
   const candidate = day.set({
     hour: Math.floor(minuteOfDay / 60),
     minute: minuteOfDay % 60,
     second: 0,
     millisecond: 0,
   });
-  if (isValidDateTime(candidate)) return candidate;
-
-  // Spring-forward gap: walk forward a minute at a time until the clock exists.
-  for (let extra = 1; extra <= 180; extra++) {
-    const shifted = day.set({
-      hour: Math.floor((minuteOfDay + extra) / 60) % 24,
-      minute: (minuteOfDay + extra) % 60,
-      second: 0,
-      millisecond: 0,
-    });
-    if (isValidDateTime(shifted)) return shifted;
+  if (!isValidDateTime(candidate)) {
+    // Not reachable for a DST gap. Only a corrupt zone gets here, and resolveSendTime
+    // has already rejected those — kept as an assertion rather than a silent cast.
+    throw new Error(`Could not set local minute ${minuteOfDay} in ${day.zoneName}`);
   }
-  throw new Error(`Could not find a valid local time near ${minuteOfDay} in ${day.zoneName}`);
+  return candidate;
+}
+
+/**
+ * The instant this window opens on this date, or `null` if it does not open at all.
+ *
+ * A spring-forward gap can push the opening minute past the window's own CLOSE, and
+ * then the window does not exist on that date:
+ *
+ *   - New York, 8 Mar 2026: an 02:00-02:30 window opens at 03:00.
+ *   - Lord Howe, 4 Oct 2026: the shift is THIRTY minutes, so an 02:00-02:15 window
+ *     opens at 02:30.
+ *   - Santiago and Cairo transition AT midnight, so a 00:00 tenant floor opens at
+ *     01:00 — past a floor that closes at 00:45.
+ *
+ * Returning the shifted instant regardless is how `resolveSendTime` came to hand
+ * back a send time outside the quiet-hours window it had just computed, and
+ * `scheduleWithin` came to write that instant into `scheduled_at`. Quiet hours are
+ * the one gate whose entire purpose is that the recipient's local clock is
+ * respected (I5); a gate that reports compliance while violating it is worse than
+ * no gate.
+ */
+function windowOpeningOn(day: DateTime<true>, start: number, end: number): DateTime<true> | null {
+  const at = atLocalMinute(day, start);
+  const landed = minutesOfDay(at);
+  return landed >= start && landed < end ? at : null;
 }
 
 /**
@@ -180,25 +206,34 @@ export function resolveSendTime(input: ScheduleInput): ScheduleDecision {
     return { eligible: true, at: local.toJSDate() };
   }
 
-  // Too late in the day (or not a permitted day) — move to the next day's window
-  // opening. Too early — open the window on the same day.
-  if (minutesOfDay(local) >= end || !startsOnSendDay) {
-    local = atLocalMinute(local.plus({ days: 1 }).startOf('day'), start);
-  } else {
-    local = atLocalMinute(local.startOf('day'), start);
-  }
+  // Too late in the day (or not a permitted day) — start looking tomorrow. Too
+  // early — today's window may still open.
+  let day: DateTime<true> =
+    minutesOfDay(local) >= end || !startsOnSendDay
+      ? local.plus({ days: 1 }).startOf('day')
+      : local.startOf('day');
 
-  // Advance to the next permitted local weekday. Bounded at 8 iterations: with a
-  // non-empty send_days set a slot must exist within a week, and an unbounded
-  // `while` here would be an infinite loop on a configuration mistake.
-  for (let i = 0; i < 8 && !sendDays.has(jsWeekday(local)); i++) {
-    local = atLocalMinute(local.plus({ days: 1 }).startOf('day'), start);
+  // Advance to the next date that is BOTH a permitted send day AND one where the
+  // window actually opens. The second condition is not a formality: on a DST
+  // spring-forward date the opening minute can be swallowed by the gap and land
+  // past the window's close, and that date has no slot at all.
+  //
+  // Bounded at 14 rather than 8: a non-empty send_days set guarantees a permitted
+  // weekday within 7, and a transition can cost one of them. An unbounded `while`
+  // here would be an infinite loop on a configuration mistake.
+  for (let i = 0; i < 14; i++) {
+    if (sendDays.has(jsWeekday(day))) {
+      const opening = windowOpeningOn(day, start, end);
+      if (opening) {
+        return { eligible: false, nextEligibleAt: opening.toJSDate(), reason: 'quiet_hours' };
+      }
+    }
+    day = day.plus({ days: 1 }).startOf('day');
   }
-  if (!sendDays.has(jsWeekday(local))) {
-    throw new Error('No permitted send day found within a week; send_days is inconsistent.');
-  }
-
-  return { eligible: false, nextEligibleAt: local.toJSDate(), reason: 'quiet_hours' };
+  throw new Error(
+    'No permitted send day with a reachable window within a fortnight; ' +
+      'send_days or the quiet-hours window is inconsistent.',
+  );
 }
 
 /** Convenience for the enqueue path: the instant to store in `scheduled_at`. */

@@ -20,7 +20,7 @@ services:
     dockerCommand: node --import tsx packages/api/src/index.ts
     envVars:
       - key: DATABASE_URL
-        fromDatabase: {name: campaign-engine-db, property: connectionString}
+        fromDatabase: { name: campaign-engine-db, property: connectionString }
       # The public demo runs in mock mode. It never contacts a real recipient, and
       # the UI says so on every page that can send.
       - key: SEND_MODE
@@ -40,7 +40,7 @@ services:
     dockerCommand: node --import tsx packages/worker/src/index.ts
     envVars:
       - key: DATABASE_URL
-        fromDatabase: {name: campaign-engine-db, property: connectionString}
+        fromDatabase: { name: campaign-engine-db, property: connectionString }
       - key: SEND_MODE
         value: mock
       - key: PUBLIC_BASE_URL
@@ -63,6 +63,6 @@ services:
     dockerCommand: sh -c "node --import tsx scripts/seed-demo.ts && node --import tsx scripts/simulate.ts"
     envVars:
       - key: DATABASE_URL
-        fromDatabase: {name: campaign-engine-db, property: connectionString}
+        fromDatabase: { name: campaign-engine-db, property: connectionString }
       - key: SEND_MODE
         value: mock

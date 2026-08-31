@@ -4,6 +4,7 @@ import type { Clock } from '../clock.ts';
 import {
   type QueueRow,
   claimBatch,
+  refreshClaim,
   deferClaimed,
   markCancelled,
   markFailed,
@@ -563,6 +564,7 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
     await markCancelled(deps.db, {
       id: message.id,
       reasonCode: 'recipient_not_found',
+      claimedBy: deps.workerId,
       clock: deps.clock,
     });
     return 'SKIPPED';
@@ -594,12 +596,22 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
 
     if (gate.retryable) {
       const until = gate.nextEligibleAt ?? new Date(deps.clock.now().getTime() + 3_600_000);
-      await deferClaimed(deps.db, { id: message.id, until, clock: deps.clock });
+      await deferClaimed(deps.db, {
+        id: message.id,
+        until,
+        claimedBy: deps.workerId,
+        clock: deps.clock,
+      });
       await recordDecision(deps.db, base);
       return 'DEFERRED';
     }
 
-    await markCancelled(deps.db, { id: message.id, reasonCode: gate.code, clock: deps.clock });
+    await markCancelled(deps.db, {
+      id: message.id,
+      reasonCode: gate.code,
+      claimedBy: deps.workerId,
+      clock: deps.clock,
+    });
     await recordDecision(deps.db, base);
     await deps.onEvent?.({
       messageId: message.id,
@@ -620,6 +632,7 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
     await markCancelled(deps.db, {
       id: message.id,
       reasonCode: 'no_recipient_address',
+      claimedBy: deps.workerId,
       clock: deps.clock,
     });
     await recordDecision(deps.db, {
@@ -636,6 +649,40 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
   }
 
   const provider = deps.resolveProvider(message.channel, sender.provider);
+
+  // Re-take the claim in the same instant we hand it over.
+  //
+  // Two things happen here. The stamp is refreshed, so `reclaimStale` measures how
+  // long THIS row has been in flight rather than how long ago the batch started -
+  // which is what made a slow batch reclaim and re-send its own tail on a single
+  // replica. And ownership is re-checked, so a row reclaimed or cancelled while
+  // the gates were running is not sent anyway.
+  //
+  // This is the last possible moment before an irreversible external write, which
+  // is exactly where the check belongs: everything before it is reversible.
+  const stillOurs = await refreshClaim(deps.db, {
+    id: message.id,
+    claimedBy: deps.workerId,
+    clock: deps.clock,
+  });
+  if (!stillOurs) {
+    await recordDecision(deps.db, {
+      tenantId: ctx.tenant.id,
+      campaignId: ctx.campaign.id,
+      contactId: ctx.contact.id,
+      messageQueueId: message.id,
+      stage: 'send',
+      decision: 'skip',
+      reasonCode: 'claim_lost',
+      detail:
+        'The claim on this message was lost between the gate chain and the send - ' +
+        'it was reclaimed or cancelled by something else - so it was not handed to ' +
+        'the provider.',
+      decidedAt: deps.clock.now(),
+    });
+    return 'ALREADY_CLAIMED';
+  }
+
   const result = await provider.send({
     id: message.id,
     tenantId: ctx.tenant.id,
@@ -646,6 +693,9 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
     body: message.rendered_body,
     html: message.rendered_html ?? undefined,
     trackingId: message.tracking_id,
+    // Stable across retries of this message; the provider's chance to collapse a
+    // duplicate that the queue could not prevent. See OutboundMessage.
+    idempotencyKey: message.id,
   });
 
   if (result.ok) {
@@ -656,6 +706,7 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
       id: message.id,
       provider: provider.name,
       providerMessageId: result.providerMessageId,
+      claimedBy: deps.workerId,
       clock: deps.clock,
     });
     await recordDecision(deps.db, {
@@ -696,6 +747,7 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
       errorCode: result.errorCode,
       errorMessage: result.errorMessage,
       errorClass: classification.class,
+      claimedBy: deps.workerId,
       clock: deps.clock,
     });
     await recordDecision(deps.db, {
@@ -731,6 +783,7 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
     errorCode: result.errorCode,
     errorMessage: result.errorMessage,
     delayMs: deps.backoffMs(message.attempts),
+    claimedBy: deps.workerId,
     clock: deps.clock,
   });
   await recordDecision(deps.db, {
@@ -803,26 +856,42 @@ export async function processQueue(deps: DeliveryDeps): Promise<QueueRunSummary>
       outcome = 'FAILED';
       const message = error instanceof Error ? error.message : String(error);
       try {
-        await markFailed(deps.db, {
+        // markFailed refuses to write when `sent_at` is set or when this worker
+        // no longer owns the row. Both matter here: an exception thrown AFTER a
+        // successful send - in event fan-out, or in the decision log - must not
+        // rewrite a delivered message to `failed`. That was a bug introduced by an
+        // earlier version of this very catch block.
+        const recorded = await markFailed(deps.db, {
           id: row.id,
           provider: row.provider ?? 'unknown',
           errorCode: 'internal_error',
           errorMessage: message,
           errorClass: 'terminal',
+          claimedBy: deps.workerId,
           clock: deps.clock,
         });
-        await recordDecision(deps.db, {
-          tenantId: row.tenant_id,
-          campaignId: row.campaign_id,
-          contactId: row.contact_id,
-          messageQueueId: row.id,
-          stage: 'send',
-          decision: 'skip',
-          reasonCode: 'internal_error',
-          detail: message,
-          inputs: { error: message, attempts: row.attempts },
-          decidedAt: deps.clock.now(),
-        });
+        if (!recorded) {
+          // The message had already been sent, or the claim was lost. Either way
+          // there is nothing truthful to record against it, and inventing a
+          // failure would put two contradictory answers in the decision log.
+          //
+          // Deliberately NOT `continue`: falling through to the counters below is
+          // what makes the summary say "sent", which is what actually happened.
+          outcome = 'SENT';
+        } else {
+          await recordDecision(deps.db, {
+            tenantId: row.tenant_id,
+            campaignId: row.campaign_id,
+            contactId: row.contact_id,
+            messageQueueId: row.id,
+            stage: 'send',
+            decision: 'skip',
+            reasonCode: 'internal_error',
+            detail: message,
+            inputs: { error: message, attempts: row.attempts },
+            decidedAt: deps.clock.now(),
+          });
+        }
       } catch {
         // The database itself is unhappy. Leave the row for reclaim-stale rather
         // than losing the rest of the batch to a second failure.

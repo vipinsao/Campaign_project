@@ -199,11 +199,15 @@ describe('click-tracking link rewriting', () => {
   });
 
   it('leaves an excluded link untouched in the output', () => {
-    const source =
-      '<a href="https://example.com/p/1">Buy</a> <a href="https://example.com/u/tok">Unsubscribe</a>';
+    // A real minted token: 32 random bytes as base64url. The exclusion matches the
+    // route AND the token shape, because `/u/` is a two-character path segment that
+    // collides with ordinary words — `/u/dashboard` is a page, not an opt-out, and
+    // excluding it would drop a real link out of the click-rate denominator (I12).
+    const url = `https://example.com/u/kJ8vQ2mR7tZ1xN4bW9cL0sY6dH3fA5gE8uP2iT7oV1w`;
+    const source = `<a href="https://example.com/p/1">Buy</a> <a href="${url}">Unsubscribe</a>`;
     const { html, rewritten } = rewriteLinks(source, () => 'https://track.example.com/c/x');
-    expect(rewritten).toHaveLength(1);
-    expect(html).toContain('https://example.com/u/tok');
+    expect(rewritten).toEqual(['https://example.com/p/1']);
+    expect(html).toContain(url);
   });
 
   it('knows whether a message contains anything clickable (I12)', () => {

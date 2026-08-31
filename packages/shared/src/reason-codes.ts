@@ -59,6 +59,8 @@ export const REASON_CODES = {
   retry_exhausted: 'Retry attempts exhausted.',
   stale_claim_exhausted: 'The message was reclaimed too many times without completing.',
 
+  claim_lost:
+    'The claim on this message was lost between the gate chain and the send, so it was not handed to the provider. Another worker or a cancellation took it.',
   internal_error:
     'The message could not be evaluated because of an unexpected error. The error is recorded against this decision.',
 

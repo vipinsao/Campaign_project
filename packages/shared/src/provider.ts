@@ -19,6 +19,25 @@ export type OutboundMessage = {
   readonly body: string;
   readonly html?: string | undefined;
   readonly trackingId: string;
+
+  /**
+   * A stable key for this message, for provider-side deduplication.
+   *
+   * This exists because of a bound the queue cannot escape on its own. Claiming is
+   * exactly-once - `FOR UPDATE SKIP LOCKED` guarantees it. DELIVERY is at-least-
+   * once, and no amount of care in this codebase changes that: if a worker is
+   * inside `provider.send` when it is presumed dead and its row is reclaimed, the
+   * request is already on the network. It cannot be recalled.
+   *
+   * So the last line of defence is the provider's. Adapters that support an
+   * idempotency header (Postmark's `X-PM-Message-Id`, an HTTP `Idempotency-Key`)
+   * must send this value, and a provider that honours it turns the duplicate into
+   * a no-op at the only place that can still see both requests.
+   *
+   * It is the queue row id: stable across retries of the same message, distinct
+   * across every other message.
+   */
+  readonly idempotencyKey: string;
 };
 
 export type ProviderEvent = {

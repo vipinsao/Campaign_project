@@ -44,6 +44,7 @@ function emailMessage(tenantId: string, n: number): OutboundMessage {
     body: 'Plain text body.',
     html: '<p>Plain text body.</p>',
     trackingId: `track-${n}`,
+    idempotencyKey: `track-${n}`,
   };
 }
 
@@ -115,6 +116,7 @@ describe('the mock providers', () => {
       from: '+15557654321',
       body: 'Your order shipped.',
       trackingId: 'track-sms',
+    idempotencyKey: 'track-sms',
     });
 
     const { rows } = await testDb().query<{

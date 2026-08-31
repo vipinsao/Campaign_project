@@ -40,14 +40,31 @@ part of its correctness.
 ### I3 — claiming is atomic and crash-safe
 [`i3-concurrent-claim-exactly-once.test.ts`](../tests/invariants/i3-concurrent-claim-exactly-once.test.ts) · 5 tests
 
-**The failure.** Double sends under concurrency, and messages stuck forever in
-`processing` because the worker that claimed them was killed.
+**The claim, stated precisely.** CLAIMING is exactly-once. DELIVERY is
+at-least-once. An earlier version of this document said exactly-once delivery, and
+an adversarial review proved it wrong: a worker inside `provider.send` when its row
+is reclaimed has already put the request on the network.
+
+**The failure this does prevent.** Messages stuck forever in `processing` because
+the worker that claimed them was killed; two workers writing contradictory results
+for the same row; and a slow batch reclaiming its own tail — `claimBatch` stamped
+one `claimed_at` for the whole batch, so with the shipped defaults any batch slower
+than about nine messages a minute re-sent its own tail on a single replica,
+deterministically. The stamp is now refreshed per message, immediately before the
+send.
 
 **The test.** Eight *genuinely separate connection pools* against 100 queued rows —
 separate so the workers contend in the server's lock manager rather than being
 serialised by one client-side pool. Assert the claimed sets are disjoint and their
 union is complete. Then kill a worker mid-flight and assert the rows are reclaimed
 rather than abandoned.
+
+**The ownership fence.** Every terminal writer carries
+`AND claimed_by = $worker AND status = 'processing'`, and the ones that must never
+resurrect a delivered message also carry `AND sent_at IS NULL`. Without it, a
+worker that had lost its claim still wrote its result — producing `status='failed'`
+on a row with `sent_at` set, and putting delivered messages back in the claimable
+queue.
 
 **Why `SKIP LOCKED` and not compare-and-swap.** Read-then-swap has a window between
 the read and the swap in which two workers both believe they own the row.

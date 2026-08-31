@@ -35,7 +35,7 @@ This repository encodes fourteen of those as named tests that run as their own C
 |---|---|---|---|
 | **I1** | Every gate — consent, suppression, quiet hours, frequency cap, stop conditions — is evaluated **at send time**, not only at enqueue. | A guard implemented in the enqueue path while the bulk, retry and event-triggered paths bypass it. *A guard that exists in one of four code paths is not a guard.* | [`architecture`](tests/unit/architecture.test.ts) |
 | **I2** | The environment guard runs **before** the queue row is claimed. | A non-production worker pointed at a production database claims a row, burns a retry, declines to send, and permanently fails a message production would have sent. Invisible in production, because production never refuses. | [`i2`](tests/invariants/i2-env-guard-precedes-claim.test.ts) |
-| **I3** | Claiming is atomic and crash-safe: `SELECT … FOR UPDATE SKIP LOCKED` with a `claimed_by` stamp, and stale claims are reclaimed. | Double sends under concurrency; messages stuck forever because the worker that claimed them died. | [`i3`](tests/invariants/i3-concurrent-claim-exactly-once.test.ts) |
+| **I3** | **Claiming** is exactly-once and crash-safe: `SELECT … FOR UPDATE SKIP LOCKED`, a `claimed_by` stamp, and every terminal writer fenced on it. **Delivery is at-least-once** — see the note below. | Messages stuck forever because the worker that claimed them died; two workers writing contradictory results for the same row. | [`i3`](tests/invariants/i3-concurrent-claim-exactly-once.test.ts) |
 | **I4** | Deduplication is a **UNIQUE index on a generated column**, and a conflicting insert is an idempotent no-op. | Duplicate sends from concurrent triggers, webhook redeliveries and retried API calls. Application-level check-then-insert is banned. | [`i4`](tests/invariants/i4-dedup-is-a-database-constraint.test.ts) |
 | **I5** | Quiet hours are computed in the **recipient's** timezone, falling back to the tenant default and never to the server's. Campaign config can narrow the window, never widen it. | Messages delivered at 02:03 local time. | [`i5`](tests/invariants/i5-quiet-hours-recipient-local.test.ts) |
 | **I6** | Consent is an **append-only ledger**; suppression is an **address-level list**. Opting out cancels messages already queued. | Opt-outs honoured only for contacts carrying a flag; queued mail going out after the customer said stop; consent history destroyed by an UPDATE. | [`i6`](tests/invariants/i6-optout-cancels-queued.test.ts) |
@@ -48,6 +48,25 @@ This repository encodes fourteen of those as named tests that run as their own C
 | **I13** | Resolving a recipient from an order number returns `none \| single \| ambiguous`. It never silently picks the most recent match. | Order numbers are unique per store, not globally. Picking the newest match sends one customer's details to a different customer. | [`i13`](tests/invariants/i13-ambiguous-recipient.test.ts) |
 | **I14** | Every enqueue **and every skip** writes a decision row with a machine-readable reason code and the inputs it was evaluated from. | An operator with no way to answer "why didn't this fire?" other than reading source code. | [`i14`](tests/invariants/i14-every-decision-is-logged.test.ts) |
 
+**On I3, and why it says "at-least-once".** An earlier version of this README
+claimed exactly-once delivery. An adversarial review proved that wrong, and the
+correction is worth more than the original claim was.
+
+Claiming really is exactly-once — that is what `SKIP LOCKED` buys, and every
+terminal writer now carries an ownership fence so a worker that has lost its claim
+writes nothing. But **delivery cannot be exactly-once here**, and no amount of care
+in this codebase changes it: if a worker is inside `provider.send` when it is
+presumed dead and its row is reclaimed, the request is already on the network and
+cannot be recalled.
+
+What was fixed is everything around that: the reclaim window is now measured per
+message rather than per batch (a slow batch used to reclaim and re-send its own
+tail, on one replica, deterministically), and the corrupt states are gone — a sent
+message can no longer be recorded as failed, and a delivered one can no longer be
+put back in the claimable queue. What remains is handed to the provider as an
+idempotency key, because provider-side deduplication is the only place a duplicate
+can still be collapsed.
+
 All fourteen have passing tests, and so do the ten AI invariants (V1–V10) covering
 the deterministic/model boundary, versioned prompts, a golden eval set that blocks a
 merge on regression, a per-tenant token budget, and — the one worth reading —
@@ -55,6 +74,51 @@ merge on regression, a per-tenant token budget, and — the one worth reading �
 handing the classifier a narrowed capability object rather than by a rule.
 
 Full write-ups in [`docs/INVARIANTS.md`](docs/INVARIANTS.md).
+
+---
+
+## What an adversarial review of it found
+
+The invariants above are the claim. This is the check on the claim.
+
+Four reviewers were pointed at the queue, the consent and scheduling logic, the
+HTTP layer and the AI invariants, each required to prove a finding with a
+**failing test** rather than an opinion. Six bugs were confirmed, and **four of
+them were in the guards themselves** — the code whose entire purpose is to be
+correct. A guard that is wrong is worse than no guard, because the system reports
+that it is protected.
+
+The ones worth reading, all fixed, all written up in
+[`docs/DECISIONS.md`](docs/DECISIONS.md) D19–D25:
+
+- **Opt-out detection required the whole message to equal a keyword.** So
+  `"STOP\n\nSent from my iPhone"` — the most common physical shape of an emailed
+  opt-out — fell through to the model, where an outage drops it entirely. And
+  `"STOP STOP STOP"` was not an opt-out at all.
+- **The same function, the other way.** `CANCEL` is an *SMS carrier* keyword and
+  was being applied to email, so a one-word "Cancel" reply to "reply CANCEL to
+  cancel your order" wrote a permanent suppression that then blocked that person's
+  own refund and shipping notices.
+- **`ON CONFLICT DO NOTHING` silently discarded hard bounces** when a lapsed
+  soft-bounce row was still sitting on the unique key.
+- **One misconfigured campaign aborted the whole queue batch**, stranding
+  unrelated messages until they were burned to permanent failure.
+
+The result that found nothing is the one that matters most: **V9 held.** Hostile
+payloads carrying `resubscribe: true` and `suppression: {action: 'remove'}`,
+driven through every branch at confidence 1.0, never reached anything that
+removes, weakens or shortens a suppression.
+
+The review also proved that three claims in the comments of the file making the
+strongest guarantee were **false**, and that one of its test assertions could
+never fail. Those are corrected too. An overstated guarantee is worse than an
+honest narrow one.
+
+There is also `npm run smoke`, which boots a real Postgres and starts the actual
+api and worker processes and talks to them over HTTP — because "the tests pass"
+and "the server starts" are different claims. It was written after a runtime
+check found the worker had no entry point at all: 519 passing tests, and the
+process could not start.
 
 ---
 

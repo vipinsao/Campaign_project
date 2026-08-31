@@ -7,6 +7,7 @@ import {
   queryOne,
   recordConsent,
   recordDecision,
+  validateTemplate,
   withTransaction,
 } from '@campaign/core';
 import { AudienceDefinition, CampaignCategory, Channel, TriggerType } from '@campaign/shared';
@@ -174,6 +175,16 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
     const tenantId = tenantOf(c);
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
     const body = CampaignPatch.parse(await c.req.json<unknown>());
+
+    // Changing the category re-scopes every message under it. A template that is
+    // sendable as `transactional` may be unsendable as `promotional`, because
+    // marketing categories require a resolvable opt-out (I7). Without this check,
+    // activating a transactional campaign and then flipping its category produced a
+    // live promotional campaign with no unsubscribe link - a state its own
+    // /activate route answers 422 to, on the campaign it is already running.
+    if (body.category !== undefined && body.category !== campaign.category) {
+      await assertAllMessagesValidFor(deps.db, campaign.id, body.category);
+    }
 
     const row = await queryOne<CampaignRow>(
       deps.db,
@@ -575,10 +586,92 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
     return c.json({ messages: messages.map(messageJson) });
   });
 
+
+/**
+ * I7, applied wherever a template is written.
+ *
+ * A security review found the invariant was a property of ONE function rather than
+ * of the system: `PUT /campaigns/:id/flow` validated correctly, and the two routes
+ * beside it did not call the validator at all. Three sequences through the public
+ * API produced a live `promotional` campaign with no opt-out - add a message
+ * without one, strip it out of a live campaign with PATCH, or activate a
+ * `transactional` campaign and then PATCH its category to `promotional`.
+ *
+ * Enrolment renders from live `campaign_messages`, not from the activation
+ * snapshot, so all three produced real sends. An invariant enforced on one route
+ * is not an invariant.
+ */
+function assertTemplateValid(
+  template: {
+    readonly channel: 'email' | 'sms';
+    readonly subject?: string | null;
+    readonly body: string;
+    readonly html?: string | null;
+  },
+  category: CampaignCategory,
+): void {
+  const result = validateTemplate(template, category);
+  if (result.errors.length > 0) {
+    throw unprocessable(
+      'template_invalid',
+      'The message is not sendable in this campaign category.',
+      { errors: result.errors, warnings: result.warnings },
+    );
+  }
+}
+
+/** Re-check every message when a campaign's category changes: a template that was
+ *  fine as `transactional` may be unsendable as `promotional`. */
+async function assertAllMessagesValidFor(
+  db: ApiDeps['db'],
+  campaignId: string,
+  category: CampaignCategory,
+): Promise<void> {
+  const messages = await query<{
+    id: string;
+    channel: 'email' | 'sms';
+    subject_template: string | null;
+    body_template: string;
+    html_template: string | null;
+  }>(
+    db,
+    `SELECT id, channel, subject_template, body_template, html_template
+       FROM campaign_messages WHERE campaign_id = $1 AND is_enabled`,
+    [campaignId],
+  );
+
+  const failures = messages.flatMap((m) => {
+    const result = validateTemplate(
+      { channel: m.channel, subject: m.subject_template, body: m.body_template, html: m.html_template },
+      category,
+    );
+    return result.errors.map((e) => ({ messageId: m.id, message: e.message }));
+  });
+
+  if (failures.length > 0) {
+    throw unprocessable(
+      'category_change_invalidates_messages',
+      `Changing the category to '${category}' would leave ${failures.length} message(s) ` +
+        `unsendable. Fix them first.`,
+      { failures },
+    );
+  }
+}
+
   app.post('/campaigns/:id/messages', async (c) => {
     const tenantId = tenantOf(c);
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
     const body = MessageBody.parse(await c.req.json<unknown>());
+
+    assertTemplateValid(
+      {
+        channel: body.channel,
+        subject: body.subjectTemplate ?? null,
+        body: body.bodyTemplate,
+        html: body.htmlTemplate ?? null,
+      },
+      campaign.category as CampaignCategory,
+    );
 
     const row = await queryOne<Record<string, unknown>>(
       deps.db,
@@ -618,6 +711,34 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
     const body = MessagePatch.parse(await c.req.json<unknown>());
     const messageId = c.req.param('messageId');
+
+    // Validate the RESULT of the patch, not the patch. A PATCH that only clears
+    // `bodyTemplate` looks harmless in isolation and can still strip the opt-out
+    // out of a live marketing message - which was one of three working sequences a
+    // security review used to produce an active promotional campaign with no
+    // unsubscribe link.
+    const existing = await queryOne<{
+      channel: 'email' | 'sms';
+      subject_template: string | null;
+      body_template: string;
+      html_template: string | null;
+    }>(
+      deps.db,
+      `SELECT channel, subject_template, body_template, html_template
+         FROM campaign_messages WHERE tenant_id = $1 AND campaign_id = $2 AND id = $3`,
+      [tenantId, campaign.id, messageId],
+    );
+    if (!existing) throw notFound('Message', messageId);
+
+    assertTemplateValid(
+      {
+        channel: body.channel ?? existing.channel,
+        subject: body.subjectTemplate === undefined ? existing.subject_template : body.subjectTemplate,
+        body: body.bodyTemplate ?? existing.body_template,
+        html: body.htmlTemplate === undefined ? existing.html_template : body.htmlTemplate,
+      },
+      campaign.category as CampaignCategory,
+    );
 
     await deps.db.query(
       `UPDATE campaign_messages SET

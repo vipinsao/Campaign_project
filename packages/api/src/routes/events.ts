@@ -5,7 +5,7 @@ import { Channel, EventType } from '@campaign/shared';
 import type { ApiDeps } from '../deps.ts';
 import type { AppEnv } from '../middleware/context.ts';
 import { tenantOf } from '../middleware/context.ts';
-import { badRequest, conflict } from '../errors.ts';
+import { badRequest, conflict, notFound } from '../errors.ts';
 
 const EventBody = z.object({
   type: EventType,
@@ -62,6 +62,29 @@ export function eventRoutes(deps: ApiDeps): Hono<AppEnv> {
 
     for (const [index, event] of parsed.events.entries()) {
       const contactId = await resolveContact(deps, tenantId, event);
+
+      // Both ids come from the request body, and both used to be inserted without
+      // being checked against the API key's tenant. The read side has no tenant
+      // predicate either, so tenant A - holding its own perfectly valid key - could
+      // write rows that appeared in tenant B's open counts and per-message stats.
+      // B could not see where they came from; A could not see the effect. That is
+      // the tenant boundary broken in the direction nobody watches.
+      if (event.campaignId !== undefined) {
+        const owned = await queryOne<{ id: string }>(
+          deps.db,
+          `SELECT id FROM campaigns WHERE id = $1 AND tenant_id = $2`,
+          [event.campaignId, tenantId],
+        );
+        if (!owned) throw notFound('Campaign', event.campaignId);
+      }
+      if (event.messageQueueId !== undefined) {
+        const owned = await queryOne<{ id: string }>(
+          deps.db,
+          `SELECT id FROM message_queue WHERE id = $1 AND tenant_id = $2`,
+          [event.messageQueueId, tenantId],
+        );
+        if (!owned) throw notFound('Message', event.messageQueueId);
+      }
       if (contactId === undefined) {
         // Reported per event rather than failing the batch. One unrecognised
         // address in a batch of five hundred must not discard the other 499, and
