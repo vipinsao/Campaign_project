@@ -146,8 +146,8 @@ export function smsSegments(text: string): {
     // Iterating by CODE POINT is precisely what is wanted here: a carrier bills
     // UCS-2 in UTF-16 units, so a code point above the BMP costs two. Iterating by
     // grapheme cluster would under-count exactly the emoji this branch prices.
-    // eslint-disable-next-line @typescript-eslint/no-misused-spread -- code-point iteration is intended
     costs.length = 0;
+    // eslint-disable-next-line @typescript-eslint/no-misused-spread -- code-point iteration is intended
     for (const ch of [...text]) costs.push((ch.codePointAt(0) ?? 0) > 0xffff ? 2 : 1);
     return { encoding: 'UCS-2', units: total(costs), segments: packSegments(costs, 70, 67) };
   }
@@ -392,8 +392,9 @@ function isOptOutPath(pathname: string, strict: boolean): boolean {
   const lower = raw.map((s) => s.toLowerCase());
   if (lower.some((s) => OPT_OUT_SEGMENTS.has(s))) return true;
   for (let i = 0; i < lower.length - 1; i++) {
-    if (lower[i] !== 'u') continue;
-    if (!strict || looksMinted(raw[i + 1]!)) return true;
+    const next = raw[i + 1];
+    if (lower[i] !== 'u' || next === undefined) continue;
+    if (!strict || looksMinted(next)) return true;
   }
   return false;
 }

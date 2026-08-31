@@ -84,7 +84,7 @@ export function humanTypedPortion(body: string): string {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (/^>/.test(trimmed)) break;                       // quoted reply
+    if (trimmed.startsWith(">")) break;                       // quoted reply
     if (/^--\s*$/.test(trimmed)) break;                  // signature delimiter
     if (/^_{5,}$/.test(trimmed)) break;                   // Outlook divider
     if (/^-{5,}\s*original message/i.test(trimmed)) break;

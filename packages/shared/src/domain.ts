@@ -139,7 +139,14 @@ export type RecipientResolution<T> =
  * back for the night becomes a message that was permanently destroyed.
  */
 export type GateResult =
-  | { pass: true }
+  /**
+   * `exemptions` records a gate that was passed BY DESIGN rather than satisfied.
+   * A test recipient has no consent and must still receive the test, but "no
+   * consent was required here, and this is why" is a different fact from "consent
+   * was on record", and the decision log has to be able to tell them apart (I14).
+   * Silence would make the two indistinguishable after the fact.
+   */
+  | { pass: true; exemptions?: readonly { code: string; detail: string }[] }
   | {
       pass: false;
       retryable: boolean;

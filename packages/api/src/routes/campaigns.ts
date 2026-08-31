@@ -2,10 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
+  TEST_RECIPIENT_TAG,
+  deliveryIdentity,
+  phoneCollides,
   enqueue,
   query,
   queryOne,
-  recordConsent,
   recordDecision,
   validateTemplate,
   withTransaction,
@@ -98,8 +100,10 @@ const PreviewBody = z.object({
  * distinguishes "an address this system created to test with" from "an address
  * belonging to somebody who bought something", which is the distinction the
  * refusal is actually about.
+ *
+ * Imported from core rather than redeclared: the consent gate reads this same tag
+ * to exempt a test recipient, and two spellings of it would be a consent bypass.
  */
-const TEST_RECIPIENT_TAG = '__test_recipient';
 
 export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -436,17 +440,59 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
     const message = pickMessage(messages, body.campaignMessageId, body.channel);
     const to = body.to.trim();
 
-    const collisions = await query<{ id: string; tags: string[] }>(
+    // The refusal compares the MAILBOX this address reaches, not the string that
+    // was typed. An exact compare catches `Customer@Example.com` and misses
+    // `customer+qa@example.com`, `c.u.s.t.o.m.e.r@gmail.com`, a Cyrillic-'е'
+    // homoglyph domain, and `+1 (202) 555-0123` — every one of which is delivered
+    // to a contact this tenant owns. See `deliveryIdentity`.
+    //
+    // The candidate query narrows on the domain (or the digits) so this stays one
+    // indexed lookup rather than a scan, and the identity compare then happens on
+    // the handful of rows that could possibly collide.
+    const identity = deliveryIdentity(to, message.channel);
+    const domain =
+      identity !== null && message.channel === 'email'
+        ? (identity.split('@')[1] ?? null)
+        : null;
+    const digits = identity !== null && message.channel === 'sms' ? identity : null;
+
+    const candidates = await query<{
+      id: string;
+      tags: string[];
+      email: string | null;
+      phone: string | null;
+    }>(
       deps.db,
-      `SELECT id, tags FROM contacts
-        WHERE tenant_id = $1 AND (email = $2::citext OR phone = $2)`,
-      [tenantId, to],
+      `SELECT id, tags, email::text AS email, phone FROM contacts
+        WHERE tenant_id = $1
+          AND ( email = $2::citext
+             OR phone = $2
+             OR ($3::text IS NOT NULL AND split_part(lower(email::text), '@', 2) = $3)
+             OR ($4::text IS NOT NULL AND phone IS NOT NULL
+                 AND ( regexp_replace(phone, '[^0-9]', '', 'g') LIKE '%' || $4
+                    OR $4 LIKE '%' || regexp_replace(phone, '[^0-9]', '', 'g') )) )`,
+      [tenantId, to, domain, digits],
+    );
+
+    const reaches = (row: { email: string | null; phone: string | null }): boolean => {
+      if (identity === null) return false;
+      const own = message.channel === 'email' ? row.email : row.phone;
+      if (own === null) return false;
+      const theirs = deliveryIdentity(own, message.channel);
+      if (theirs === null) return false;
+      return message.channel === 'sms'
+        ? phoneCollides(theirs, identity)
+        : theirs === identity;
+    };
+
+    const collisions = candidates.filter(
+      (row) => reaches(row) || row.email?.toLowerCase() === to.toLowerCase() || row.phone === to,
     );
     const real = collisions.filter((row) => !row.tags.includes(TEST_RECIPIENT_TAG));
     if (real.length > 0) {
       throw conflict(
         'test_send_would_reach_a_contact',
-        `${to} belongs to a contact in this tenant. A test send to a real customer is not a test.`,
+        `${to} reaches a contact in this tenant. A test send to a real customer is not a test.`,
         { to, matchedContactIds: real.map((r) => r.id) },
       );
     }
@@ -469,19 +515,22 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
         ));
       if (testContact === undefined) throw new Error('test recipient could not be created');
 
-      // The operator asking for a test send IS the consent for it; recording that
-      // as `source: 'operator'` keeps the ledger honest about where it came from
-      // rather than inventing a signup that never happened.
-      await recordConsent(tx, {
-        tenantId,
-        contactId: testContact.id,
-        channel: message.channel,
-        category: campaign.category,
-        state: 'opted_in',
-        source: 'operator',
-        evidence: { reason: 'test_send', requestedBy: operator.userId },
-        clock: deps.clock,
-      });
+      // NO consent record is written here.
+      //
+      // An earlier version wrote `state: 'opted_in', source: 'operator'`, reasoning
+      // that the operator asking for the test IS the consent for it. That is a
+      // defensible sentence and an indefensible row: `contact_consents` is the
+      // append-only audit trail this system answers compliance questions from, and
+      // an endpoint that writes an opt-in for any address typed into a box is a
+      // machine for manufacturing consent that nobody gave. The ledger must only
+      // ever record consent that actually happened.
+      //
+      // What the test recipient gets instead is an explicit, logged EXEMPTION: the
+      // `consentCurrent` gate recognises the `__test_recipient` tag and passes with
+      // reason `consent_test_recipient`, which lands in `send_decisions` like every
+      // other gate outcome (I14). The distinction matters — "we sent without
+      // consent, on purpose, to an internal address, authorised by this operator"
+      // is a true statement that an auditor can read, and "they opted in" is not.
 
       const versionId =
         campaign.active_version_id ??
@@ -670,7 +719,7 @@ async function assertAllMessagesValidFor(
         body: body.bodyTemplate,
         html: body.htmlTemplate ?? null,
       },
-      campaign.category as CampaignCategory,
+      campaign.category,
     );
 
     const row = await queryOne<Record<string, unknown>>(
@@ -737,7 +786,7 @@ async function assertAllMessagesValidFor(
         body: body.bodyTemplate ?? existing.body_template,
         html: body.htmlTemplate === undefined ? existing.html_template : body.htmlTemplate,
       },
-      campaign.category as CampaignCategory,
+      campaign.category,
     );
 
     await deps.db.query(

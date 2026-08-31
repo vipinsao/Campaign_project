@@ -38,6 +38,8 @@ export const REASON_CODES = {
   consent_opted_out: 'Contact has opted out of this channel and category.',
   consent_never_given: 'No opt-in on record for this channel and category.',
   consent_paused: 'Contact paused messages on this channel.',
+  consent_test_recipient:
+    'Internal test recipient: the consent gate was exempted on purpose, not satisfied.',
   suppressed_unsubscribe: 'Address is suppressed: unsubscribed.',
   suppressed_sms_stop: 'Address is suppressed: STOP reply received.',
   suppressed_hard_bounce: 'Address is suppressed: hard bounce.',

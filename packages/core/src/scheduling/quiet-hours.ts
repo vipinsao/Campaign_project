@@ -198,7 +198,7 @@ export function resolveSendTime(input: ScheduleInput): ScheduleDecision {
   if (!isValidDateTime(parsed)) {
     throw new Error(`Unknown IANA timezone '${zone}' (${parsed.invalidReason}).`);
   }
-  let local: DateTime<true> = parsed;
+  const local: DateTime<true> = parsed;
 
   const startsInWindow = minutesOfDay(local) >= start && minutesOfDay(local) < end;
   const startsOnSendDay = sendDays.has(jsWeekday(local));

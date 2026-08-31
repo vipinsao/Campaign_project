@@ -75,7 +75,9 @@ const BUDGET_SRC = fileURLToPath(new URL('../../packages/triage/src/budget.ts', 
 
 /** Genuinely concurrent: N separate connections, all released at once. */
 async function concurrently<T>(n: number, fn: (i: number) => Promise<T>): Promise<PromiseSettledResult<T>[]> {
-  let release = (): void => {};
+  // Reassigned synchronously by the Promise executor below; the initial value is
+  // never called and exists only so the binding is definitely assigned.
+  let release: () => void = () => undefined;
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
@@ -100,7 +102,7 @@ describe('QA/V7 — the reservation under concurrency', () => {
     expect(granted).toHaveLength(1);
     expect(refused).toHaveLength(23);
     for (const r of refused) {
-      expect((r as PromiseRejectedResult).reason).toBeInstanceOf(TokenBudgetExceededError);
+      expect((r).reason).toBeInstanceOf(TokenBudgetExceededError);
     }
 
     const state = await budgetState(db, tenantId, clock);
@@ -165,7 +167,7 @@ describe('QA/V7 — the reservation under concurrency', () => {
     const results = await concurrently(2, (i) => classifyReply(deps, replies[i]!));
 
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
-    const rejected = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+    const rejected = results.find((r) => r.status === 'rejected')!;
     expect(rejected.reason).toBeInstanceOf(TokenBudgetExceededError);
 
     // Exactly one model call was made, and the ledger settled down to what it used.

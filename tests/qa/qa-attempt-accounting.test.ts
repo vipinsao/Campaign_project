@@ -103,7 +103,7 @@ describe('H1(b) — deferrals are unbounded', () => {
     expect(Number(rows[0]!.n)).toBe(40);
   });
 
-  it('SHOULD: something in the queue/delivery layer bounds the deferral count', async () => {
+  it('SHOULD: something in the queue/delivery layer bounds the deferral count', () => {
     const queue = src('packages/core/src/queue/message-queue.ts');
     const orch = src('packages/core/src/delivery/orchestrator.ts');
     const both = `${queue}\n${orch}`;

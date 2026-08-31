@@ -9,6 +9,7 @@ export * from './decisions/decision-log.ts';
 export * from './delivery/orchestrator.ts';
 export * from './audience/index.ts';
 export * from './rendering/renderer.ts';
+export * from './addressing/identity.ts';
 export * from './metrics/denominators.ts';
 export * from './triggers/enrolment.ts';
 export * from './triggers/trigger-evaluator.ts';

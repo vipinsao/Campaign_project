@@ -90,7 +90,11 @@ export type SendContext = {
     readonly status: string;
     readonly stop_reason: string | null;
   };
-  readonly contact: { readonly id: string; readonly timezone: string | null };
+  readonly contact: {
+    readonly id: string;
+    readonly timezone: string | null;
+    readonly tags: readonly string[];
+  };
   readonly tenant: {
     readonly id: string;
     readonly default_timezone: string;
@@ -117,6 +121,15 @@ type Gate = {
   readonly name: string;
   evaluate(ctx: SendContext): GateResult | Promise<GateResult>;
 };
+
+/**
+ * The tag `/test-send` puts on the contact rows it creates.
+ *
+ * Defined here rather than in the API package because the consent gate below is
+ * the code that has to recognise it, and a tag whose two readers disagree about
+ * its spelling is a consent bypass waiting to happen.
+ */
+export const TEST_RECIPIENT_TAG = '__test_recipient';
 
 const pass: GateResult = { pass: true };
 
@@ -183,6 +196,25 @@ const consentCurrent: Gate = {
     // and refusing to send it because they unsubscribed from promotions would be
     // both wrong and, for some message types, a worse compliance position.
     if (ctx.campaign.category === 'transactional') return pass;
+
+    // An internal test recipient is exempted here, explicitly and visibly, rather
+    // than by writing a fake opt-in into the consent ledger at /test-send. The
+    // exemption is a decision like any other and lands in `send_decisions` (I14),
+    // so the audit trail says "sent without consent, on purpose, to an address
+    // this system created to test with" — which is true — instead of "they opted
+    // in", which was not. The tag is only ever set by /test-send, and that
+    // endpoint refuses any address reaching a real contact.
+    if (ctx.contact.tags.includes(TEST_RECIPIENT_TAG)) {
+      return {
+        pass: true,
+        exemptions: [
+          {
+            code: 'consent_test_recipient',
+            detail: `Internal test recipient (${TEST_RECIPIENT_TAG}); consent gate exempted, not satisfied.`,
+          },
+        ],
+      };
+    }
 
     const state = await consentState(ctx.db, {
       tenantId: ctx.tenant.id,
@@ -445,11 +477,13 @@ export const GATES: readonly Gate[] = [
 export const GATE_NAMES: readonly string[] = GATES.map((g) => g.name);
 
 export async function runGates(ctx: SendContext): Promise<GateResult> {
+  const exemptions: { code: string; detail: string }[] = [];
   for (const gate of GATES) {
     const result = await gate.evaluate(ctx);
     if (!result.pass) return result;
+    if (result.exemptions) exemptions.push(...result.exemptions);
   }
-  return pass;
+  return exemptions.length > 0 ? { pass: true, exemptions } : pass;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -498,7 +532,7 @@ async function loadContext(db: Db, message: QueueRow): Promise<LoadedContext | u
         to_char(c.send_window_end,'HH24:MI')   AS send_window_end,
         c.send_days,
         e.id AS enrollment_id, e.status AS enrollment_status, e.stop_reason,
-        ct.id AS contact_id, ct.timezone AS contact_timezone,
+        ct.id AS contact_id, ct.timezone AS contact_timezone, ct.tags AS contact_tags,
         t.id AS tenant_id, t.default_timezone,
         to_char(t.quiet_hours_start,'HH24:MI') AS quiet_hours_start,
         to_char(t.quiet_hours_end,'HH24:MI')   AS quiet_hours_end,
@@ -533,6 +567,7 @@ async function loadContext(db: Db, message: QueueRow): Promise<LoadedContext | u
     contact: {
       id: row['contact_id'] as string,
       timezone: row['contact_timezone'] as string | null,
+      tags: (row['contact_tags'] as string[] | null) ?? [],
     },
     tenant: {
       id: row['tenant_id'] as string,
@@ -719,7 +754,12 @@ export async function deliverClaimed(deps: DeliveryDeps, message: QueueRow): Pro
       contactId: ctx.contact.id,
       messageQueueId: message.id,
       orderId: message.order_id ?? undefined,
-      inputs: { provider: provider.name, providerMessageId: result.providerMessageId },
+      inputs: {
+        provider: provider.name,
+        providerMessageId: result.providerMessageId,
+        // Present only when a gate was passed by design rather than satisfied.
+        ...(gate.exemptions ? { exemptions: gate.exemptions } : {}),
+      },
     });
     await deps.onEvent?.({
       messageId: message.id,
