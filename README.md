@@ -16,8 +16,14 @@ from those events rather than from counters.
 > decisions here are deliberately *different* from what that experience exposed me to,
 > and those differences are the parts I most want to talk about.
 
-**Status:** the engine, the AI layer and the operator UI all build and run; 504
-tests pass; the demo replays 30 days in about a minute. Not deployed yet. See
+**Status:** deployed and running at
+**[campaign-project-ke4v.onrender.com](https://campaign-project-ke4v.onrender.com)**.
+The sixty-second version is **[/shop](https://campaign-project-ke4v.onrender.com/shop)** —
+place an order and watch the engine enrol the contact, run the eight send-time gates and
+show you the decision log for everything it refused. The engine, the AI layer and the
+operator UI all build and run; 504 tests pass; the demo replays 30 days in about a minute.
+The public demo sends through the mock provider; the SMTP, Postmark and Twilio adapters are
+wired and configurable but the deployed instance is not sending live mail. See
 [TRACKER.md](TRACKER.md), which is accurate about what is not built.
 
 ---
