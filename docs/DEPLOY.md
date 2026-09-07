@@ -110,9 +110,16 @@ Trigger `worker` manually once from the Actions tab to confirm the secret works.
 curl -fsS https://<your-service>.onrender.com/healthz
 ```
 
-Then open the URL: the operator console loads, `/mock-outbox` shows the messages
-the simulation sent, and `/inspect` explains why anything that did not send did
-not send.
+Then open the URL: `/shop` is the public storefront, the operator console loads at
+`/campaigns`, `/mock-outbox` shows the messages the simulation sent, and `/inspect`
+explains why anything that did not send did not send.
+
+### 6. Sending for real
+
+Everything above runs in `mock` mode and contacts nobody. To make `/shop` put an
+actual email in a stranger's inbox — on free tiers, and with an honest account of
+what is not achievable for free — follow
+[`LIVE-SENDING.md`](LIVE-SENDING.md).
 
 ---
 

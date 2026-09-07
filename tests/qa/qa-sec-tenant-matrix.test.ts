@@ -33,7 +33,30 @@ beforeEach(async () => {
 });
 
 /** Everything reachable without an operator session; a tenant check is meaningless there. */
-const PUBLIC_PREFIXES = ['/t/', '/r/', '/u/', '/webhooks/', '/events', '/auth/', '/health', '/ready', '/metrics'];
+const PUBLIC_PREFIXES = [
+  '/t/',
+  '/r/',
+  '/u/',
+  '/webhooks/',
+  '/events',
+  '/auth/',
+  '/health',
+  '/ready',
+  '/metrics',
+  /**
+   * The storefront has no operator session to point at another tenant.
+   *
+   * Its one parameterised route, `/storefront/receipt/:token`, does not take an id
+   * at all: the parameter is an HMAC of the order id under the server secret, so a
+   * token names exactly one order and cannot be edited into another. Substituting
+   * tenant B's identifiers into it produces a 404 for the reason this file is not
+   * testing — the MAC fails — which would make the assertion pass while proving
+   * nothing. The real check on that route is in
+   * tests/integration/storefront-checkout.test.ts, which asserts a token signed by
+   * a different server does not open it.
+   */
+  '/storefront/',
+];
 
 type Registered = { readonly path: string; readonly method: string };
 
@@ -59,9 +82,14 @@ function pointedAtB(path: string): string {
 
 /** A body good enough to reach the handler's tenant check rather than a 400 parse. */
 function bodyFor(path: string): string {
-  if (path.endsWith('/test-send')) return JSON.stringify({ to: 'qa-matrix@example.org', channel: 'email' });
+  if (path.endsWith('/test-send'))
+    return JSON.stringify({ to: 'qa-matrix@example.org', channel: 'email' });
   if (path.endsWith('/messages')) {
-    return JSON.stringify({ channel: 'email', sequenceOrder: 9, bodyTemplate: 'x {{unsubscribe_url}}' });
+    return JSON.stringify({
+      channel: 'email',
+      sequenceOrder: 9,
+      bodyTemplate: 'x {{unsubscribe_url}}',
+    });
   }
   if (path.endsWith('/consent')) return JSON.stringify({ channel: 'email', state: 'opted_out' });
   if (path.endsWith('/flow')) {
@@ -118,12 +146,14 @@ describe('every parameterised route, enumerated from the app itself', () => {
       const response = await app.request(pointedAtB(route.path), { headers: authHeaders(b.token) });
       if (response.status === 404) dead.push(`GET ${route.path}`);
     }
-    expect(dead, 'these URLs 404 for their own tenant, so the matrix above proved nothing').toEqual([]);
+    expect(dead, 'these URLs 404 for their own tenant, so the matrix above proved nothing').toEqual(
+      [],
+    );
   });
 });
 
 describe('cross-tenant ids that arrive in a query string or a body', () => {
-  it('ignores another tenant\'s id in every list filter', async () => {
+  it("ignores another tenant's id in every list filter", async () => {
     const probes = [
       `/queue?campaignId=${b.campaignId}`,
       `/queue?contactId=${b.contactId}`,
@@ -142,7 +172,7 @@ describe('cross-tenant ids that arrive in a query string or a body', () => {
     }
   });
 
-  it('will not confirm anything about another tenant\'s contact through /audience/matches', async () => {
+  it("will not confirm anything about another tenant's contact through /audience/matches", async () => {
     // `{}` is "match everyone", so an unscoped evaluation would answer `true` for
     // any contact id in the database and turn this endpoint into an existence
     // oracle for another tenant's contacts.
@@ -156,7 +186,7 @@ describe('cross-tenant ids that arrive in a query string or a body', () => {
     expect(body.matched, "a match-everyone audience matched another tenant's contact").toBe(false);
   });
 
-  it('will not estimate over another tenant\'s contacts', async () => {
+  it("will not estimate over another tenant's contacts", async () => {
     const response = await app.request('/audience/estimate', {
       method: 'POST',
       headers: authHeaders(a.token),
@@ -167,7 +197,7 @@ describe('cross-tenant ids that arrive in a query string or a body', () => {
     expect(body.sample.map((s) => s.email)).toEqual([a.contactEmail]);
   });
 
-  it('will not let A name B\'s campaign as the source of an audience', async () => {
+  it("will not let A name B's campaign as the source of an audience", async () => {
     const response = await app.request('/audience/estimate', {
       method: 'POST',
       headers: authHeaders(a.token),
@@ -176,7 +206,7 @@ describe('cross-tenant ids that arrive in a query string or a body', () => {
     expect(response.status).toBe(404);
   });
 
-  it('will not let A name B\'s message id inside a preview of A\'s own campaign', async () => {
+  it("will not let A name B's message id inside a preview of A's own campaign", async () => {
     // The campaign is A's, so the tenant check on the campaign passes; the message
     // id is B's. If it were honoured, B's copy would render back to A.
     const response = await app.request(`/campaigns/${a.campaignId}/preview`, {

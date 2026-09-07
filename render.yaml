@@ -42,8 +42,27 @@ services:
         fromDatabase: { name: campaign-engine-db, property: connectionString }
       # The public demo runs in mock mode. It never contacts a real recipient, and
       # the UI says so on every page that can send.
+      #
+      # THIS is the service to set `live` on if you want the public storefront at
+      # /shop to send real email. The checkout flushes its own messages inside the
+      # request — see flushMessages in packages/core/src/delivery/orchestrator.ts —
+      # so the API process is the one that needs SMTP_*/TWILIO_*, and the worker
+      # below can stay on mock. docs/LIVE-SENDING.md is the runbook.
       - key: SEND_MODE
         value: mock
+      # Simulated bounces are right for the seeded dataset and wrong for a page a
+      # stranger sees once: from where they are standing, a 5% bounce and a bug
+      # look identical.
+      - key: MOCK_FAILURE_RATE
+        value: '0'
+      - key: MOCK_BOUNCE_RATE
+        value: '0'
+      # The storefront's own limits. It is the only public route that can cause a
+      # send, so these are the difference between a demo and an open relay.
+      - key: STOREFRONT_DAILY_SEND_BUDGET
+        value: '250'
+      - key: STOREFRONT_ADDRESS_COOLDOWN_SECONDS
+        value: '60'
       # Set by hand AFTER the first deploy, once the URL exists, then redeploy.
       # This builds every unsubscribe and tracking link: wrong here means every
       # opt-out link resolves nowhere, which is what I7 exists to catch.

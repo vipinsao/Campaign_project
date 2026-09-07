@@ -23,6 +23,22 @@ const DATA_DIR = path.join(ROOT, '.pgdata');
 const PORT = Number(process.env.DEV_PG_PORT ?? 55432);
 const DATABASE_URL = `postgresql://campaign:campaign@127.0.0.1:${PORT}/postgres`;
 
+/**
+ * The API port, stated once and passed to everybody who needs to agree about it.
+ *
+ * It used to be stated three times and agreed nowhere. This banner said 3000, the
+ * Vite proxy in packages/web/vite.config.ts targeted 3000, and the API bound
+ * `process.env.PORT ?? 3001` — so `npm run dev` came up with the SPA on 5173
+ * proxying every /api call to a port nothing was listening on. Every screen in the
+ * operator console failed to load, and the only clue was a 404 with no body.
+ *
+ * DEV_API_PORT is here because 3000 is a popular port; if something else already
+ * owns it, `DEV_API_PORT=3010 npm run dev` moves the whole set together rather
+ * than half of it.
+ */
+const API_PORT = Number(process.env.DEV_API_PORT ?? 3000);
+const API_ORIGIN = `http://localhost:${API_PORT}`;
+
 const children = [];
 let pg;
 
@@ -55,7 +71,8 @@ function run(name, args, extraEnv = {}) {
       // mock provider, which writes to the outbox and fires its own webhooks back,
       // so the full lifecycle is visible without a single credential.
       SEND_MODE: process.env.SEND_MODE ?? 'mock',
-      PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000',
+      PORT: String(API_PORT),
+      PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL ?? API_ORIGIN,
       NODE_ENV: 'development',
       ...extraEnv,
     },
@@ -96,7 +113,7 @@ async function main() {
   await migrate(DATABASE_URL);
 
   console.log('');
-  console.log('  API     http://localhost:3000');
+  console.log(`  API     ${API_ORIGIN}`);
   console.log('  Web     http://localhost:5173');
   console.log('');
   console.log('  Seed the demo:  npm run seed:demo');
@@ -111,7 +128,9 @@ async function main() {
   const web = spawn('npm', ['run', 'dev', '-w', '@campaign/web'], {
     cwd: ROOT,
     stdio: 'inherit',
-    env: { ...process.env, VITE_API_URL: 'http://localhost:3000' },
+    // The proxy target, not just a display string: vite.config.ts reads it, so the
+    // dev server and the API cannot end up on different ports again.
+    env: { ...process.env, VITE_API_URL: API_ORIGIN, VITE_API_PROXY_TARGET: API_ORIGIN },
   });
   web.on('error', () => console.warn('web dev server unavailable; api and worker are still up'));
   children.push(web);

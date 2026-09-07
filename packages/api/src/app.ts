@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import type { ApiDeps } from './deps.ts';
+import { DEFAULT_RATE_LIMIT, type ApiDeps } from './deps.ts';
 import { buildHttpMetrics, type HttpMetrics } from './observability/metrics.ts';
 import type { AppEnv } from './middleware/context.ts';
 import { renderError } from './errors.ts';
@@ -22,6 +22,7 @@ import { suppressionRoutes } from './routes/suppressions.ts';
 import { queueRoutes } from './routes/queue.ts';
 import { decisionRoutes } from './routes/decisions.ts';
 import { eventRoutes } from './routes/events.ts';
+import { storefrontRoutes } from './routes/storefront.ts';
 
 /**
  * The app factory.
@@ -117,6 +118,34 @@ export function createApp(deps: ApiDeps, options: CreateAppOptions = {}): App {
   app.use('/webhooks/*', publicLimit);
   app.route('/', publicRoutes(deps));
   app.route('/', webhookRoutes(deps, metrics));
+
+  // ── the storefront: public, and the only public route that can cause a send ──
+  /**
+   * Its own bucket, and a deliberately small one.
+   *
+   * `/t/*` and `/u/*` are read-mostly and are hit by mail-provider proxies in
+   * bursts, which is why the public budget is three thousand a minute. A checkout
+   * is not that: it writes a contact, an order and a consent record, and hands a
+   * real address to a real provider. Sharing the public budget here would let one
+   * source place three thousand orders a minute against a free email tier and get
+   * the sending account suspended, which takes the demo down permanently.
+   *
+   * Twenty a minute per source is generous for a human clicking around and useless
+   * for anything else. The daily deployment budget inside the route is the second
+   * line, for the case where the source rotates.
+   */
+  app.use(
+    '/storefront/*',
+    rateLimit({
+      limiter,
+      clock: deps.clock,
+      metrics,
+      bucket: 'storefront',
+      limit: deps.rateLimit.storefrontLimit ?? DEFAULT_RATE_LIMIT.storefrontLimit ?? 20,
+      windowMs: deps.rateLimit.windowMs,
+    }),
+  );
+  app.route('/', storefrontRoutes(deps, deps.env));
 
   // ── login ─────────────────────────────────────────────────────────────────
   /**

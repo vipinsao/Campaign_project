@@ -143,6 +143,28 @@ const STATUS_TO_EVENT: Readonly<Record<string, ProviderEvent['type']>> = {
   read: 'opened',
 };
 
+/**
+ * Match the recipient's scheme to the sender's.
+ *
+ * Twilio's Messages resource carries WhatsApp as well as SMS, and the channel is
+ * chosen by a `whatsapp:` prefix on BOTH addresses. Ours only ever appears on the
+ * sender, because `contacts.phone` is constrained to bare E.164 by the schema —
+ * `contacts_phone_is_e164` — and a stored `whatsapp:+91…` would violate it.
+ *
+ * So the prefix is applied here, at the edge, where the transport's addressing
+ * convention belongs. Without it a WhatsApp sender posts to an SMS recipient and
+ * Twilio answers 21910 ("mismatched From/To channel"), which is a clear error
+ * message about a problem nobody would look for in the schema.
+ *
+ * This matters more than it looks: the WhatsApp sandbox is the only free path that
+ * reaches an arbitrary phone number anywhere in the world, including Indian
+ * numbers that A2P SMS cannot reach without DLT registration. See docs/LIVE-SENDING.md.
+ */
+export function whatsappAware(from: string, to: string): string {
+  if (!from.startsWith('whatsapp:')) return to;
+  return to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
+}
+
 export class TwilioProvider implements MessageProvider {
   readonly name = 'twilio';
   readonly channel: Channel = 'sms';
@@ -161,9 +183,10 @@ export class TwilioProvider implements MessageProvider {
     const base = this.#config.apiBaseUrl ?? DEFAULT_API_BASE_URL;
     const url = `${base}/2010-04-01/Accounts/${encodeURIComponent(this.#config.accountSid)}/Messages.json`;
 
+    const from = msg.from || this.#config.from;
     const form = new URLSearchParams({
-      To: msg.to,
-      From: msg.from || this.#config.from,
+      To: whatsappAware(from, msg.to),
+      From: from,
       Body: msg.body,
     });
     if (this.#config.statusCallbackUrl !== undefined) {

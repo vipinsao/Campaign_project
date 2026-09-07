@@ -8,6 +8,7 @@
  */
 export * from './backoff.ts';
 export * from './deps.ts';
+export * from './env-sender.ts';
 export * from './errors.ts';
 export * from './http.ts';
 export * from './mock/index.ts';

@@ -15,7 +15,7 @@ npm run dev          # boots PostgreSQL, migrates, starts api + worker + web
 No Docker daemon, no root, no accounts, no API keys. In a second terminal:
 
 ```bash
-npm run seed:demo     # deterministic: 500 contacts, 1,200 orders, 5 campaigns
+npm run seed:demo     # deterministic: 500 contacts, 1,200 orders, 6 campaigns
 npm run demo:simulate # replays 30 days in about a minute
 ```
 
@@ -23,6 +23,31 @@ Sign in at http://localhost:5173 with `operator@example.com` /
 `demo-password-change-me`.
 
 ## What to look at, in order
+
+### 0. `/shop` — the storefront (60 seconds, no sign-in)
+
+Start here if you have one minute rather than five, and do it before signing in.
+
+<http://localhost:5173/shop>. Add a mug to the basket, put in your own name and
+email, leave the phone blank the first time, and place the order.
+
+What you should see, immediately:
+
+- **Order placed**, with the order number in the subject line of a rendered email.
+- The **email message**, with `{{contact.first_name}}` and `{{order.number}}`
+  actually substituted — status `sent`, provider `mock`, becoming `delivered` a
+  couple of seconds later when the simulated provider calls back. `delivered_at`
+  is written only by that callback (I9); it is never inferred from a successful
+  send.
+- Underneath, **every decision**, including a `schedule / skip /
+  no_recipient_address` row explaining that the SMS was not queued because you did
+  not leave a phone number. That row is the product.
+
+Then place a second order *with* a phone number and watch the SMS appear beside the
+email. In mock mode neither reaches you; the banner at the top of the page says so
+before you type anything, which is the point.
+
+## The operator console, in order
 
 ### 1. `/campaigns` — the list (10 seconds)
 

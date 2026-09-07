@@ -28,6 +28,31 @@ const PUBLIC_PATHS = new Set([
   '/r/:shortCode',
   '/u/:token',
   '/webhooks/:provider',
+  /**
+   * The storefront, and the only entry on this list that can cause a SEND.
+   *
+   * Every other public path is read-mostly: a pixel, a redirect, a preference
+   * page, a provider callback. `/storefront/checkout` writes a contact, an order
+   * and a consent row, then hands an address to a real provider — so "no operator
+   * token" is a much larger claim here than it is for the rest of the list, and it
+   * is deliberate rather than an oversight.
+   *
+   * What replaces the token, all of it in packages/api/src/routes/storefront.ts:
+   * the recipient can only be the person filling in the form (there is no field
+   * that addresses a third party and no free-text body); its own 20/min rate-limit
+   * bucket in app.ts rather than the 3,000/min public one; a per-address cooldown;
+   * a deployment-wide daily send budget counted in the database; a honeypot; and
+   * the full gate chain, so suppressions and prior opt-outs are honoured here
+   * exactly as everywhere else.
+   *
+   * `/storefront/receipt/:token` is authenticated — by an HMAC of the order id
+   * under the server secret, which is why it is a capability rather than an id.
+   * It is on this list because it carries no OPERATOR session, not because it is
+   * unauthenticated.
+   */
+  '/storefront/config',
+  '/storefront/checkout',
+  '/storefront/receipt/:token',
 ]);
 /** Authenticated by API key rather than an operator session. */
 const API_KEY_PATHS = new Set(['/events']);
@@ -113,7 +138,11 @@ describe('the operator token', () => {
   });
 
   it('rejects a token whose signature is HMACd with the wrong key', async () => {
-    const forged = await new SignJWT({ tenantId: b.tenantId, email: 'x@example.com', role: 'owner' })
+    const forged = await new SignJWT({
+      tenantId: b.tenantId,
+      email: 'x@example.com',
+      role: 'owner',
+    })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(b.userId)
       .setIssuer('campaign-engine')
@@ -121,7 +150,9 @@ describe('the operator token', () => {
       .setIssuedAt()
       .setExpirationTime('1h')
       .sign(new TextEncoder().encode('not the server secret'));
-    const response = await app.request('/auth/me', { headers: { authorization: `Bearer ${forged}` } });
+    const response = await app.request('/auth/me', {
+      headers: { authorization: `Bearer ${forged}` },
+    });
     expect(response.status).toBe(401);
   });
 
@@ -133,7 +164,9 @@ describe('the operator token', () => {
       60,
     );
     const later = bootApp({ clock: new FakeClock('2026-06-15T13:00:00Z') });
-    const response = await later.request('/auth/me', { headers: { authorization: `Bearer ${expired}` } });
+    const response = await later.request('/auth/me', {
+      headers: { authorization: `Bearer ${expired}` },
+    });
     expect(response.status).toBe(401);
   });
 

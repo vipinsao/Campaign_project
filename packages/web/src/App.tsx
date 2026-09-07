@@ -16,6 +16,7 @@ import { InspectPage } from './pages/Inspect.tsx';
 import { ContactPage } from './pages/Contact.tsx';
 import { MockOutboxPage } from './pages/MockOutbox.tsx';
 import { InvariantsPage } from './pages/Invariants.tsx';
+import { ShopPage, ShopReceiptPage } from './pages/Shop.tsx';
 
 /**
  * Retry policy, stated once.
@@ -48,6 +49,15 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/*
+            Public, and deliberately OUTSIDE RequireSession.
+            The storefront is the one screen a stranger is meant to reach: it is
+            how the engine gets judged by somebody who will not sign in, will not
+            clone the repo, and has sixty seconds. Putting it behind the session
+            guard would leave the whole product reviewable only by its author.
+          */}
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/shop/receipt/:token" element={<ShopReceiptPage />} />
           <Route
             element={
               <RequireSession>

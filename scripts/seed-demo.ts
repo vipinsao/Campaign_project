@@ -109,7 +109,15 @@ async function main() {
     const { rows: t } = await db.query<{ id: string }>(
       `INSERT INTO tenants (name, default_timezone, quiet_hours_start, quiet_hours_end,
                             freq_cap_count, freq_cap_window)
-       VALUES ('Demo Store (seeded data)','Europe/London','08:00','21:00',3,'7 days')
+       -- Ten per channel per week rather than three.
+       --
+       -- The cap is per contact per channel, and the public storefront lets one
+       -- reviewer place several orders from the same address in a single sitting.
+       -- At three, their fourth order produced a message cancelled with
+       -- 'frequency_cap' — which is the gate working exactly as designed, and which
+       -- reads to a stranger as a broken demo. Ten leaves room to click around and
+       -- still trips for the seeded contacts who genuinely receive a lot.
+       VALUES ('Demo Store (seeded data)','Europe/London','08:00','21:00',10,'7 days')
        RETURNING id`,
     );
     const tenantId = t[0]!.id;
@@ -471,6 +479,61 @@ async function seedCampaigns(db: Pool, tenantId: string): Promise<string[]> {
         channel: 'sms',
         order: 1,
         body: `Your order {{order.number}} has shipped with {{order.carrier}}. Tracking: {{order.tracking_number}}`,
+      },
+    ],
+  });
+
+  // 3b. Order confirmation — the campaign the public storefront fires.
+  //
+  //     TRANSACTIONAL, and every consequence of that word is deliberate:
+  //
+  //      - the consent gate passes, because a receipt for a purchase somebody just
+  //        made is not marketing, and withholding it from someone who unsubscribed
+  //        from promotions would be both wrong and a worse compliance position;
+  //      - quiet hours do not apply, because a reviewer in another timezone
+  //        clicking "place order" at 02:00 their time must still see it arrive —
+  //        and because a receipt genuinely is exempt, which is why the exemption
+  //        lives in `isQuietHoursExempt` rather than in a special case here;
+  //      - no opt-out link is required, so the SMS fits in one segment.
+  //
+  //     Both messages are anchored at the trigger with zero delay. The storefront
+  //     flushes them inside the checkout request, so "real time" means the seconds
+  //     the provider takes, not the minutes the queue timer takes.
+  await define({
+    name: 'Order confirmation',
+    description:
+      'Transactional. Fired by the public storefront: an email receipt, and an SMS if the ' +
+      'customer left a number. Exempt from quiet hours and from marketing consent.',
+    category: 'transactional',
+    trigger: 'order_placed',
+    status: 'active',
+    channels: ['email', 'sms'],
+    messages: [
+      {
+        channel: 'email',
+        order: 1,
+        subject: 'Order {{order.number}} confirmed',
+        body:
+          `Thanks {{contact.first_name}} — we have your order {{order.number}} for ` +
+          `{{order.currency}} {{order.total}}.\n\n` +
+          `This email was sent by Campaign Engine. It was queued by an order_placed trigger, ` +
+          `passed eight send-time gates, and left through a single send path. Every one of ` +
+          `those decisions is recorded and readable on your receipt page.`,
+        html:
+          `<p>Thanks {{contact.first_name}} — we have your order <strong>{{order.number}}</strong> ` +
+          `for {{order.currency}} {{order.total}}.</p>` +
+          `<p>This email was sent by Campaign Engine. It was queued by an <code>order_placed</code> ` +
+          `trigger, passed eight send-time gates, and left through a single send path — and every ` +
+          `one of those decisions is recorded and readable on your receipt page.</p>`,
+      },
+      {
+        channel: 'sms',
+        order: 2,
+        // Anchored to the TRIGGER, not to the previous message. Anchoring to
+        // `previous` would make the SMS wait for the email to be sent, and a
+        // bounced or gated email would strand the SMS behind it forever.
+        anchor: 'trigger',
+        body: `Campaign Engine: order {{order.number}} confirmed, {{order.currency}} {{order.total}}. Thanks {{contact.first_name}}.`,
       },
     ],
   });

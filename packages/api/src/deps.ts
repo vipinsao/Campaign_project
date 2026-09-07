@@ -54,6 +54,20 @@ export type ApiDeps = {
    * Defaults to 'off', like everywhere else (I2).
    */
   readonly sendMode: SendMode;
+
+  /**
+   * The environment this app was built from.
+   *
+   * Carried rather than read, for the same reason the clock and the pool are. Two
+   * apps in one test process must be able to disagree about configuration —
+   * `SEND_MODE`, the storefront's tenant, an SMTP host — and a route that reaches
+   * for `process.env` at request time makes that impossible without mutating
+   * global state, which then leaks into whichever test happens to run next.
+   *
+   * Routes that need provider credentials or deployment-level settings read this.
+   * Nothing here is secret in a way `process.env` was not already.
+   */
+  readonly env: NodeJS.ProcessEnv;
 };
 
 export type RateLimitConfig = {
@@ -64,6 +78,17 @@ export type RateLimitConfig = {
   readonly publicLimit: number;
   /** Login is bucketed separately and tightly; it is the only credential oracle. */
   readonly loginLimit: number;
+  /**
+   * The public storefront, which is the only unauthenticated route that can cause
+   * a real message to be sent. Generous for a human clicking around and useless
+   * for anything else.
+   *
+   * Optional so that the dozen existing call sites that build a RateLimitConfig
+   * inline — every integration and QA suite — keep compiling. Making it required
+   * would have meant editing twelve test files to restate a number none of them
+   * cares about, and a diff that large hides the one line that matters.
+   */
+  readonly storefrontLimit?: number;
 };
 
 export const DEFAULT_RATE_LIMIT: RateLimitConfig = {
@@ -71,6 +96,7 @@ export const DEFAULT_RATE_LIMIT: RateLimitConfig = {
   windowMs: 60_000,
   publicLimit: 3_000,
   loginLimit: 10,
+  storefrontLimit: 20,
 };
 
 function requiredEnv(env: NodeJS.ProcessEnv, name: string): string {
@@ -138,5 +164,6 @@ export function buildDeps(overrides: DepsOverrides = {}): ApiDeps {
     rateLimit: overrides.rateLimit ?? DEFAULT_RATE_LIMIT,
     tokenTtlSeconds: overrides.tokenTtlSeconds ?? 12 * 3_600,
     sendMode: overrides.sendMode ?? parseSendMode(env['SEND_MODE']),
+    env,
   };
 }

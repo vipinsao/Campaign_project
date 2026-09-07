@@ -160,6 +160,59 @@ export async function claimBatch(
 }
 
 /**
+ * Claim a NAMED set of rows, for a caller that already knows which ones it wants.
+ *
+ * `claimBatch` answers "what is due?", which is the right question for a worker on
+ * a timer. It is the wrong question for the storefront checkout, which has just
+ * enqueued three specific messages inside a request a human is watching: draining
+ * the whole due queue there would make one visitor's checkout latency a function
+ * of every other tenant's backlog, and would let a public endpoint decide when
+ * unrelated campaigns send.
+ *
+ * Everything else is deliberately identical to `claimBatch` — the same
+ * `FOR UPDATE SKIP LOCKED`, the same status predicate, the same attempt
+ * increment, the same stamp. A row the worker already holds is skipped rather
+ * than stolen, so the two callers cannot both send the same message (I3), and a
+ * row that is not actually due is not dragged forward (I4's dedup key is not the
+ * only thing keeping schedules honest; `scheduled_at <= now` is).
+ */
+export async function claimSpecific(
+  db: Db,
+  opts: {
+    readonly ids: readonly string[];
+    readonly workerId: string;
+    readonly clock: Clock;
+  },
+): Promise<QueueRow[]> {
+  if (opts.ids.length === 0) return [];
+  const now = opts.clock.now();
+  return withTransaction(db, async (tx) =>
+    query<QueueRow>(
+      tx,
+      `WITH claimed AS (
+         SELECT id FROM message_queue
+          WHERE id = ANY($2::uuid[])
+            AND status = 'pending'
+            AND scheduled_at <= $1
+            AND (next_attempt_at IS NULL OR next_attempt_at <= $1)
+          ORDER BY scheduled_at
+          FOR UPDATE SKIP LOCKED
+       )
+       UPDATE message_queue m
+          SET status     = 'processing',
+              claimed_at = $1,
+              claimed_by = $3,
+              attempts   = m.attempts + 1,
+              updated_at = $1
+         FROM claimed
+        WHERE m.id = claimed.id
+       RETURNING m.*`,
+      [now, [...opts.ids], opts.workerId],
+    ),
+  );
+}
+
+/**
  * Reclaim rows stranded in `processing`  (I3).
  *
  * A worker that is OOM-killed between claiming a row and sending it leaves that row

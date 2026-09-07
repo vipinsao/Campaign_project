@@ -4,6 +4,7 @@ import type { Clock } from '../clock.ts';
 import {
   type QueueRow,
   claimBatch,
+  claimSpecific,
   refreshClaim,
   deferClaimed,
   markCancelled,
@@ -877,67 +878,120 @@ export async function processQueue(deps: DeliveryDeps): Promise<QueueRunSummary>
   let skipped = 0;
 
   for (const row of claimed) {
-    // One message must never be able to take the batch down with it.
-    //
-    // Before this, an exception anywhere in deliverClaimed - a misconfigured send
-    // window, a provider adapter throwing rather than returning, an unexpected
-    // null - propagated out of processQueue and abandoned every remaining row in
-    // the batch. Those rows stayed in `processing` with an incremented attempt
-    // count, the job retried a minute later, hit the same poison row, and
-    // reclaim-stale eventually burned all of them to permanent failure. Messages
-    // on entirely unrelated campaigns died because one campaign was misconfigured.
-    //
-    // A single message failing is a message-level event, and it is recorded as
-    // one. The batch continues.
-    let outcome: SendOutcome;
-    try {
-      outcome = await deliverClaimed(deps, row);
-    } catch (error) {
-      outcome = 'FAILED';
-      const message = error instanceof Error ? error.message : String(error);
-      try {
-        // markFailed refuses to write when `sent_at` is set or when this worker
-        // no longer owns the row. Both matter here: an exception thrown AFTER a
-        // successful send - in event fan-out, or in the decision log - must not
-        // rewrite a delivered message to `failed`. That was a bug introduced by an
-        // earlier version of this very catch block.
-        const recorded = await markFailed(deps.db, {
-          id: row.id,
-          provider: row.provider ?? 'unknown',
-          errorCode: 'internal_error',
-          errorMessage: message,
-          errorClass: 'terminal',
-          claimedBy: deps.workerId,
-          clock: deps.clock,
-        });
-        if (!recorded) {
-          // The message had already been sent, or the claim was lost. Either way
-          // there is nothing truthful to record against it, and inventing a
-          // failure would put two contradictory answers in the decision log.
-          //
-          // Deliberately NOT `continue`: falling through to the counters below is
-          // what makes the summary say "sent", which is what actually happened.
-          outcome = 'SENT';
-        } else {
-          await recordDecision(deps.db, {
-            tenantId: row.tenant_id,
-            campaignId: row.campaign_id,
-            contactId: row.contact_id,
-            messageQueueId: row.id,
-            stage: 'send',
-            decision: 'skip',
-            reasonCode: 'internal_error',
-            detail: message,
-            inputs: { error: message, attempts: row.attempts },
-            decidedAt: deps.clock.now(),
-          });
-        }
-      } catch {
-        // The database itself is unhappy. Leave the row for reclaim-stale rather
-        // than losing the rest of the batch to a second failure.
-      }
-    }
+    const outcome = await deliverOneSafely(deps, row);
+    if (outcome === 'SENT') sent++;
+    else if (outcome === 'FAILED') failed++;
+    else if (outcome === 'DEFERRED') deferred++;
+    else skipped++;
+  }
 
+  return { claimed: claimed.length, sent, failed, deferred, skipped, refusedWithoutClaim: false };
+}
+
+/**
+ * One message, and never an exception.
+ *
+ * Extracted so the timed drain and the request-scoped flush cannot diverge. Before
+ * this existed as a function, an exception anywhere in `deliverClaimed` — a
+ * misconfigured send window, a provider adapter throwing rather than returning, an
+ * unexpected null — propagated out of the loop and abandoned every remaining
+ * claimed row. Those rows stayed in `processing` with an incremented attempt count,
+ * the job retried a minute later, hit the same poison row, and reclaim-stale
+ * eventually burned all of them to permanent failure. Messages on entirely
+ * unrelated campaigns died because one campaign was misconfigured.
+ *
+ * A single message failing is a message-level event, and it is recorded as one.
+ */
+async function deliverOneSafely(deps: DeliveryDeps, row: QueueRow): Promise<SendOutcome> {
+  try {
+    return await deliverClaimed(deps, row);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    try {
+      // markFailed refuses to write when `sent_at` is set or when this worker no
+      // longer owns the row. Both matter here: an exception thrown AFTER a
+      // successful send — in event fan-out, or in the decision log — must not
+      // rewrite a delivered message to `failed`. That was a bug introduced by an
+      // earlier version of this very catch block.
+      const recorded = await markFailed(deps.db, {
+        id: row.id,
+        provider: row.provider ?? 'unknown',
+        errorCode: 'internal_error',
+        errorMessage: message,
+        errorClass: 'terminal',
+        claimedBy: deps.workerId,
+        clock: deps.clock,
+      });
+      if (!recorded) {
+        // The message had already been sent, or the claim was lost. Either way
+        // there is nothing truthful to record against it, and inventing a failure
+        // would put two contradictory answers in the decision log. Reporting SENT
+        // is what makes the summary say what actually happened.
+        return 'SENT';
+      }
+      await recordDecision(deps.db, {
+        tenantId: row.tenant_id,
+        campaignId: row.campaign_id,
+        contactId: row.contact_id,
+        messageQueueId: row.id,
+        stage: 'send',
+        decision: 'skip',
+        reasonCode: 'internal_error',
+        detail: message,
+        inputs: { error: message, attempts: row.attempts },
+        decidedAt: deps.clock.now(),
+      });
+    } catch {
+      // The database itself is unhappy. Leave the row for reclaim-stale rather
+      // than losing the rest of the batch to a second failure.
+    }
+    return 'FAILED';
+  }
+}
+
+/**
+ * Send a NAMED set of queued messages, now, inside the caller's request.
+ *
+ * This exists because of a latency problem with an honest cause. The queue drains
+ * on a timer — every minute on a dedicated worker, every five minutes when GitHub
+ * Actions is the worker — and that is the right cadence for a campaign. It is the
+ * wrong cadence for the storefront in `packages/api/src/routes/storefront.ts`,
+ * where a stranger has just typed their email into a checkout form and is looking
+ * at the screen. Five minutes of nothing reads as "it does not work".
+ *
+ * WHAT THIS IS NOT. It is not a second send path: it claims rows through the same
+ * `FOR UPDATE SKIP LOCKED` statement, hands each one to the same `deliverClaimed`,
+ * and therefore runs the same eight gates in the same order. `provider.send` still
+ * has exactly one call site, which tests/unit/architecture.test.ts proves by
+ * reading the tree. It is also not a scheduler — nothing here repeats, which is
+ * what packages/api/src/no-scheduler.ts is actually guarding against.
+ *
+ * The environment guard still precedes the claim (I2), so a flush on a worker that
+ * is not permitted to send touches no row and burns no attempt.
+ */
+export async function flushMessages(
+  deps: DeliveryDeps,
+  ids: readonly string[],
+): Promise<QueueRunSummary> {
+  const empty = { claimed: 0, sent: 0, failed: 0, deferred: 0, skipped: 0 };
+  if (!liveSendAllowed(deps.sendMode)) {
+    return { ...empty, refusedWithoutClaim: true };
+  }
+  if (ids.length === 0) return { ...empty, refusedWithoutClaim: false };
+
+  const claimed = await claimSpecific(deps.db, {
+    ids: ids.slice(0, deps.batchSize),
+    workerId: deps.workerId,
+    clock: deps.clock,
+  });
+
+  let sent = 0;
+  let failed = 0;
+  let deferred = 0;
+  let skipped = 0;
+
+  for (const row of claimed) {
+    const outcome = await deliverOneSafely(deps, row);
     if (outcome === 'SENT') sent++;
     else if (outcome === 'FAILED') failed++;
     else if (outcome === 'DEFERRED') deferred++;

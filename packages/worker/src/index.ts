@@ -16,7 +16,14 @@ import { fileURLToPath } from 'node:url';
 import cron from 'node-cron';
 import pino from 'pino';
 import { SystemClock, getPool, closePool, type DeliveryDeps, type SendMode } from '@campaign/core';
-import { MockProvider, classify, nextAttemptDelayMs, resolveProvider } from '@campaign/providers';
+import {
+  MockProvider,
+  classify,
+  nextAttemptDelayMs,
+  mockRatesFromEnv,
+  resolveProvider,
+  resolveSenderFor,
+} from '@campaign/providers';
 import type { Channel, MessageProvider } from '@campaign/shared';
 import { runJob, type Job, type JobContext } from './job-runner.ts';
 import { buildJobs, type WorkerConfig } from './jobs/index.ts';
@@ -46,8 +53,9 @@ export function buildWorkerConfig(): WorkerConfig {
   // The mock providers are constructed once and reused, because their pending
   // webhook queue is in-process state: rebuilding them per job would drop the
   // simulated receipts that have not yet come due.
-  const mockEmail = new MockProvider('email', { db, clock });
-  const mockSms = new MockProvider('sms', { db, clock });
+  const rates = mockRatesFromEnv();
+  const mockEmail = new MockProvider('email', { db, clock, ...rates });
+  const mockSms = new MockProvider('sms', { db, clock, ...rates });
 
   const providerFor = (channel: Channel, provider: string): MessageProvider => {
     if (provider === 'mock' || sendMode === 'mock') {
@@ -63,30 +71,11 @@ export function buildWorkerConfig(): WorkerConfig {
     workerId: ctx.workerId,
     batchSize: intFromEnv('QUEUE_BATCH_SIZE', 100),
     resolveProvider: providerFor,
-    resolveSender: async (tenantId, channel) => {
-      // I11: iterate every ACTIVE credential rather than taking a single row. A
-      // tenant legitimately holds several senders per channel, and `.single()`
-      // here is the bug that rejects every provider callback the day a second one
-      // is added.
-      const { rows } = await ctx.db.query<{ provider: string; from_address: string }>(
-        `SELECT provider, from_address FROM provider_credentials
-          WHERE tenant_id = $1 AND channel = $2 AND is_active
-          ORDER BY created_at
-          LIMIT 1`,
-        [tenantId, channel],
-      );
-      const configured = rows[0];
-      if (configured)
-        return { provider: configured.provider, fromAddress: configured.from_address };
-
-      // No credential row at all. In mock mode that is the normal state for the
-      // seeded demo, so fall back rather than refusing to send anything; in live
-      // mode there is nothing to fall back to and the gate chain records the skip.
-      if (sendMode === 'mock') {
-        return { provider: 'mock', fromAddress: process.env['MOCK_FROM'] ?? 'demo@example.com' };
-      }
-      return undefined;
-    },
+    // I11 lives in resolveSenderFor: every ACTIVE credential is read as a list and
+    // walked, never taken with LIMIT 1 — a row naming a provider this build does
+    // not support costs the tenant that credential, not the whole channel. Shared
+    // with the storefront's request-scoped flush so the two cannot drift.
+    resolveSender: (tenantId, channel) => resolveSenderFor(ctx.db, { tenantId, channel, sendMode }),
     classifyError: (provider, code) => {
       const classification = classify(provider, code);
       return { class: classification.class, maxAttempts: classification.maxAttempts };

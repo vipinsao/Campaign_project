@@ -67,6 +67,15 @@ export { validateForActivation, snapshotCampaign } from './services/campaigns.ts
 export { ingestWebhook, type WebhookOutcome } from './routes/webhooks.ts';
 export { openIdempotencyKey } from './routes/public.ts';
 export {
+  storefrontRoutes,
+  storefrontConfig,
+  mintReceiptToken,
+  readReceiptToken,
+  toE164,
+  CATALOGUE,
+  type StorefrontConfig,
+} from './routes/storefront.ts';
+export {
   armSchedulerTrap,
   disarmSchedulerTrap,
   assertNoSchedulerRegistered,

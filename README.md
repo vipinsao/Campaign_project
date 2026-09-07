@@ -219,11 +219,29 @@ npm run lint        # eslint, including the architecture boundary rules
 npm test            # unit + integration + invariants
 ```
 
+### The sixty-second version: place an order
+
+`/shop` is a public storefront wired to the engine. It exists because everything
+else here is an operator console, and an operator console cannot be judged by
+somebody who does not already know what should be in the queue.
+
+Place an order and the checkout writes a contact, a consent record and an order,
+fires `order_placed`, enrols the contact, renders an email and an SMS, and pushes
+both through the eight send-time gates — inside the HTTP request, so the message
+arrives in seconds rather than on the next queue tick. Then it shows you the
+decision log: every campaign considered, every message queued, and the named gate
+and sentence behind anything that was refused.
+
+With credentials configured it puts a real email in your inbox; with none, it says
+so on the page before you fill the form in, and everything except the final
+provider call still happens. See [`docs/LIVE-SENDING.md`](docs/LIVE-SENDING.md) for
+what is achievable on free tiers and — more importantly — what is not.
+
 ### See it actually run
 
 ```bash
 npm run dev          # boots Postgres, migrates, starts api + worker + web
-npm run seed:demo    # deterministic: 500 contacts, 1,200 orders, 5 campaigns
+npm run seed:demo    # deterministic: 500 contacts, 1,200 orders, 6 campaigns
 npm run demo:simulate # replays 30 days in about a minute
 ```
 

@@ -18,22 +18,31 @@ import tailwindcss from '@tailwindcss/vite';
  * preview does not resolve from the dev server, which is exactly the class of
  * failure I7 exists to catch.
  */
+/**
+ * The target is read from the environment, and written down once.
+ *
+ * It used to be the literal `http://localhost:3000`, repeated seven times, while
+ * the API bound `PORT ?? 3001`. `npm run dev` therefore came up with every proxied
+ * request going to a port nothing was listening on, and the symptom — a bodiless
+ * 404 on every screen — looks like a broken API rather than a broken proxy.
+ * scripts/dev.mjs now sets VITE_API_PROXY_TARGET from the same constant it passes
+ * to the API as PORT, so the two cannot disagree.
+ */
+const target = process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000';
+const forward = { target, changeOrigin: true };
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/t': { target: 'http://localhost:3000', changeOrigin: true },
-      '/r': { target: 'http://localhost:3000', changeOrigin: true },
-      '/u': { target: 'http://localhost:3000', changeOrigin: true },
-      '/webhooks': { target: 'http://localhost:3000', changeOrigin: true },
-      '/healthz': { target: 'http://localhost:3000', changeOrigin: true },
-      '/readyz': { target: 'http://localhost:3000', changeOrigin: true },
+      '/api': { ...forward, rewrite: (path) => path.replace(/^\/api/, '') },
+      '/t': forward,
+      '/r': forward,
+      '/u': forward,
+      '/webhooks': forward,
+      '/healthz': forward,
+      '/readyz': forward,
     },
   },
   build: { outDir: 'dist', sourcemap: true },
