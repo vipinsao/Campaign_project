@@ -66,6 +66,25 @@ async function main() {
 
   const db = new Pool({ connectionString: url });
 
+  /**
+   * The origin every unsubscribe and tracking link in the simulated history is
+   * built from  (I7).
+   *
+   * This was the literal 'http://localhost:3000', twice, and the consequence was
+   * not theoretical: the deployed demo's entire message history carried
+   * unsubscribe links pointing at localhost, so every one of them resolved
+   * nowhere for every reviewer who clicked one. `demo-reset.yml` was passing
+   * PUBLIC_BASE_URL in correctly the whole time; this script threw it away.
+   *
+   * I7 is the invariant that says an unsubscribe link must resolve. Hardcoding the
+   * origin in the generator that produces the demo's messages is that invariant
+   * being broken by the one script whose output a reviewer actually reads.
+   */
+  const publicBaseUrl = (process.env['PUBLIC_BASE_URL'] ?? 'http://localhost:3000').replace(
+    /\/+$/,
+    '',
+  );
+
   try {
     const { rows: tenants } = await db.query<{ id: string; name: string }>(
       `SELECT id, name FROM tenants WHERE name = 'Demo Store (seeded data)'`,
@@ -147,7 +166,7 @@ async function main() {
 
       for (const event of events) {
         const outcome = await evaluateTrigger(
-          { db, clock, publicBaseUrl: 'http://localhost:3000' },
+          { db, clock, publicBaseUrl },
           {
             type: event.kind as 'order_placed' | 'order_shipped' | 'order_delivered',
             tenantId: tenant.id,
@@ -179,7 +198,7 @@ async function main() {
         await runTimeTriggers({
           db,
           clock,
-          publicBaseUrl: 'http://localhost:3000',
+          publicBaseUrl,
           // A floor is configured, so the job runs. Set it to null and watch the
           // job refuse to enrol anyone at all.
           triggerFloorAt: start,
