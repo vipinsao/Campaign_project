@@ -214,7 +214,13 @@ describe('QA/sched — the 8-iteration weekday loop (hypothesis 9, SAFE)', () =>
       subsets.push(ALL_DAYS.filter((d) => (mask & (1 << d)) !== 0));
     }
 
-    const zones = ['UTC', 'Pacific/Apia', 'Australia/Lord_Howe', 'America/Santiago', 'Africa/Cairo'];
+    const zones = [
+      'UTC',
+      'Pacific/Apia',
+      'Australia/Lord_Howe',
+      'America/Santiago',
+      'Africa/Cairo',
+    ];
     const instants = ['2011-12-28T12:00:00Z', '2026-03-08T06:30:00Z', '2026-10-04T15:00:00Z'];
 
     const failures: string[] = [];

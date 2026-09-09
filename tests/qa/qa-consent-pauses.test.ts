@@ -55,12 +55,7 @@ describe('QA/pauses — abutting ranges (hypothesis 6, SAFE)', () => {
     const s = await seedAll();
     await insertPause(s.tenantId, s.contactId, '2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z');
     await expect(
-      insertPause(
-        s.tenantId,
-        s.contactId,
-        '2026-06-30T23:59:59.999999Z',
-        '2026-08-01T00:00:00Z',
-      ),
+      insertPause(s.tenantId, s.contactId, '2026-06-30T23:59:59.999999Z', '2026-08-01T00:00:00Z'),
     ).rejects.toThrow(/consent_pauses_no_overlap|exclusion constraint/i);
   });
 

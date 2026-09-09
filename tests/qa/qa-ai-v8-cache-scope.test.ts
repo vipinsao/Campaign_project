@@ -84,7 +84,11 @@ describe('QA/V8 — cache scope', () => {
       fixtures: fixtureFor(
         prompt,
         SHARED_BODY,
-        validAnswer({ label: 'complaint', confidence: 0.88, summary: 'Missing parcel, repeat issue.' }),
+        validAnswer({
+          label: 'complaint',
+          confidence: 0.88,
+          summary: 'Missing parcel, repeat issue.',
+        }),
       ),
     });
 
@@ -132,7 +136,11 @@ describe('QA/V8 — cache scope', () => {
 
     const seen: { tenantId: string; system: string; userContent: string; inputHash: string }[] = [];
     const model = new MockModelClient({
-      fixtures: fixtureFor(prompt, SHARED_BODY, validAnswer({ label: 'complaint', confidence: 0.88 })),
+      fixtures: fixtureFor(
+        prompt,
+        SHARED_BODY,
+        validAnswer({ label: 'complaint', confidence: 0.88 }),
+      ),
     });
     const spy = {
       name: 'spy',
@@ -178,7 +186,11 @@ describe('QA/V8 — cache scope', () => {
     const strict = await seedTriageTenant(db, { confidenceThreshold: 0.99 });
 
     const model = new MockModelClient({
-      fixtures: fixtureFor(prompt, SHARED_BODY, validAnswer({ label: 'complaint', confidence: 0.88 })),
+      fixtures: fixtureFor(
+        prompt,
+        SHARED_BODY,
+        validAnswer({ label: 'complaint', confidence: 0.88 }),
+      ),
     });
     const deps = triageDeps({ db, prompt, model, clock });
 
@@ -199,10 +211,17 @@ describe('QA/V8 — cache scope', () => {
     const broke = await seedTriageTenant(db, { confidenceThreshold: 0.5, monthlyTokenBudget: 1 });
 
     const model = new MockModelClient({
-      fixtures: fixtureFor(prompt, SHARED_BODY, validAnswer({ label: 'complaint', confidence: 0.88 })),
+      fixtures: fixtureFor(
+        prompt,
+        SHARED_BODY,
+        validAnswer({ label: 'complaint', confidence: 0.88 }),
+      ),
     });
 
-    await classifyReply(triageDeps({ db, prompt, model, clock }), await seedReply(db, payer, SHARED_BODY));
+    await classifyReply(
+      triageDeps({ db, prompt, model, clock }),
+      await seedReply(db, payer, SHARED_BODY),
+    );
 
     const result = await classifyReply(
       triageDeps({ db, prompt, model: new ThrowingModelClient(), clock }),
@@ -236,7 +255,10 @@ describe('QA/V8 — cache scope', () => {
     expect(before.cacheHit).toBe(false);
 
     // After the victim classifies it, the same probe from the prober is a hit.
-    await classifyReply(triageDeps({ db, prompt, model, clock }), await seedReply(db, victim, probe));
+    await classifyReply(
+      triageDeps({ db, prompt, model, clock }),
+      await seedReply(db, victim, probe),
+    );
     const after = await classifyReply(
       triageDeps({ db, prompt, model: new ThrowingModelClient(), clock }),
       await seedReply(db, prober, probe),
@@ -265,8 +287,16 @@ describe('QA/V8 — cache scope', () => {
       fixtures: {
         // Recorded reality: the same words at different volume get different
         // urgency. A case-folded cache would serve one of these for the other.
-        ...fixtureFor(prompt, shouted, validAnswer({ label: 'complaint', confidence: 0.95, urgency: 'high' })),
-        ...fixtureFor(prompt, quiet, validAnswer({ label: 'complaint', confidence: 0.8, urgency: 'normal' })),
+        ...fixtureFor(
+          prompt,
+          shouted,
+          validAnswer({ label: 'complaint', confidence: 0.95, urgency: 'high' }),
+        ),
+        ...fixtureFor(
+          prompt,
+          quiet,
+          validAnswer({ label: 'complaint', confidence: 0.8, urgency: 'normal' }),
+        ),
       },
     });
     const deps = triageDeps({ db, prompt, model, clock });

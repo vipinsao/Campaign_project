@@ -94,7 +94,7 @@ describe('H4 — what actually happens if the campaign disappears mid-flight', (
       'this is the one path in deliverClaimed that returns SKIPPED without calling ' +
         'recordDecision — an attempt was consumed, an outcome was produced, and the ' +
         'decision log has nothing to say about it. It is also mislabelled: the reason ' +
-        "code passed to markCancelled is `recipient_not_found`, whose canned sentence " +
+        'code passed to markCancelled is `recipient_not_found`, whose canned sentence ' +
         'is "No contact could be resolved for this event", which is not what happened.',
     ).toBe(1);
   });

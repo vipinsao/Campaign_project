@@ -46,8 +46,10 @@ describe('QA/links — the unsubscribe exclusion holds (SAFE)', () => {
         if (shouldRewrite(url)) leaked.push(url);
       }
     }
-    expect(leaked, `unsubscribe URLs routed through click tracking:\n${leaked.slice(0, 5).join('\n')}`)
-      .toEqual([]);
+    expect(
+      leaked,
+      `unsubscribe URLs routed through click tracking:\n${leaked.slice(0, 5).join('\n')}`,
+    ).toEqual([]);
   });
 
   it('rewriteLinks leaves the opt-out anchor untouched in a realistic marketing email', () => {

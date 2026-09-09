@@ -10,7 +10,13 @@ import type { Pool } from 'pg';
 import { FakeClock } from '@campaign/core';
 import { buildDeps, createApp, hashPassword, type App } from '@campaign/api';
 import { testDb } from '../support/db.ts';
-import { seedTenant, seedContact, seedCampaign, seedCampaignMessage, seedEnrollment } from '../support/fixtures.ts';
+import {
+  seedTenant,
+  seedContact,
+  seedCampaign,
+  seedCampaignMessage,
+  seedEnrollment,
+} from '../support/fixtures.ts';
 
 export const QA_CLOCK = new FakeClock('2026-06-15T12:00:00Z');
 export const QA_SECRET = new TextEncoder().encode('qa-sec-suite-secret');
@@ -63,7 +69,8 @@ export async function loginToken(
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email, password, tenantId }),
   });
-  if (response.status !== 200) throw new Error(`login failed: ${response.status} ${await response.text()}`);
+  if (response.status !== 200)
+    throw new Error(`login failed: ${response.status} ${await response.text()}`);
   const body = (await response.json()) as { token: string };
   return { token: body.token, userId: rows[0]!.id };
 }
@@ -107,8 +114,16 @@ export async function seedWorld(app: App, name: string): Promise<World> {
      VALUES ($1,$2,$3,$4,$5,$6,'email',$7,'body','2026-06-14T09:00:00Z','sent','2026-06-14T09:01:00Z',
              'mock',$8)
      RETURNING id, tracking_id::text AS tracking_id`,
-    [tenantId, enrollmentId, campaignId, versionId, campaignMessageId, contactId, contactEmail,
-     `pmid-${name.toLowerCase()}`],
+    [
+      tenantId,
+      enrollmentId,
+      campaignId,
+      versionId,
+      campaignMessageId,
+      contactId,
+      contactEmail,
+      `pmid-${name.toLowerCase()}`,
+    ],
   );
 
   await db.query(
@@ -118,13 +133,25 @@ export async function seedWorld(app: App, name: string): Promise<World> {
   );
 
   return {
-    tenantId, userId, token, campaignId, versionId, campaignMessageId, contactId,
-    contactEmail, orderId, storeId, enrollmentId,
+    tenantId,
+    userId,
+    token,
+    campaignId,
+    versionId,
+    campaignMessageId,
+    contactId,
+    contactEmail,
+    orderId,
+    storeId,
+    enrollmentId,
     queuedMessageId: queued[0]!.id,
     trackingId: queued[0]!.tracking_id,
   };
 }
 
-export function authHeaders(token: string, extra: Record<string, string> = {}): Record<string, string> {
+export function authHeaders(
+  token: string,
+  extra: Record<string, string> = {},
+): Record<string, string> {
   return { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...extra };
 }

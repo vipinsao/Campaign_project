@@ -61,7 +61,10 @@ describe('H9 — a throwing send no longer abandons the batch (fixed mid-review)
     expect(summary.claimed).toBe(5);
     expect(provider.attempted, 'every row was attempted, not just the first').toHaveLength(5);
     const rows = await statuses(ids);
-    expect(rows.every((r) => r.status === 'failed'), 'none stranded in `processing`').toBe(true);
+    expect(
+      rows.every((r) => r.status === 'failed'),
+      'none stranded in `processing`',
+    ).toBe(true);
 
     const { rows: decisions } = await testDb().query<{ reason_code: string }>(
       `SELECT DISTINCT reason_code FROM send_decisions WHERE message_queue_id = ANY($1::uuid[])`,
@@ -114,7 +117,10 @@ describe('H9 — the new catch-all also fires AFTER a successful send', () => {
     expect(provider.sent, 'the provider accepted it: the message went out').toHaveLength(1);
     const row = await fullQueueRow(id);
     expect(row!.sent_at, 'markSent ran and stuck').not.toBeNull();
-    expect(row!.status, 'markFailed is fenced on sent_at IS NULL, so a post-send throw cannot rewrite a delivered message').toBe('sent');
+    expect(
+      row!.status,
+      'markFailed is fenced on sent_at IS NULL, so a post-send throw cannot rewrite a delivered message',
+    ).toBe('sent');
     // Nothing about the failure is written to the row either: the message was
     // delivered, and the only thing that went wrong was bookkeeping afterwards.
     expect(row!.provider_error_code).toBeNull();

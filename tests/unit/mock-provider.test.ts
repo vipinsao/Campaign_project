@@ -116,7 +116,7 @@ describe('the mock providers', () => {
       from: '+15557654321',
       body: 'Your order shipped.',
       trackingId: 'track-sms',
-    idempotencyKey: 'track-sms',
+      idempotencyKey: 'track-sms',
     });
 
     const { rows } = await testDb().query<{

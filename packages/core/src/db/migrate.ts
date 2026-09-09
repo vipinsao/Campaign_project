@@ -100,7 +100,9 @@ export async function migrate(
   } finally {
     // Ending the connection releases the lock too; releasing explicitly keeps the
     // pairing visible and survives anyone later switching to a pooled client.
-    await client.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]).catch(() => undefined);
+    await client
+      .query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY])
+      .catch(() => undefined);
     await client.end();
   }
 }

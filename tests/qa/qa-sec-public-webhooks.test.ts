@@ -38,7 +38,11 @@ describe('GET/POST /u/:token — the preference centre', () => {
     const response = await app.request(`/u/${tokenForA}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'unsubscribe_all', contactId: b.contactId, tenantId: b.tenantId }),
+      body: JSON.stringify({
+        action: 'unsubscribe_all',
+        contactId: b.contactId,
+        tenantId: b.tenantId,
+      }),
     });
     expect(response.status).toBe(200);
 
@@ -145,7 +149,10 @@ describe('POST /webhooks/:provider', () => {
     );
   }
 
-  function signedBody(events: unknown[], secret: string): { body: Buffer; headers: Record<string, string> } {
+  function signedBody(
+    events: unknown[],
+    secret: string,
+  ): { body: Buffer; headers: Record<string, string> } {
     const body = Buffer.from(JSON.stringify({ events }), 'utf8');
     return {
       body,
@@ -180,7 +187,7 @@ describe('POST /webhooks/:provider', () => {
     expect(response.status).toBe(401);
   });
 
-  it('cannot mark another tenant\'s message delivered', async () => {
+  it("cannot mark another tenant's message delivered", async () => {
     await credentialFor(a.tenantId, 'alpha-secret');
     await credentialFor(b.tenantId, 'beta-secret');
 

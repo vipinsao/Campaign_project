@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "dev": "node scripts/dev.mjs",
-        "migrate": "tsx scripts/migrate.ts",
+    "migrate": "tsx scripts/migrate.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "demo:simulate": "tsx scripts/simulate.ts",
     "rollups:rebuild": "tsx scripts/rollups-rebuild.ts",

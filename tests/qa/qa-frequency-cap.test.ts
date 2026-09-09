@@ -25,7 +25,9 @@ const A1 = '30000000-0000-4000-8000-000000000001';
 const A2 = '30000000-0000-4000-8000-000000000002';
 
 async function tenantWithCap(cap: number) {
-  const seeded = await seedAll(testDb(), { tenant: { freqCapCount: cap, freqCapWindow: '7 days' } });
+  const seeded = await seedAll(testDb(), {
+    tenant: { freqCapCount: cap, freqCapWindow: '7 days' },
+  });
   await optIn(testDb(), seeded.tenantId, seeded.contactId);
   return seeded;
 }

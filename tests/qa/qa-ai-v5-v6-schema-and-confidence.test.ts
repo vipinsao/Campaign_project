@@ -91,10 +91,13 @@ describe('QA/V5 — out-of-range confidence', () => {
     expect(String(result.extracted['schema_error'])).toMatch(/confidence/);
     expect(calls, 'one repair attempt, then it gives up').toBe(2);
 
-    const { rows } = await db.query<{ confidence: string | null; label: string | null; status: string }>(
-      `SELECT confidence::text, label, status FROM classifications WHERE tenant_id = $1`,
-      [tenantId],
-    );
+    const { rows } = await db.query<{
+      confidence: string | null;
+      label: string | null;
+      status: string;
+    }>(`SELECT confidence::text, label, status FROM classifications WHERE tenant_id = $1`, [
+      tenantId,
+    ]);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.confidence).toBeNull();
     expect(rows[0]!.label).toBeNull();
@@ -176,7 +179,10 @@ describe('QA/V5 — labels outside the enum', () => {
       const parsed = ReplyClassification.safeParse(validAnswer({ label }));
       expect(parsed.success, label).toBe(false);
       if (!parsed.success) {
-        expect(parsed.error.issues.some((i) => i.path.join('.') === 'label'), label).toBe(true);
+        expect(
+          parsed.error.issues.some((i) => i.path.join('.') === 'label'),
+          label,
+        ).toBe(true);
       }
     }
     for (const label of ['question', 'complaint', 'opt_out', 'positive', 'other']) {
@@ -195,10 +201,11 @@ describe('QA/V5 — labels outside the enum', () => {
     expect(result.parseStatus).toBe('escalated');
     expect(String(result.extracted['schema_error'])).toMatch(/label/);
 
-    const { rows } = await db.query<{ label: string | null; decided_by: string; prompt_id: string | null }>(
-      `SELECT label, decided_by, prompt_id FROM classifications WHERE tenant_id = $1`,
-      [tenantId],
-    );
+    const { rows } = await db.query<{
+      label: string | null;
+      decided_by: string;
+      prompt_id: string | null;
+    }>(`SELECT label, decided_by, prompt_id FROM classifications WHERE tenant_id = $1`, [tenantId]);
     expect(rows[0]!.label).toBeNull();
     // A null label is still a MODEL decision and still names its prompt version —
     // the CHECK `classifications_model_names_its_prompt` holds.

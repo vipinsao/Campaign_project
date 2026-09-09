@@ -44,7 +44,12 @@ describe('H1(a) — attempts cannot go negative', () => {
     await claimBatch(testDb(), { workerId: 'w', batchSize: 1, clock });
 
     for (let i = 0; i < 50; i++) {
-      await deferClaimed(testDb(), { claimedBy: 'w', id, until: new Date('2026-06-16T09:00:00Z'), clock });
+      await deferClaimed(testDb(), {
+        claimedBy: 'w',
+        id,
+        until: new Date('2026-06-16T09:00:00Z'),
+        clock,
+      });
     }
 
     const row = await fullQueueRow(id);
@@ -140,7 +145,7 @@ describe('H1(c) — does a deferral let a row dodge attempt exhaustion?', () => 
 
     const clock = new FakeClock('2026-06-15T12:00:00Z');
     const provider = scriptedProvider([
-      { ok: false, errorCode: 'transient_timeout', errorMessage: 'timed out' , raw: {}},
+      { ok: false, errorCode: 'transient_timeout', errorMessage: 'timed out', raw: {} },
     ]);
     const deps = depsFor(provider, clock, { maxAttempts: 5, backoffMs: () => 60_000 });
 

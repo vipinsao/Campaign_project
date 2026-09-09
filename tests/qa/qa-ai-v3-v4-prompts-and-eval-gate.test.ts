@@ -78,9 +78,7 @@ beforeEach(resetDb);
 const CORPUS = fileURLToPath(
   new URL('../../packages/triage/fixtures/golden-corpus.json', import.meta.url),
 );
-const PROMPTS_DIR = fileURLToPath(
-  new URL('../../packages/triage/prompts', import.meta.url),
-);
+const PROMPTS_DIR = fileURLToPath(new URL('../../packages/triage/prompts', import.meta.url));
 const DATASET = 'reply-classification';
 const CLOCK = '2026-08-25T10:00:00.000Z';
 
@@ -231,7 +229,9 @@ describe('QA/V4 — making a regression pass the gate', () => {
     const v2 = (await getPrompt(db, DATASET, 2))!;
     const model = await MockModelClient.fromDisk();
     const stored = await loadGoldenSet(db, DATASET);
-    const winners = new Set((await corpus()).filter((c) => c.v2.label === c.expectedLabel).map((c) => c.body));
+    const winners = new Set(
+      (await corpus()).filter((c) => c.v2.label === c.expectedLabel).map((c) => c.body),
+    );
 
     const run = await runEval(
       { db, clock, tenantId, prompt: v2, model },
@@ -281,15 +281,20 @@ describe('QA/V4 — making a regression pass the gate', () => {
     // Fixtures are keyed on the prompt NAME, so re-key the recorded v2 answers.
     const disk = JSON.parse(
       await readFile(
-        fileURLToPath(new URL('../../packages/triage/fixtures/model-responses.json', import.meta.url)),
+        fileURLToPath(
+          new URL('../../packages/triage/fixtures/model-responses.json', import.meta.url),
+        ),
         'utf8',
       ),
     ) as Record<string, ModelFixture>;
     const rekeyed: Record<string, ModelFixture> = {};
     for (const c of await corpus()) {
-      const from = disk[fixtureKey({ promptName: DATASET, promptVersion: 2, inputHash: contentHash(c.body) })];
+      const from =
+        disk[fixtureKey({ promptName: DATASET, promptVersion: 2, inputHash: contentHash(c.body) })];
       if (!from) continue;
-      rekeyed[fixtureKey({ promptName: renamed, promptVersion: 1, inputHash: contentHash(c.body) })] = from;
+      rekeyed[
+        fixtureKey({ promptName: renamed, promptVersion: 1, inputHash: contentHash(c.body) })
+      ] = from;
     }
     expect(Object.keys(rekeyed).length).toBeGreaterThan(15);
 

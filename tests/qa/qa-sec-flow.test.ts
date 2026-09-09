@@ -90,7 +90,7 @@ describe('the graph validator', () => {
     expect(Number(alive[0]!.n)).toBeGreaterThan(0);
   });
 
-  it('does not let a node id collide with another campaign\'s node_id', async () => {
+  it("does not let a node id collide with another campaign's node_id", async () => {
     // B's seeded message already carries node_id 'node-beta'. UNIQUE is
     // (campaign_id, node_id), so reusing the name must create A's own row and
     // leave B's untouched.
@@ -104,8 +104,10 @@ describe('the graph validator', () => {
     const { rows } = await testDb().query<{ id: string; campaign_id: string }>(
       `SELECT id, campaign_id FROM campaign_messages WHERE node_id = 'node-beta'`,
     );
-    expect(rows.length, 'A got its own row; B\'s was not adopted or overwritten').toBe(2);
-    expect(rows.some((r) => r.id === b.campaignMessageId && r.campaign_id === b.campaignId)).toBe(true);
+    expect(rows.length, "A got its own row; B's was not adopted or overwritten").toBe(2);
+    expect(rows.some((r) => r.id === b.campaignMessageId && r.campaign_id === b.campaignId)).toBe(
+      true,
+    );
   });
 });
 
@@ -200,7 +202,7 @@ describe('hostile size', () => {
 });
 
 describe('the sequence_order parking trick', () => {
-  it('does not collide a removed node\'s restored number with a new node\'s', async () => {
+  it("does not collide a removed node's restored number with a new node's", async () => {
     // The writer parks every existing sequence_order negative, writes the new
     // graph, and then flips whatever is still negative back POSITIVE. A message
     // whose node was removed therefore returns to its ORIGINAL number — which is

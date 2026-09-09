@@ -60,7 +60,9 @@ describe('the audience DSL cannot reach SQL as text', () => {
     }
 
     // The table is still there and still populated.
-    const { rows } = await testDb().query<{ n: string }>(`SELECT count(*)::text AS n FROM contacts`);
+    const { rows } = await testDb().query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM contacts`,
+    );
     expect(Number(rows[0]!.n)).toBe(1);
   });
 
@@ -93,7 +95,9 @@ describe('the audience DSL cannot reach SQL as text', () => {
 
   it('never echoes an injected value back inside compiledSql', async () => {
     const marker = "'; SELECT pg_sleep(0); --";
-    const { status, body } = await estimate({ all: [{ field: 'email', op: 'contains', value: marker }] });
+    const { status, body } = await estimate({
+      all: [{ field: 'email', op: 'contains', value: marker }],
+    });
     expect(status).toBe(200);
     expect(body.compiledSql).not.toContain('pg_sleep');
     expect(body.compiledSql).not.toContain(';');

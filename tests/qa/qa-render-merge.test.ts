@@ -89,7 +89,7 @@ describe('QA/render — `$` replacement patterns in raw merge values (FIXED)', (
 
   it("`$'` in a raw merge value does not duplicate the rest of the body", () => {
     const out = render(
-      "Hi {{{contact.first_name}}} — your code is 8891.",
+      'Hi {{{contact.first_name}}} — your code is 8891.',
       { contact: { first_name: "O$'Brien" } },
       { escape: false },
     );

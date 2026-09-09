@@ -289,7 +289,9 @@ describe('H2 — a single replica double-sends its own batch tail', () => {
     // The one remaining duplicate is row #1, which was literally inside
     // provider.send when reclaim fired. That is the at-least-once bound, and it is
     // handed to the provider as an idempotency key rather than pretended away.
-    expect(allSends, 'only the in-flight row is duplicated, not the untouched tail').toHaveLength(4);
+    expect(allSends, 'only the in-flight row is duplicated, not the untouched tail').toHaveLength(
+      4,
+    );
     // Only the row that was in flight when reclaim fired is duplicated. The two
     // the worker had not yet reached are delivered exactly once.
     const duplicated = ids.filter((id) => allSends.filter((x) => x === id).length > 1);

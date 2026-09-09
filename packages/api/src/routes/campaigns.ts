@@ -451,9 +451,7 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
     // the handful of rows that could possibly collide.
     const identity = deliveryIdentity(to, message.channel);
     const domain =
-      identity !== null && message.channel === 'email'
-        ? (identity.split('@')[1] ?? null)
-        : null;
+      identity !== null && message.channel === 'email' ? (identity.split('@')[1] ?? null) : null;
     const digits = identity !== null && message.channel === 'sms' ? identity : null;
 
     const candidates = await query<{
@@ -480,9 +478,7 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
       if (own === null) return false;
       const theirs = deliveryIdentity(own, message.channel);
       if (theirs === null) return false;
-      return message.channel === 'sms'
-        ? phoneCollides(theirs, identity)
-        : theirs === identity;
+      return message.channel === 'sms' ? phoneCollides(theirs, identity) : theirs === identity;
     };
 
     const collisions = candidates.filter(
@@ -635,77 +631,81 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
     return c.json({ messages: messages.map(messageJson) });
   });
 
-
-/**
- * I7, applied wherever a template is written.
- *
- * A security review found the invariant was a property of ONE function rather than
- * of the system: `PUT /campaigns/:id/flow` validated correctly, and the two routes
- * beside it did not call the validator at all. Three sequences through the public
- * API produced a live `promotional` campaign with no opt-out - add a message
- * without one, strip it out of a live campaign with PATCH, or activate a
- * `transactional` campaign and then PATCH its category to `promotional`.
- *
- * Enrolment renders from live `campaign_messages`, not from the activation
- * snapshot, so all three produced real sends. An invariant enforced on one route
- * is not an invariant.
- */
-function assertTemplateValid(
-  template: {
-    readonly channel: 'email' | 'sms';
-    readonly subject?: string | null;
-    readonly body: string;
-    readonly html?: string | null;
-  },
-  category: CampaignCategory,
-): void {
-  const result = validateTemplate(template, category);
-  if (result.errors.length > 0) {
-    throw unprocessable(
-      'template_invalid',
-      'The message is not sendable in this campaign category.',
-      { errors: result.errors, warnings: result.warnings },
-    );
+  /**
+   * I7, applied wherever a template is written.
+   *
+   * A security review found the invariant was a property of ONE function rather than
+   * of the system: `PUT /campaigns/:id/flow` validated correctly, and the two routes
+   * beside it did not call the validator at all. Three sequences through the public
+   * API produced a live `promotional` campaign with no opt-out - add a message
+   * without one, strip it out of a live campaign with PATCH, or activate a
+   * `transactional` campaign and then PATCH its category to `promotional`.
+   *
+   * Enrolment renders from live `campaign_messages`, not from the activation
+   * snapshot, so all three produced real sends. An invariant enforced on one route
+   * is not an invariant.
+   */
+  function assertTemplateValid(
+    template: {
+      readonly channel: 'email' | 'sms';
+      readonly subject?: string | null;
+      readonly body: string;
+      readonly html?: string | null;
+    },
+    category: CampaignCategory,
+  ): void {
+    const result = validateTemplate(template, category);
+    if (result.errors.length > 0) {
+      throw unprocessable(
+        'template_invalid',
+        'The message is not sendable in this campaign category.',
+        { errors: result.errors, warnings: result.warnings },
+      );
+    }
   }
-}
 
-/** Re-check every message when a campaign's category changes: a template that was
- *  fine as `transactional` may be unsendable as `promotional`. */
-async function assertAllMessagesValidFor(
-  db: ApiDeps['db'],
-  campaignId: string,
-  category: CampaignCategory,
-): Promise<void> {
-  const messages = await query<{
-    id: string;
-    channel: 'email' | 'sms';
-    subject_template: string | null;
-    body_template: string;
-    html_template: string | null;
-  }>(
-    db,
-    `SELECT id, channel, subject_template, body_template, html_template
+  /** Re-check every message when a campaign's category changes: a template that was
+   *  fine as `transactional` may be unsendable as `promotional`. */
+  async function assertAllMessagesValidFor(
+    db: ApiDeps['db'],
+    campaignId: string,
+    category: CampaignCategory,
+  ): Promise<void> {
+    const messages = await query<{
+      id: string;
+      channel: 'email' | 'sms';
+      subject_template: string | null;
+      body_template: string;
+      html_template: string | null;
+    }>(
+      db,
+      `SELECT id, channel, subject_template, body_template, html_template
        FROM campaign_messages WHERE campaign_id = $1 AND is_enabled`,
-    [campaignId],
-  );
-
-  const failures = messages.flatMap((m) => {
-    const result = validateTemplate(
-      { channel: m.channel, subject: m.subject_template, body: m.body_template, html: m.html_template },
-      category,
+      [campaignId],
     );
-    return result.errors.map((e) => ({ messageId: m.id, message: e.message }));
-  });
 
-  if (failures.length > 0) {
-    throw unprocessable(
-      'category_change_invalidates_messages',
-      `Changing the category to '${category}' would leave ${failures.length} message(s) ` +
-        `unsendable. Fix them first.`,
-      { failures },
-    );
+    const failures = messages.flatMap((m) => {
+      const result = validateTemplate(
+        {
+          channel: m.channel,
+          subject: m.subject_template,
+          body: m.body_template,
+          html: m.html_template,
+        },
+        category,
+      );
+      return result.errors.map((e) => ({ messageId: m.id, message: e.message }));
+    });
+
+    if (failures.length > 0) {
+      throw unprocessable(
+        'category_change_invalidates_messages',
+        `Changing the category to '${category}' would leave ${failures.length} message(s) ` +
+          `unsendable. Fix them first.`,
+        { failures },
+      );
+    }
   }
-}
 
   app.post('/campaigns/:id/messages', async (c) => {
     const tenantId = tenantOf(c);
@@ -782,7 +782,8 @@ async function assertAllMessagesValidFor(
     assertTemplateValid(
       {
         channel: body.channel ?? existing.channel,
-        subject: body.subjectTemplate === undefined ? existing.subject_template : body.subjectTemplate,
+        subject:
+          body.subjectTemplate === undefined ? existing.subject_template : body.subjectTemplate,
         body: body.bodyTemplate ?? existing.body_template,
         html: body.htmlTemplate === undefined ? existing.html_template : body.htmlTemplate,
       },

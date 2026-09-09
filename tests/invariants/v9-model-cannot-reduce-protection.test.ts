@@ -178,7 +178,13 @@ describe('V9 — structurally, the model cannot weaken a protection', () => {
     const prompt = await syncedPrompt(db, 1);
     const address = 'stopped-then-cheerful@example.com';
 
-    await addSuppression(db, { clock: fakeClock(), tenantId, channel: 'email', address, reason: 'unsubscribe' });
+    await addSuppression(db, {
+      clock: fakeClock(),
+      tenantId,
+      channel: 'email',
+      address,
+      reason: 'unsubscribe',
+    });
 
     const body = 'Wonderful service, thank you so much!';
     const model = new MockModelClient({

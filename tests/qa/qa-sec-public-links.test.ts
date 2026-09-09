@@ -176,7 +176,10 @@ describe('what a click can be attributed to', () => {
       `SELECT tenant_id, campaign_id FROM message_events WHERE event_type = 'clicked'`,
     );
     expect(
-      rows.map((r) => `${r.tenant_id === a.tenantId ? 'A' : 'B'}:${r.campaign_id === b.campaignId ? 'Bcampaign' : 'Acampaign'}`),
+      rows.map(
+        (r) =>
+          `${r.tenant_id === a.tenantId ? 'A' : 'B'}:${r.campaign_id === b.campaignId ? 'Bcampaign' : 'Acampaign'}`,
+      ),
       "a link row naming tenant A wrote an event onto tenant B's campaign",
     ).toEqual([]);
   });
@@ -205,7 +208,9 @@ describe('the feature behind these two routes', () => {
       }
     };
     walk(root);
-    expect(sources.length, 'the source scan found no files, so it proves nothing').toBeGreaterThan(20);
+    expect(sources.length, 'the source scan found no files, so it proves nothing').toBeGreaterThan(
+      20,
+    );
 
     const writers = sources.filter((file) => {
       const source = readFileSync(file, 'utf8');

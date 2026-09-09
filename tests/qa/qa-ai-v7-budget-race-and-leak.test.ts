@@ -74,7 +74,10 @@ beforeEach(resetDb);
 const BUDGET_SRC = fileURLToPath(new URL('../../packages/triage/src/budget.ts', import.meta.url));
 
 /** Genuinely concurrent: N separate connections, all released at once. */
-async function concurrently<T>(n: number, fn: (i: number) => Promise<T>): Promise<PromiseSettledResult<T>[]> {
+async function concurrently<T>(
+  n: number,
+  fn: (i: number) => Promise<T>,
+): Promise<PromiseSettledResult<T>[]> {
   // Reassigned synchronously by the Promise executor below; the initial value is
   // never called and exists only so the binding is definitely assigned.
   let release: () => void = () => undefined;
@@ -102,7 +105,7 @@ describe('QA/V7 — the reservation under concurrency', () => {
     expect(granted).toHaveLength(1);
     expect(refused).toHaveLength(23);
     for (const r of refused) {
-      expect((r).reason).toBeInstanceOf(TokenBudgetExceededError);
+      expect(r.reason).toBeInstanceOf(TokenBudgetExceededError);
     }
 
     const state = await budgetState(db, tenantId, clock);
@@ -114,7 +117,9 @@ describe('QA/V7 — the reservation under concurrency', () => {
     const clock = new FakeClock(CLOCK_START);
     const tenantId = await seedTriageTenant(db, { monthlyTokenBudget: 250 });
 
-    const results = await concurrently(40, () => reserveTokens(db, { tenantId, tokens: 10, clock }));
+    const results = await concurrently(40, () =>
+      reserveTokens(db, { tenantId, tokens: 10, clock }),
+    );
     const granted = results.filter((r) => r.status === 'fulfilled').length;
 
     expect(granted).toBe(25);
@@ -155,15 +160,11 @@ describe('QA/V7 — the reservation under concurrency', () => {
     });
 
     // One reservation's worth of headroom, computed from the real request shape.
-    const oneCall =
-      estimateTokens(prompt.body) + estimateTokens(bodyA) + DEFAULT_MAX_OUTPUT_TOKENS;
+    const oneCall = estimateTokens(prompt.body) + estimateTokens(bodyA) + DEFAULT_MAX_OUTPUT_TOKENS;
     const tenantId = await seedTriageTenant(db, { monthlyTokenBudget: oneCall });
     const deps = triageDeps({ db, prompt, model, clock });
 
-    const replies = [
-      await seedReply(db, tenantId, bodyA),
-      await seedReply(db, tenantId, bodyB),
-    ];
+    const replies = [await seedReply(db, tenantId, bodyA), await seedReply(db, tenantId, bodyB)];
     const results = await concurrently(2, (i) => classifyReply(deps, replies[i]!));
 
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
@@ -317,7 +318,9 @@ describe('QA/V7 — the reservation leak', () => {
     // "It is clamped at zero by the ledger's own CHECK constraint rather than
     // here, so a bug that tried to refund more than was reserved fails loudly
     // instead of producing a tenant with negative usage."
-    expect(src).toMatch(/clamped at zero by the ledger's own\n \* CHECK constraint rather than here/);
+    expect(src).toMatch(
+      /clamped at zero by the ledger's own\n \* CHECK constraint rather than here/,
+    );
     // It is in fact clamped by GREATEST(0, ...) in the same statement, so an
     // over-refund is silent, not loud. Cosmetic here, but it is the sentence a
     // future reader would trust.

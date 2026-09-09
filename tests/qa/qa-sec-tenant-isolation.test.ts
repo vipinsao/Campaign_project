@@ -51,7 +51,11 @@ describe('every id-taking route refuses the other tenant', () => {
     const flow = {
       nodes: [
         { id: 'n1', type: 'trigger' },
-        { id: 'n2', type: 'send_email', data: { subject: 'Hi', body: 'Body {{unsubscribe_url}}', previewText: 'p' } },
+        {
+          id: 'n2',
+          type: 'send_email',
+          data: { subject: 'Hi', body: 'Body {{unsubscribe_url}}', previewText: 'p' },
+        },
       ],
       edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
     };
@@ -90,7 +94,7 @@ describe('every id-taking route refuses the other tenant', () => {
     expect(outbox.counts.total).toBe(0);
   });
 
-  it('will not let A patch or delete B\'s message by naming it under A\'s campaign', async () => {
+  it("will not let A patch or delete B's message by naming it under A's campaign", async () => {
     for (const method of ['PATCH', 'DELETE'] as const) {
       const response = await app.request(
         `/campaigns/${a.campaignId}/messages/${b.campaignMessageId}`,
@@ -109,7 +113,10 @@ describe('every id-taking route refuses the other tenant', () => {
     const cases: [string, RequestInit][] = [
       [`/queue/${b.queuedMessageId}/cancel`, { method: 'POST', body: '{}' }],
       [`/contacts/${b.contactId}/consent`, { method: 'GET' }],
-      [`/contacts/${b.contactId}/consent`, { method: 'POST', body: JSON.stringify({ channel: 'email', state: 'opted_out' }) }],
+      [
+        `/contacts/${b.contactId}/consent`,
+        { method: 'POST', body: JSON.stringify({ channel: 'email', state: 'opted_out' }) },
+      ],
       [`/orders/${b.orderId}/journey`, { method: 'GET' }],
       [`/campaigns/${b.campaignId}/preview`, { method: 'POST', body: '{}' }],
     ];
@@ -119,7 +126,7 @@ describe('every id-taking route refuses the other tenant', () => {
     }
   });
 
-  it('will not render another tenant\'s contact into A\'s own campaign preview', async () => {
+  it("will not render another tenant's contact into A's own campaign preview", async () => {
     // The merge context is the exfiltration channel: name, email and phone all come
     // back in `preview.context`.
     const response = await app.request(`/campaigns/${a.campaignId}/preview`, {
@@ -137,7 +144,7 @@ describe('every id-taking route refuses the other tenant', () => {
     expect(withOrder.status).toBe(404);
   });
 
-  it('DELETE /suppressions cannot lift another tenant\'s suppression', async () => {
+  it("DELETE /suppressions cannot lift another tenant's suppression", async () => {
     await testDb().query(
       `INSERT INTO suppressions (tenant_id, channel, address, reason) VALUES ($1,'email',$2,'unsubscribe')`,
       [b.tenantId, b.contactEmail],
@@ -155,7 +162,7 @@ describe('every id-taking route refuses the other tenant', () => {
   });
 });
 
-describe('writes that land in another tenant\'s numbers', () => {
+describe("writes that land in another tenant's numbers", () => {
   it('FIXED: POST /events REJECTS a campaignId belonging to another tenant', async () => {
     // The key names A. The contact is A's, so resolveContact is satisfied. But
     // `campaignId` is taken from the body and never checked against the tenant,
@@ -179,11 +186,11 @@ describe('writes that land in another tenant\'s numbers', () => {
     );
     expect(
       { accepted: 0, rowsAttachedToBsCampaign: Number(rows[0]!.n) },
-      'tenant A must not be able to write a row hanging off tenant B\'s campaign',
+      "tenant A must not be able to write a row hanging off tenant B's campaign",
     ).toEqual({ accepted: 0, rowsAttachedToBsCampaign: 0 });
   });
 
-  it('and that row is COUNTED by tenant B\'s own /campaigns/:id/timeseries', async () => {
+  it("and that row is COUNTED by tenant B's own /campaigns/:id/timeseries", async () => {
     // The read side has no tenant predicate at all:
     //   FROM message_events WHERE campaign_id = $1
     // so whatever A wrote above lands in B's rangeUnique openers.
@@ -209,11 +216,11 @@ describe('writes that land in another tenant\'s numbers', () => {
     const body = (await response.json()) as { rangeUnique: { openers: number } };
     expect(
       body.rangeUnique.openers,
-      'tenant B\'s analytics counted an opener tenant A invented',
+      "tenant B's analytics counted an opener tenant A invented",
     ).toBe(0);
   });
 
-  it('and a messageQueueId from another tenant inflates B\'s per-message stats', async () => {
+  it("and a messageQueueId from another tenant inflates B's per-message stats", async () => {
     // /campaigns/:id/messages/stats joins message_events on message_queue_id with
     // no tenant predicate on the events side.
     const key = issueApiKey(a.tenantId, QA_SECRET);
@@ -235,7 +242,7 @@ describe('writes that land in another tenant\'s numbers', () => {
     const body = (await response.json()) as { messages: { uniqueOpens: number }[] };
     expect(
       body.messages.map((m) => m.uniqueOpens),
-      'tenant A attached an open to tenant B\'s queued message',
+      "tenant A attached an open to tenant B's queued message",
     ).toEqual([0]);
   });
 });

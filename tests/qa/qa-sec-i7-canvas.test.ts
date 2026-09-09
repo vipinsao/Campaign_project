@@ -65,7 +65,11 @@ async function addMessage(campaignId: string, bodyTemplate: string): Promise<Res
   });
 }
 
-async function putFlow(campaignId: string, body: string, channel: 'email' | 'sms' = 'email'): Promise<Response> {
+async function putFlow(
+  campaignId: string,
+  body: string,
+  channel: 'email' | 'sms' = 'email',
+): Promise<Response> {
   const node =
     channel === 'email'
       ? { id: 'm1', type: 'send_email', data: { subject: 'Sale', body, previewText: 'p' } }
@@ -142,7 +146,11 @@ describe('the canvas is NOT a way around I7', () => {
         flow: {
           nodes: [
             { id: 't', type: 'trigger' },
-            { id: 'm1', type: 'send_email', data: { subject: 'A', body: 'Fine. {{unsubscribe_url}}' } },
+            {
+              id: 'm1',
+              type: 'send_email',
+              data: { subject: 'A', body: 'Fine. {{unsubscribe_url}}' },
+            },
             { id: 'm2', type: 'send_email', data: { subject: 'B', body: NO_OPT_OUT } },
           ],
           edges: [
@@ -153,9 +161,14 @@ describe('the canvas is NOT a way around I7', () => {
       }),
     });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error: { details?: { issues?: { nodeId: string }[] } } };
+    const body = (await response.json()) as {
+      error: { details?: { issues?: { nodeId: string }[] } };
+    };
     expect(body.error.details?.issues?.map((i) => i.nodeId)).toContain('m2');
-    expect(await liveBodies(campaignId), 'a partial write would leave m1 live and m2 missing').toEqual([]);
+    expect(
+      await liveBodies(campaignId),
+      'a partial write would leave m1 live and m2 missing',
+    ).toEqual([]);
   });
 });
 
@@ -170,7 +183,12 @@ describe('the routes NEXT to the canvas, which write the same column', () => {
       await app.request('/templates/validate', {
         method: 'POST',
         headers: asA(),
-        body: JSON.stringify({ channel: 'email', category: 'promotional', subjectTemplate: 'Sale', bodyTemplate: NO_OPT_OUT }),
+        body: JSON.stringify({
+          channel: 'email',
+          category: 'promotional',
+          subjectTemplate: 'Sale',
+          bodyTemplate: NO_OPT_OUT,
+        }),
       })
     ).json()) as { ok: boolean; errors: { message: string }[] };
     expect(advisory.ok, '/templates/validate agrees this template is not sendable').toBe(false);
@@ -219,7 +237,10 @@ describe('the routes NEXT to the canvas, which write the same column', () => {
     // looking at them again.
     const campaignId = await createCampaign('transactional');
     expect((await addMessage(campaignId, NO_OPT_OUT)).status).toBe(201);
-    expect((await app.request(`/campaigns/${campaignId}/activate`, { method: 'POST', headers: asA() })).status).toBe(200);
+    expect(
+      (await app.request(`/campaigns/${campaignId}/activate`, { method: 'POST', headers: asA() }))
+        .status,
+    ).toBe(200);
 
     const patched = await app.request(`/campaigns/${campaignId}`, {
       method: 'PATCH',

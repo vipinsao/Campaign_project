@@ -84,13 +84,13 @@ export function humanTypedPortion(body: string): string {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.startsWith(">")) break;                       // quoted reply
-    if (/^--\s*$/.test(trimmed)) break;                  // signature delimiter
-    if (/^_{5,}$/.test(trimmed)) break;                   // Outlook divider
+    if (trimmed.startsWith('>')) break; // quoted reply
+    if (/^--\s*$/.test(trimmed)) break; // signature delimiter
+    if (/^_{5,}$/.test(trimmed)) break; // Outlook divider
     if (/^-{5,}\s*original message/i.test(trimmed)) break;
     if (/^sent from my /i.test(trimmed)) break;
     if (/^get outlook for /i.test(trimmed)) break;
-    if (/^on .{4,80}\bwrote:$/i.test(trimmed)) break;     // "On <date>, <x> wrote:"
+    if (/^on .{4,80}\bwrote:$/i.test(trimmed)) break; // "On <date>, <x> wrote:"
     if (/^(from|to|subject|date|sent):\s/i.test(trimmed)) break; // forwarded header block
     kept.push(line);
   }
@@ -140,10 +140,7 @@ export type OptOutDetection =
  * "STOP ALL" collapses to "STOPALL" because the space is a keyboard artefact, not
  * a different intent.
  */
-export function detectOptOut(
-  body: string,
-  channel: 'email' | 'sms' = 'sms',
-): OptOutDetection {
+export function detectOptOut(body: string, channel: 'email' | 'sms' = 'sms'): OptOutDetection {
   const keywords = optOutKeywordsFor(channel);
 
   // Only the part the human typed, and within that only the FIRST line.

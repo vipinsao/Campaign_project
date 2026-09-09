@@ -84,7 +84,10 @@ describe('the refusal that is the point of the endpoint', () => {
   });
 
   it('catches a dotted gmail local part', async () => {
-    await testDb().query(`UPDATE contacts SET email = 'qa.reserved.probe@gmail.com' WHERE id = $1`, [a.contactId]);
+    await testDb().query(
+      `UPDATE contacts SET email = 'qa.reserved.probe@gmail.com' WHERE id = $1`,
+      [a.contactId],
+    );
     const response = await testSend('qareservedprobe@gmail.com');
     expect(response.status).toBe(409);
     expect(await queuedTo(), 'gmail ignores dots, and so does the guard').toEqual([]);
@@ -97,10 +100,9 @@ describe('the refusal that is the point of the endpoint', () => {
     expect(homoglyph).not.toBe(a.contactEmail);
     const response = await testSend(homoglyph);
     expect(response.status).toBe(409);
-    expect(
-      await queuedTo(),
-      'a homoglyph domain is a different string and the same inbox',
-    ).toEqual([]);
+    expect(await queuedTo(), 'a homoglyph domain is a different string and the same inbox').toEqual(
+      [],
+    );
   });
 
   it('catches a re-formatted phone number in the guard, not in a schema CHECK', async () => {

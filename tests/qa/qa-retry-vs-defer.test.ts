@@ -177,7 +177,12 @@ describe('the ownership fence — no writer can reopen a row it does not own', (
   it('scheduleRetry cannot resurrect a CANCELLED row into the pending queue', async () => {
     const { id, clock } = await claimedRow();
     expect(
-      await markCancelled(testDb(), { claimedBy: OWNER, id, reasonCode: 'consent_opted_out', clock }),
+      await markCancelled(testDb(), {
+        claimedBy: OWNER,
+        id,
+        reasonCode: 'consent_opted_out',
+        clock,
+      }),
     ).toBe(true);
     expect((await fullQueueRow(id))!.status).toBe('cancelled');
 
