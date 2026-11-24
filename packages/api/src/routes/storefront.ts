@@ -92,6 +92,25 @@ export const CATALOGUE = [
 ] as const;
 
 const CURRENCY = 'USD';
+
+/** How a provider is named to a visitor, rather than to an operator. */
+function providerName(provider: string | null): string {
+  switch (provider) {
+    case 'brevo':
+      return 'Brevo';
+    case 'postmark':
+      return 'Postmark';
+    case 'twilio':
+      return 'Twilio';
+    case 'smtp':
+      return 'SMTP';
+    default:
+      return provider ?? 'no provider';
+  }
+}
+
+/** Providers whose delivery callbacks this deployment verifies. See the receipt route. */
+const RECEIPT_PROVIDERS: ReadonlySet<string> = new Set(['postmark', 'twilio']);
 const SKUS: ReadonlySet<string> = new Set<string>(CATALOGUE.map((p) => p.sku));
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -249,8 +268,27 @@ export function storefrontDeliveryDeps(deps: ApiDeps, env: NodeJS.ProcessEnv): D
 // Routes
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * A person's name, and only a person's name.
+ *
+ * The name is printed into the confirmation email ("Thanks Ada —"), and the email
+ * goes to whatever address the form was given. With free text here, the form is a
+ * way to put a sentence and a link of your choosing into a stranger's inbox, sent
+ * from the operator's own account: "Ada, claim your refund at evil.example".
+ * Letters, combining marks, spaces, apostrophes, hyphens and abbreviating full
+ * stops cover real names in every script; digits, `@`, `/`, `:` and a dot inside a
+ * word are what a link is made of.
+ */
+// A full stop only where it ends an abbreviation ("Dr. Who", "J. R. Tolkien"):
+// followed by a space or the end. `evil.example` is a link to most mail clients,
+// and it is made of nothing but letters and a dot.
+const PERSON_NAME = /^[\p{L}\p{M}](?:[\p{L}\p{M}' -]|\.(?=\s|$))*$/u;
+
 const CheckoutBody = z.object({
-  name: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(60).regex(PERSON_NAME, {
+    message:
+      'Use letters only. The name is printed in the confirmation email, so numbers, links and symbols are not accepted.',
+  }),
   email: z.email().max(320),
   phone: z.string().max(32).optional(),
   items: z
@@ -298,9 +336,12 @@ export function storefrontRoutes(
         email: {
           live: live && emailSender.configured,
           provider: live ? emailSender.provider : 'mock',
-          detail: live
-            ? emailSender.detail
-            : 'This deployment runs in mock mode: the message is rendered, gated and recorded, and written to the mock outbox instead of a mailbox.',
+          detail: !live
+            ? 'This deployment runs in mock mode: the message is rendered, gated and recorded, and written to the mock outbox instead of a mailbox.'
+            : emailSender.configured
+              ? `A real confirmation email is sent through ${providerName(emailSender.provider)}. ` +
+                'It usually arrives within a minute; on a free sending plan it can land in spam.'
+              : 'Email is not set up on this demo, so no email is sent — and the receipt records exactly why.',
         },
         sms: {
           live: live && smsSender.configured,
@@ -325,9 +366,13 @@ export function storefrontRoutes(
             whatsapp && joinCode !== undefined
               ? `Send the WhatsApp message "join ${joinCode}" to ${(env['TWILIO_FROM'] ?? '').replace('whatsapp:', '')} first. Twilio's sandbox will not accept a message to a number that has not joined it, and the receipt will show that rejection rather than hide it.`
               : null,
-          detail: live
-            ? smsSender.detail
-            : 'This deployment runs in mock mode: the message is rendered, gated and recorded, and written to the mock outbox instead of a handset.',
+          // Written for the visitor. The variable names an operator needs are in
+          // docs/LIVE-SENDING.md, not on a page a stranger reads.
+          detail: !live
+            ? 'This deployment runs in mock mode: the message is rendered, gated and recorded, and written to the mock outbox instead of a handset.'
+            : smsSender.configured
+              ? `A real SMS is sent through ${providerName(smsSender.provider)} if you leave a number.`
+              : 'SMS is not set up on this demo, so no text message is sent — and the receipt records exactly why.',
         },
       },
       budget: {
@@ -418,13 +463,26 @@ export function storefrontRoutes(
       { type: 'order_placed', tenantId, orderId: order.id },
     );
 
-    const queued = await query<{ id: string }>(
+    /**
+     * Only the storefront campaign's messages are flushed here.
+     *
+     * The public demo lets anybody create and edit campaigns. If this flushed every
+     * row the order enqueued, a visitor could add an active `order_placed`
+     * campaign carrying an advert, then order with a stranger's address, and the
+     * operator's live sending account would deliver it — see migrations/0012.
+     * Rows from other campaigns are left pending; the worker drains them, and the
+     * public deployment runs the worker in mock mode.
+     */
+    const pending = await query<{ id: string; is_storefront: boolean }>(
       deps.db,
-      `SELECT id FROM message_queue
-        WHERE tenant_id = $1 AND order_id = $2 AND status = 'pending'
-        ORDER BY scheduled_at`,
+      `SELECT q.id, c.is_storefront
+         FROM message_queue q JOIN campaigns c ON c.id = q.campaign_id
+        WHERE q.tenant_id = $1 AND q.order_id = $2 AND q.status = 'pending'
+        ORDER BY q.scheduled_at`,
       [tenantId, order.id],
     );
+    const queued = pending.filter((row) => row.is_storefront);
+    const leftForWorker = pending.length - queued.length;
 
     /**
      * The budget check sits BETWEEN the enqueue and the flush, deliberately.
@@ -462,6 +520,13 @@ export function storefrontRoutes(
               `This deployment's daily live-send budget of ${config.dailyBudget} is exhausted, ` +
                 `so nothing was handed to a provider. The order, the enrolment and every ` +
                 `decision were still recorded — open the receipt to read them.`,
+            ]
+          : []),
+        ...(leftForWorker > 0
+          ? [
+              `${String(leftForWorker)} message(s) from other campaigns were queued too. The ` +
+                `checkout only sends the storefront's own confirmation; the background worker ` +
+                `delivers the rest, through the mock provider on this deployment.`,
             ]
           : []),
         ...(outcome.enrolled === 0
@@ -590,11 +655,18 @@ export function storefrontRoutes(
        * webhook route to verify a signature against. So the simulated receipt is
        * scheduled and then dropped.
        *
+       * Live mode is not enough on its own, either. SMTP has no callback at all,
+       * and Brevo's transactional webhooks are unsigned, so `brevo.ts` refuses
+       * them; a message sent through either will sit at `sent` forever, correctly.
+       * Only providers whose callbacks this deployment verifies can move it on.
+       *
        * The page is told this rather than left to poll for something that is not
        * coming. A spinner that never resolves is a worse lie than a sentence
        * saying the deployment does not do that.
        */
-      deliveryReceiptsExpected: deps.sendMode === 'live',
+      deliveryReceiptsExpected:
+        deps.sendMode === 'live' &&
+        messages.some((m) => m.provider !== null && RECEIPT_PROVIDERS.has(m.provider)),
       sendMode: deps.sendMode,
       order: {
         number: order.order_number,

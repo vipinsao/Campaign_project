@@ -30,7 +30,7 @@ flushMessages(ids)                 packages/core/src/delivery/orchestrator.ts
    deliverClaimed → the eight gates → provider.send   ← the ONLY call site (I1)
         │
         ▼
-Brevo / Postmark / Twilio          packages/providers/
+Brevo (HTTPS) / Postmark / Twilio  packages/providers/
 ```
 
 The send happens **inside the HTTP request**, which is why the demo is measured in
@@ -69,7 +69,7 @@ If you do not, it cannot serve a public storefront.
 
 | Goal | Free? | How |
 | --- | --- | --- |
-| Email to any visitor | **yes** | Brevo SMTP, 300/day, no card, no domain required |
+| Email to any visitor | **yes** | Brevo's HTTPS API, 300/day, no card, no domain required |
 | Email to any visitor, good deliverability | no | needs a domain you can add DNS records to |
 | A WhatsApp message to any visitor, worldwide | **yes, with an opt-in step** | Twilio WhatsApp sandbox — the visitor sends a join code first |
 | Plain SMS to any visitor | no | needs an upgraded Twilio account, and for `+91` a DLT registration |
@@ -85,35 +85,57 @@ claiming more in a README than the deployment does on the page.
 Brevo is the recommendation because it is the only free tier that will send to an
 address you do not own, from a sender you can verify **without owning a domain**.
 
+### Use the API, not SMTP — Render's free tier blocks SMTP
+
+Since September 2025 Render's free web services block outbound traffic on ports
+25, 465 and 587. The SMTP adapter pointed at `smtp-relay.brevo.com:587` from a free
+instance never connects, and every send times out. `packages/providers/src/brevo.ts`
+talks to the same Brevo account over HTTPS (port 443), which no platform blocks.
+Use it on any host that blocks SMTP; on a host that does not, either works.
+
 1. <https://www.brevo.com> → sign up. No card.
 2. **Senders, Domains & Dedicated IPs → Senders → Add a sender.** Use an address
    you can open — Brevo emails it a confirmation link. Click it.
-3. **SMTP & API → SMTP.** Note:
-   - server `smtp-relay.brevo.com`, port `587`
-   - **Login** — an address of the form `<digits>@smtp-brevo.com`, *not* your
-     account email
-   - **Master password / SMTP key** — generate one. This is **not** your account
-     password.
+3. **SMTP & API → API keys → Generate a new API key.** It starts `xkeysib-`.
+   Copy it once; Brevo will not show it again.
 4. Set these on the deployment:
 
    | Key | Value |
    | --- | --- |
-   | `SMTP_HOST` | `smtp-relay.brevo.com` |
-   | `SMTP_PORT` | `587` |
-   | `SMTP_USER` | the `…@smtp-brevo.com` login |
-   | `SMTP_PASS` | the SMTP key |
-   | `SMTP_FROM` | the sender you verified in step 2 |
+   | `BREVO_API_KEY` | the `xkeysib-…` key |
+   | `BREVO_FROM` | the sender you verified in step 2, e.g. `Campaign Engine Demo <you@gmail.com>` |
+
+5. **Security → Authorised IPs.** If a send fails with `unauthorized` and a message
+   about an unrecognised IP address, Brevo is blocking calls from addresses it has
+   not seen. Render's outbound IPs are shared and can change, so turn the blocking
+   off for this account rather than trying to list them.
+
+If both `BREVO_*` and `SMTP_*` are set, Brevo wins (`senderFromEnv`): a deployment
+that has a Brevo key has it because SMTP does not work where it runs.
 
 **Expect the first messages to land in spam.** A free shared IP with no SPF, DKIM
-or DMARC for your sending domain is exactly what a spam filter is built to catch.
-If you own a domain, authenticate it in Brevo and use an address on it — that one
-change is worth more than everything else on this page. If you do not, tell people
-to check their spam folder; it is a limitation of the free tier, not of the code.
+or DMARC for your sending domain is exactly what a spam filter is built to catch,
+and Brevo replaces a free-mail sender (gmail.com and the like) with an address on
+its own domain to keep the mail deliverable at all. If you own a domain,
+authenticate it in Brevo and use an address on it — that one change is worth more
+than everything else on this page. If you do not, tell people to check their spam
+folder; the storefront's receipt page already does.
 
-Any SMTP provider works — the adapter is `packages/providers/src/smtp.ts` and it
-speaks plain SMTP. Gmail (`smtp.gmail.com:587`, 2FA plus an App Password, 500/day)
-will work and is a bad idea: Google's terms do not contemplate this, deliverability
-to non-Gmail recipients is poor, and the downside risk is your personal account.
+**No delivery receipts.** Brevo's transactional webhooks are unsigned, and the
+adapter refuses unsigned webhooks — an unauthenticated route that can mark mail
+delivered or a contact bounced is a route anybody can write suppressions through.
+So a Brevo message stays at `sent`, which is the truth (I9), and the receipt page
+says the deployment does not receive Brevo's receipts rather than waiting for one.
+
+### SMTP, where it is not blocked
+
+Any SMTP provider works through `packages/providers/src/smtp.ts`: set `SMTP_HOST`,
+`SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM`. For Brevo that is
+`smtp-relay.brevo.com:587`, the `…@smtp-brevo.com` login and an SMTP key (not your
+account password). Gmail (`smtp.gmail.com:587`, 2FA plus an App Password,
+500/day) will work and is a bad idea: Google's terms do not contemplate this,
+deliverability to non-Gmail recipients is poor, and the downside risk is your
+personal account.
 
 ---
 
@@ -165,14 +187,15 @@ checkout flush):
 | --- | --- | --- |
 | `SEND_MODE` | `live` | anything else and the flush refuses **before** claiming a row (I2) |
 | `PUBLIC_BASE_URL` | the public https URL | every unsubscribe and tracking link is built from it (I7) |
-| `SMTP_*` | above | |
+| `BREVO_API_KEY`, `BREVO_FROM` | above | or `SMTP_*` on a host that allows SMTP |
+| `PUBLIC_DEMO` | `true` | the operator console opens without a login; see below |
 | `TWILIO_*` | above | |
 | `STOREFRONT_DAILY_SEND_BUDGET` | `250` | live sends per rolling 24h, deployment-wide |
 | `STOREFRONT_ADDRESS_COOLDOWN_SECONDS` | `60` | minimum gap between two orders for one address |
 | `MOCK_FAILURE_RATE` | `0` | only matters if you stay in `mock` mode; see below |
 | `MOCK_BOUNCE_RATE` | `0` | ditto |
 
-Set the same `SEND_MODE`, `SMTP_*` and `TWILIO_*` on the **worker** (the GitHub
+Set the same `SEND_MODE`, `BREVO_*`/`SMTP_*` and `TWILIO_*` on the **worker** (the GitHub
 Actions secrets, or the Render Background Worker) only if you want the *seeded*
 campaigns — welcome series, win-back — to go out for real as well. You almost
 certainly do not: those target 500 fabricated contacts at `@example.com`
@@ -195,15 +218,29 @@ happened. That is the safe direction for the mistake to run in; if you want thos
 retries to go out for real, give the worker the same credentials and accept that
 the seeded campaigns go live too.
 
-Then reseed, because the storefront's campaign is new:
+No reseed is needed. Migration `0012` marks the existing "Order confirmation"
+campaign as the storefront's when the service boots, and the nightly reset picks
+up any seed changes.
 
-```bash
-export DATABASE_URL='<your connection string>'
-npm run migrate
-npm run seed:demo
-npm run demo:simulate
-npm run rollups:rebuild
-```
+### The public demo, and why the open console cannot become a relay
+
+`PUBLIC_DEMO=true` makes `POST /auth/demo` hand out an operator session for the
+storefront's tenant, and the SPA asks for one on its own — so a visitor who clicks
+"Operator console" lands in the console, with full operator access. Two things
+keep that from undoing everything above:
+
+- **The checkout only sends the storefront campaign.** Exactly one campaign per
+  tenant is marked `is_storefront` (migration `0012`), the checkout flushes only
+  its rows, and the API refuses to edit, pause or archive it. Without this, a
+  visitor could write an advert into a campaign and order with a stranger's
+  address, and your Brevo account would deliver it. Visitors can still duplicate
+  it and experiment with the copy; the worker sends that through the mock.
+- **Other visitors are masked.** Every operator response is redacted on the way
+  out: real email addresses, phone numbers, IPs and user agents are masked, while
+  the seed's `@example.com` / `+1500555` data is left readable.
+
+The storefront also refuses a name that could carry a link (digits, `@`, `/`, `:`
+or a dot inside a word), because the name is printed into the email.
 
 ### Verify it end to end
 
@@ -235,7 +272,11 @@ response rather than in a log you have to go and find.
 | What you see | Where to look | Usual cause |
 | --- | --- | --- |
 | `flushed.refusedWithoutClaim: true` | — | `SEND_MODE` is not `live`. The row was not claimed and no attempt was burned (I2). |
-| `no_recipient_address` on a *send* decision | `send_decisions` | Live mode, no `provider_credentials` row **and** no `SMTP_*`/`TWILIO_*` in the environment. |
+| `no_recipient_address` on a *send* decision | `send_decisions` | Live mode, no `provider_credentials` row **and** no `BREVO_*`/`SMTP_*`/`TWILIO_*` in the environment. |
+| Brevo `unauthorized` | `provider_error_code` | Wrong `BREVO_API_KEY`, or Brevo's Authorised IPs blocking Render (step 5 above). |
+| Brevo `permission_denied` | `provider_error_code` | The `BREVO_FROM` sender has not been verified yet. |
+| Brevo `not_enough_credits` | `provider_error_code` | The free plan's 300/day is used up. |
+| SMTP `ETIMEDOUT` on Render | `provider_error_code` | Render's free tier blocks SMTP ports. Use the Brevo API instead. |
 | `no_recipient_address` on a *schedule* decision | `send_decisions` | The contact has no address on that channel — usually the visitor left the phone field blank. Working as designed. |
 | `storefront_not_seeded` (409) | — | `npm run seed:demo` has not run against this database, or `STOREFRONT_TENANT_NAME` does not match a tenant. |
 | Twilio `63016` | `provider_error_code` | The recipient has not joined the WhatsApp sandbox. |
@@ -253,9 +294,14 @@ An unauthenticated endpoint that sends email to an address in the request body i
 stated plainly, an open relay with extra steps. It is defensible here because of
 what it *cannot* be made to do, not because of good intentions:
 
-- The recipient is the person filling in the form. There is no field that
-  addresses a message to a third party, and no free-text body — the content comes
-  from a seeded template.
+- The recipient is whatever address the form was given — which may not be the
+  person filling it in, so the content is what has to be safe. There is no
+  free-text body: the email is the locked storefront campaign's template, and the
+  checkout sends nothing else, even if a visitor builds another `order_placed`
+  campaign in the open console.
+- The one piece of visitor text printed into the email, the name, is restricted
+  to letters, spaces, apostrophes, hyphens and abbreviating full stops, so it
+  cannot carry a link (`evil.example` is refused; `Dr. Who` is not).
 - Per-IP rate limit: 20 requests/minute on its own bucket, separate from the
   3,000/minute public bucket that exists for tracking pixels.
 - Per-address cooldown, so the same mailbox cannot be targeted by resubmission

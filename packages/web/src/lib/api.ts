@@ -19,6 +19,7 @@ import { displayUnknown } from './format.ts';
 const BASE = '/api';
 const TOKEN_KEY = 'campaign.operator.token';
 const USER_KEY = 'campaign.operator.user';
+const DEMO_KEY = 'campaign.operator.demo';
 
 export type ErrorEnvelope = {
   readonly error: { readonly code: string; readonly message: string; readonly details?: unknown };
@@ -75,10 +76,12 @@ export function readOperator(): Operator | null {
   }
 }
 
-export function storeSession(token: string, user: Operator): void {
+export function storeSession(token: string, user: Operator, demo = false): void {
   try {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
+    if (demo) localStorage.setItem(DEMO_KEY, '1');
+    else localStorage.removeItem(DEMO_KEY);
   } catch {
     /* private browsing; the session simply will not survive a reload. */
   }
@@ -88,10 +91,41 @@ export function clearSession(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(DEMO_KEY);
   } catch {
     /* nothing to clear. */
   }
   window.dispatchEvent(new CustomEvent('campaign:signed-out'));
+}
+
+/** True when this browser holds a public-demo session rather than a signed-in one. */
+export function isDemoSession(): boolean {
+  try {
+    return localStorage.getItem(DEMO_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ask for a public-demo session.
+ *
+ * Resolves `true` when the deployment is a public demo and a session was stored,
+ * `false` when it is not one (the API answers 404, exactly as for an unknown path).
+ * Anything else is a real failure and is thrown for the caller to show.
+ */
+export async function startDemoSession(): Promise<boolean> {
+  try {
+    const result = await request<{ token: string; user: Operator }>('/auth/demo', {
+      method: 'POST',
+      body: {},
+    });
+    storeSession(result.token, result.user, true);
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return false;
+    throw error;
+  }
 }
 
 // ── the request ──────────────────────────────────────────────────────────────
@@ -146,7 +180,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   // An expired token is not an error the page should render; it is a session that
   // ended. Everything else is the caller's to explain.
-  if (response.status === 401 && path !== '/auth/login') clearSession();
+  if (response.status === 401 && path !== '/auth/login' && path !== '/auth/demo') clearSession();
 
   const envelope = parsed as Partial<ErrorEnvelope> | null;
   const error = envelope?.error;

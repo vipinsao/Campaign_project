@@ -11,6 +11,7 @@ import { ChannelBadge, Pill, QueueStatusPill } from '../components/Pill.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { Tooltip } from '../components/Tooltip.tsx';
 import { DASH, int, relative, shortTimestamp, timestamp } from '../lib/format.ts';
+import { Icon } from '../components/Icons.tsx';
 
 /**
  * The queue.
@@ -133,8 +134,8 @@ export function QueuePage() {
                   setSearch(event.target.value);
                 }}
               />
-              <span className="pointer-events-none absolute top-1.5 left-2 text-[12px] text-ink-faint">
-                ⌕
+              <span className="pointer-events-none absolute top-2 left-2 text-ink-faint">
+                <Icon name="search" className="size-3.5" />
               </span>
               {search.length === 0 && (
                 <span className="kbd pointer-events-none absolute top-1.5 right-2">/</span>
@@ -206,7 +207,7 @@ export function QueuePage() {
           <ErrorState error={queue.error} onRetry={() => void queue.refetch()} />
         ) : rows.length === 0 ? (
           <EmptyState
-            glyph={all.length === 0 ? '∅' : '⌕'}
+            glyph={all.length === 0 ? '∅' : '○'}
             title={
               all.length === 0
                 ? status === null

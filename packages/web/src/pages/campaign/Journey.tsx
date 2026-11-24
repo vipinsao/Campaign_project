@@ -687,10 +687,17 @@ export function JourneyTab() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={save.isPending || !dirty}
+              disabled={save.isPending || !dirty || campaign.isStorefront}
+              title={campaign.isStorefront ? 'Locked — duplicate the campaign to edit' : undefined}
               onClick={onSave}
             >
-              {save.isPending ? 'Syncing…' : dirty ? 'Validate & save' : 'Saved'}
+              {campaign.isStorefront
+                ? 'Locked'
+                : save.isPending
+                  ? 'Syncing…'
+                  : dirty
+                    ? 'Validate & save'
+                    : 'Saved'}
             </button>
           </div>
         </div>

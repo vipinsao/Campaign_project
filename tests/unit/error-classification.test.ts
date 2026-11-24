@@ -33,9 +33,10 @@ describe('the error classification table', () => {
   });
 
   it('covers every provider the schema permits', () => {
-    // provider_credentials.provider is CHECK-constrained to exactly these four.
+    // provider_credentials.provider is CHECK-constrained to exactly these five
+    // (migrations/0012 added brevo).
     const providers = new Set(ERROR_TABLE.map((rule) => rule.provider));
-    expect([...providers].sort()).toEqual(['mock', 'postmark', 'smtp', 'twilio']);
+    expect([...providers].sort()).toEqual(['brevo', 'mock', 'postmark', 'smtp', 'twilio']);
   });
 
   it.each(ERROR_TABLE.map((rule) => [rule.provider, rule.code, rule] as const))(

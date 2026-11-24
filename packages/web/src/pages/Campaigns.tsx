@@ -21,6 +21,7 @@ import { CampaignStatusPill, ChannelBadges, Pill } from '../components/Pill.tsx'
 import { ApiRateValue, Unknown } from '../components/Rate.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { Tooltip } from '../components/Tooltip.tsx';
+import { Icon } from '../components/Icons.tsx';
 
 /**
  * The campaign list.
@@ -116,8 +117,8 @@ export function CampaignsPage() {
                   setSearch(event.target.value);
                 }}
               />
-              <span className="pointer-events-none absolute top-1.5 left-2 text-[12px] text-ink-faint">
-                ⌕
+              <span className="pointer-events-none absolute top-2 left-2 text-ink-faint">
+                <Icon name="search" className="size-3.5" />
               </span>
               {search.length === 0 && (
                 <span className="kbd pointer-events-none absolute top-1.5 right-2">/</span>
@@ -159,7 +160,7 @@ export function CampaignsPage() {
           <ErrorState error={list.error} onRetry={() => void list.refetch()} />
         ) : rows.length === 0 ? (
           <EmptyState
-            glyph={all.length === 0 ? '∅' : '⌕'}
+            glyph={all.length === 0 ? '∅' : '○'}
             title={
               all.length === 0
                 ? 'No campaigns in this tenant yet'

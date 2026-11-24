@@ -15,6 +15,7 @@ import type { ApiDeps } from '../deps.ts';
 import type { AppEnv } from '../middleware/context.ts';
 import { tenantOf } from '../middleware/context.ts';
 import { badRequest, notFound } from '../errors.ts';
+import { assertNotStorefront } from '../services/campaigns.ts';
 
 /**
  * The journey canvas endpoints.
@@ -61,12 +62,17 @@ export function flowRoutes(deps: ApiDeps): Hono<AppEnv> {
     const tenantId = tenantOf(c);
     const campaignId = c.req.param('id');
 
-    const campaign = await queryOne<{ id: string; category: CampaignCategory }>(
+    const campaign = await queryOne<{
+      id: string;
+      category: CampaignCategory;
+      is_storefront: boolean;
+    }>(
       deps.db,
-      `SELECT id, category FROM campaigns WHERE id = $1 AND tenant_id = $2`,
+      `SELECT id, category, is_storefront FROM campaigns WHERE id = $1 AND tenant_id = $2`,
       [campaignId, tenantId],
     );
     if (!campaign) throw notFound('campaign', campaignId);
+    assertNotStorefront(campaign);
 
     const body = await c.req.json<{ flow?: FlowGraph }>().catch(() => ({ flow: undefined }));
     if (!body.flow) throw badRequest('flow_invalid', 'Expected { flow: { nodes, edges } }.');

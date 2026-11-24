@@ -37,6 +37,8 @@ export type Campaign = {
   readonly sendDays: number[];
   readonly oneTimePerContact: boolean;
   readonly activeVersionId: string | null;
+  /** The campaign the public storefront sends. The API refuses to change it. */
+  readonly isStorefront: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
 };

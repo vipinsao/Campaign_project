@@ -37,6 +37,11 @@ export type EnvSender = {
  * Picking arbitrarily between them means the sending domain changes on a restart,
  * which is how a reputable domain acquires a spam reputation it cannot explain.
  * SMTP first, because it is the one every free tier speaks.
+ *
+ * Brevo's HTTPS API comes before SMTP. A deployment that has set BREVO_API_KEY has
+ * done so because SMTP does not work where it runs — Render's free tier blocks
+ * outbound ports 25, 465 and 587 — and a leftover SMTP_HOST must not quietly win
+ * and time out every send.
  */
 export function senderFromEnv(
   channel: Channel,
@@ -48,6 +53,9 @@ export function senderFromEnv(
   };
 
   if (channel === 'email') {
+    const brevoFrom = set('BREVO_FROM');
+    if (set('BREVO_API_KEY') && brevoFrom) return { provider: 'brevo', fromAddress: brevoFrom };
+
     const smtpFrom = set('SMTP_FROM');
     if (set('SMTP_HOST') && smtpFrom) return { provider: 'smtp', fromAddress: smtpFrom };
 
@@ -94,7 +102,7 @@ export function describeEnvSender(
     provider: null,
     detail:
       channel === 'email'
-        ? 'No email sender in the environment. Set SMTP_HOST + SMTP_FROM (any SMTP provider), or POSTMARK_SERVER_TOKEN + POSTMARK_FROM.'
+        ? 'No email sender in the environment. Set BREVO_API_KEY + BREVO_FROM (HTTPS, works where SMTP ports are blocked), SMTP_HOST + SMTP_FROM, or POSTMARK_SERVER_TOKEN + POSTMARK_FROM.'
         : 'No SMS sender in the environment. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM.',
   };
 }

@@ -1,5 +1,5 @@
 import { createContext, use, useState } from 'react';
-import { NavLink, Outlet, useParams } from 'react-router';
+import { NavLink, Outlet, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { ApiError, api, failuresByMessage } from '../lib/api.ts';
@@ -50,6 +50,7 @@ export function useCampaign(): CampaignContextValue {
 
 export function CampaignEditor() {
   const { id = '' } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activationFailures, setActivationFailures] = useState<Map<string, string[]>>(new Map());
   const [actionError, setActionError] = useState<unknown>(null);
@@ -106,6 +107,24 @@ export function CampaignEditor() {
     onError: setActionError,
   });
 
+  /**
+   * Duplicate: the API copies the definition into a new DRAFT with no history.
+   * On the public demo it is also the way to experiment with the storefront's
+   * own campaign, which is locked.
+   */
+  const duplicate = useMutation({
+    mutationFn: () => api.post<{ campaign: Campaign }>(`/campaigns/${id}/duplicate`),
+    onMutate: () => {
+      setActionError(null);
+      setNote(null);
+    },
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void navigate(`/campaigns/${result.campaign.id}/overview`);
+    },
+    onError: setActionError,
+  });
+
   if (campaignQuery.isPending || messagesQuery.isPending) {
     return (
       <>
@@ -157,6 +176,7 @@ export function CampaignEditor() {
         }
         subtitle={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {campaign.isStorefront && <Pill tone="info">Sent by the public shop · locked</Pill>}
             <Pill tone="quiet">{titleCase(campaign.category)}</Pill>
             <Pill tone="quiet" mono>
               {campaign.triggerType}
@@ -167,6 +187,16 @@ export function CampaignEditor() {
         }
         actions={
           <>
+            <button
+              type="button"
+              className="btn"
+              disabled={duplicate.isPending}
+              onClick={() => {
+                duplicate.mutate();
+              }}
+            >
+              {duplicate.isPending ? 'Duplicating…' : 'Duplicate'}
+            </button>
             {campaign.status !== 'active' && campaign.status !== 'archived' && (
               <button
                 type="button"
@@ -179,18 +209,19 @@ export function CampaignEditor() {
                 {activate.isPending ? 'Checking…' : 'Activate'}
               </button>
             )}
-            {(campaign.status === 'active' || campaign.status === 'observe') && (
-              <button
-                type="button"
-                className="btn"
-                disabled={pause.isPending}
-                onClick={() => {
-                  pause.mutate();
-                }}
-              >
-                Pause
-              </button>
-            )}
+            {!campaign.isStorefront &&
+              (campaign.status === 'active' || campaign.status === 'observe') && (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={pause.isPending}
+                  onClick={() => {
+                    pause.mutate();
+                  }}
+                >
+                  Pause
+                </button>
+              )}
           </>
         }
         tabs={
@@ -221,6 +252,15 @@ export function CampaignEditor() {
       />
 
       <Scroll>
+        {campaign.isStorefront && (
+          <div className="mx-3 mt-3 rounded-md border border-accent-dim/50 bg-accent-wash px-3 py-2 text-[12px] leading-relaxed text-ink-dim">
+            <span className="font-medium text-accent">Locked.</span> This campaign sends the
+            confirmation for every order placed in the public shop, so it cannot be edited or paused
+            — every visitor gets the same, known email. Press{' '}
+            <span className="font-medium text-ink">Duplicate</span> to experiment with your own
+            copy.
+          </div>
+        )}
         {note !== null && (
           <div className="mx-3 mt-3 rounded-md border border-ok/30 bg-ok-wash px-3 py-2 text-[12px] text-ok">
             {note}

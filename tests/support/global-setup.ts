@@ -33,6 +33,29 @@ const URL_ = `postgresql://ce_test:ce_test@127.0.0.1:${PORT}/postgres`;
 
 let pg: EmbeddedPostgres | undefined;
 
+/**
+ * Keep vitest's exit code. Without this, CI cannot fail.
+ *
+ * Importing `embedded-postgres` registers `async-exit-hook`, which answers Node's
+ * `beforeExit` with `process.exit(0)`. Vitest reports failures by setting
+ * `process.exitCode = 1` and letting the process end, so the hook overwrote every
+ * failure with success: `vitest run` exited 0 with failing tests, and every CI job
+ * went green whatever the suite said. The integration job's own log for 754a1b3
+ * shows a failed test under a green tick.
+ *
+ * The fix records a failing code before that hook runs — `prependListener`, so this
+ * listener is first — and restores it on `exit`, which runs after `process.exit(0)`
+ * has set the code and before Node uses it.
+ */
+let failingExitCode: number | undefined;
+process.prependListener('beforeExit', () => {
+  const code = Number(process.exitCode ?? 0);
+  if (Number.isFinite(code) && code !== 0) failingExitCode = code;
+});
+process.on('exit', () => {
+  if (failingExitCode !== undefined) process.exitCode = failingExitCode;
+});
+
 export async function setup(project: TestProject) {
   await rm(DATA_DIR, { recursive: true, force: true });
 

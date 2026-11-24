@@ -227,14 +227,22 @@ describe('activation', () => {
   });
 
   it('refuses to activate a campaign that does not validate, and changes nothing', async () => {
+    // A campaign with nothing to send. This test used to build its invalid
+    // campaign from a promotional message with no opt-out, but that message is now
+    // refused when it is SAVED (422 template_invalid), which is stricter and
+    // correct — so the invalid state it needs is the empty one. The failure went
+    // unnoticed because CI could not fail; see tests/support/global-setup.ts.
     const campaignId = await createCampaign({ category: 'promotional' });
-    await addMessage(campaignId, { bodyTemplate: 'No way out of this one, sorry.' });
 
     const response = await app.request(`/campaigns/${campaignId}/activate`, {
       method: 'POST',
       headers: headers(),
     });
     expect(response.status).toBe(422);
+    const failures = (
+      (await response.json()) as { error: { details: { failures: { code: string }[] } } }
+    ).error.details.failures.map((f) => f.code);
+    expect(failures).toContain('no_enabled_messages');
 
     const { rows } = await testDb().query<{ status: string; n: string }>(
       `SELECT c.status,

@@ -340,11 +340,13 @@ async function seedCampaigns(db: Pool, tenantId: string): Promise<string[]> {
       html?: string;
     }[];
     stopOn?: string[];
+    /** The one campaign the public storefront sends. See migrations/0012. */
+    storefront?: boolean;
   }) => {
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO campaigns (tenant_id, name, description, category, trigger_type,
-                              trigger_config, channels, status, audience)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+                              trigger_config, channels, status, audience, is_storefront)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
       [
         tenantId,
         spec.name,
@@ -355,6 +357,7 @@ async function seedCampaigns(db: Pool, tenantId: string): Promise<string[]> {
         spec.channels,
         spec.status,
         JSON.stringify(spec.audience ?? {}),
+        spec.storefront ?? false,
       ],
     );
     const campaignId = rows[0]!.id;
@@ -503,28 +506,46 @@ async function seedCampaigns(db: Pool, tenantId: string): Promise<string[]> {
     name: 'Order confirmation',
     description:
       'Transactional. Fired by the public storefront: an email receipt, and an SMS if the ' +
-      'customer left a number. Exempt from quiet hours and from marketing consent.',
+      'customer left a number. Exempt from quiet hours and from marketing consent. Delivery ' +
+      'reads 0% unless the provider sends receipts: `delivered` is only ever written by a ' +
+      "provider's receipt, never inferred from a send (I9).",
     category: 'transactional',
     trigger: 'order_placed',
     status: 'active',
     channels: ['email', 'sms'],
+    storefront: true,
     messages: [
       {
         channel: 'email',
         order: 1,
-        subject: 'Order {{order.number}} confirmed',
+        // This is the email a stranger who found the project on a CV actually
+        // receives, so it says what they are looking at and where the source is.
+        subject: 'Your order {{order.number}} is confirmed',
         body:
-          `Thanks {{contact.first_name}} — we have your order {{order.number}} for ` +
+          `Hi {{contact.first_name}},\n\n` +
+          `Thanks for your order {{order.number}} at The Engine Shop — ` +
           `{{order.currency}} {{order.total}}.\n\n` +
-          `This email was sent by Campaign Engine. It was queued by an order_placed trigger, ` +
-          `passed eight send-time gates, and left through a single send path. Every one of ` +
-          `those decisions is recorded and readable on your receipt page.`,
+          `This is a demo store: nothing is charged and nothing ships. The email itself is the ` +
+          `point. An order_placed trigger enrolled you, the message was rendered, passed the ` +
+          `engine's send-time gates and left through its single send path — and every one of ` +
+          `those decisions, including any message it refused to send, is on the receipt page ` +
+          `you saw after checkout.\n\n` +
+          `Campaign Engine, built by Vipin Chandra Sao\n` +
+          `Source: https://github.com/vipinsao/Campaign_project`,
         html:
-          `<p>Thanks {{contact.first_name}} — we have your order <strong>{{order.number}}</strong> ` +
-          `for {{order.currency}} {{order.total}}.</p>` +
-          `<p>This email was sent by Campaign Engine. It was queued by an <code>order_placed</code> ` +
-          `trigger, passed eight send-time gates, and left through a single send path — and every ` +
-          `one of those decisions is recorded and readable on your receipt page.</p>`,
+          `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px 20px;color:#1f2937;font-size:15px;line-height:1.6">` +
+          `<p style="margin:0 0 20px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#6b7280">The Engine Shop · demo store</p>` +
+          `<h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#111827">Order {{order.number}} is confirmed</h1>` +
+          `<p style="margin:0 0 16px">Hi {{contact.first_name}}, thanks for your order. ` +
+          `Total: <strong>{{order.currency}} {{order.total}}</strong>.</p>` +
+          `<div style="margin:0 0 20px;padding:14px 16px;border-radius:8px;background:#f3f4f6;font-size:14px;color:#374151">` +
+          `This is a demo store — nothing is charged and nothing ships. The email itself is the point: ` +
+          `an <code>order_placed</code> trigger enrolled you, the message passed the engine&rsquo;s ` +
+          `send-time gates and left through its single send path, and every decision — including any ` +
+          `message it refused to send — is on the receipt page you saw after checkout.</div>` +
+          `<p style="margin:0;font-size:13px;color:#6b7280">Campaign Engine, built by Vipin Chandra Sao · ` +
+          `<a href="https://github.com/vipinsao/Campaign_project" style="color:#4f46e5">source on GitHub</a></p>` +
+          `</div>`,
       },
       {
         channel: 'sms',

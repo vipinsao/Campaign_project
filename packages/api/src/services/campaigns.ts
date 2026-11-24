@@ -3,7 +3,7 @@ import type { Db } from '@campaign/core';
 import { compileAudience, query, queryOne, validateTemplate } from '@campaign/core';
 import { AudienceDefinition } from '@campaign/shared';
 import type { CampaignCategory, CampaignStatus, Channel, TriggerType } from '@campaign/shared';
-import { notFound } from '../errors.ts';
+import { conflict, notFound } from '../errors.ts';
 
 /**
  * Campaign reads and the activation snapshot.
@@ -30,6 +30,8 @@ export type CampaignRow = {
   readonly send_days: number[];
   readonly one_time_per_contact: boolean;
   readonly active_version_id: string | null;
+  /** The one campaign the public storefront may send. See migrations/0012. */
+  readonly is_storefront: boolean;
   readonly created_at: Date;
   readonly updated_at: Date;
 };
@@ -56,7 +58,7 @@ export const CAMPAIGN_COLUMNS = `
   status, audience,
   to_char(send_window_start, 'HH24:MI') AS send_window_start,
   to_char(send_window_end,   'HH24:MI') AS send_window_end,
-  send_days, one_time_per_contact, active_version_id, created_at, updated_at`;
+  send_days, one_time_per_contact, active_version_id, is_storefront, created_at, updated_at`;
 
 export async function loadCampaign(
   db: Db | PoolClient,
@@ -72,6 +74,26 @@ export async function loadCampaign(
   // forbidden. See the note on `notFound` in errors.ts.
   if (row === undefined) throw notFound('Campaign', campaignId);
   return row;
+}
+
+/**
+ * Refuse to change the campaign the public storefront sends.
+ *
+ * The public demo's console needs no login, and the storefront's checkout hands
+ * real addresses to a real email provider. Letting anybody rewrite the one
+ * campaign that path sends — or pause it, so the next visitor's order produces
+ * nothing — would make the demo both an open relay and trivially breakable. The
+ * full reasoning is in migrations/0012. Duplicating it is allowed: the copy is an
+ * ordinary campaign and the checkout never sends it.
+ */
+export function assertNotStorefront(campaign: { id: string; is_storefront: boolean }): void {
+  if (!campaign.is_storefront) return;
+  throw conflict(
+    'storefront_campaign_locked',
+    'This campaign powers the public shop, so it is locked: every visitor must get the same, ' +
+      'known confirmation email. Duplicate it to experiment with a copy.',
+    { campaignId: campaign.id },
+  );
 }
 
 export function loadCampaignMessages(
@@ -105,6 +127,7 @@ export function campaignJson(row: CampaignRow): Record<string, unknown> {
     sendDays: row.send_days,
     oneTimePerContact: row.one_time_per_contact,
     activeVersionId: row.active_version_id,
+    isStorefront: row.is_storefront,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
-import { ApiError, api, readToken, storeSession } from '../lib/api.ts';
+import { ApiError, api, readToken, startDemoSession, storeSession } from '../lib/api.ts';
 import type { LoginResponse } from '../lib/types.ts';
 import { ErrorState } from '../components/States.tsx';
 import { displayUnknown } from '../lib/format.ts';
@@ -36,8 +36,48 @@ export function LoginPage() {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * A public-demo deployment opens the console without asking for anything.
+   *
+   * The form below is for every other deployment. On a public demo the API hands
+   * out a session for the seeded tenant, so the visitor who clicked "Operator
+   * console" lands in the console, not on a password prompt they cannot answer.
+   */
+  const [demo, setDemo] = useState<'checking' | 'unavailable'>(() =>
+    readToken() === null ? 'checking' : 'unavailable',
+  );
+
+  useEffect(() => {
+    if (demo !== 'checking') return;
+    let cancelled = false;
+    startDemoSession()
+      .then((opened) => {
+        if (cancelled) return;
+        if (opened) void navigate('/campaigns', { replace: true });
+        else setDemo('unavailable');
+      })
+      .catch((caught: unknown) => {
+        if (cancelled) return;
+        setError(caught);
+        setDemo('unavailable');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [demo, navigate]);
 
   if (readToken() !== null) return <Navigate to="/campaigns" replace />;
+
+  if (demo === 'checking') {
+    return (
+      <div className="grid h-full place-items-center px-4">
+        <div className="flex items-center gap-2.5 text-[13px] text-ink-dim">
+          <span className="size-3 animate-spin rounded-full border-2 border-line-strong border-t-accent" />
+          Opening the operator console…
+        </div>
+      </div>
+    );
+  }
 
   const candidates =
     error instanceof ApiError && error.code === 'ambiguous_account'

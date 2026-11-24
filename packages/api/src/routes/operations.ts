@@ -5,6 +5,7 @@ import type { AppEnv } from '../middleware/context.ts';
 import { tenantOf } from '../middleware/context.ts';
 import { notFound } from '../errors.ts';
 import { pagination } from './campaigns.ts';
+import { publicDemoEnabled } from '../middleware/public-demo.ts';
 
 /**
  * Three endpoints the operator UI needs and nothing else provides.
@@ -51,10 +52,15 @@ export function operationsRoutes(deps: ApiDeps): Hono<AppEnv> {
    * Gated on SEND_MODE: in a live deployment this would expose message bodies to
    * anyone with an operator login, and the mock outbox has no reason to exist
    * there anyway.
+   *
+   * Except on the public demo, where it does. Its API runs live so the storefront
+   * can send, while its worker stays on mock and keeps writing the seeded
+   * campaigns here. Refusing would hide the half of the demo that never touches a
+   * real inbox, and every row is masked on the way out (middleware/public-demo.ts).
    */
   app.get('/mock-outbox', async (c) => {
     const tenantId = tenantOf(c);
-    if (deps.sendMode === 'live') {
+    if (deps.sendMode === 'live' && !publicDemoEnabled(deps.env)) {
       return c.json({
         messages: [],
         available: false,

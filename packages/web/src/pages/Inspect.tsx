@@ -24,6 +24,7 @@ import {
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { Tooltip } from '../components/Tooltip.tsx';
 import { DASH, initials, money, relative, timestamp } from '../lib/format.ts';
+import { Icon } from '../components/Icons.tsx';
 
 /**
  * “Why didn’t this customer get the email?”
@@ -210,8 +211,8 @@ export function InspectPage() {
                   setTerm(event.target.value);
                 }}
               />
-              <span className="pointer-events-none absolute top-3 left-3 text-[14px] text-ink-faint">
-                ⌖
+              <span className="pointer-events-none absolute top-3.5 left-3 text-ink-faint">
+                <Icon name="search" className="size-4" />
               </span>
               <span className="absolute top-2.5 right-2.5 flex items-center gap-2">
                 {term.trim().length > 0 && (
@@ -239,7 +240,7 @@ export function InspectPage() {
 
         {lookup.state === 'idle' && (
           <EmptyState
-            glyph="⌖"
+            glyph="◎"
             title="Nothing looked up yet"
             detail="Paste the order number from a customer’s email, or their address. This page reads the decision log, so it can answer for a message that was never sent."
           />

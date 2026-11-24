@@ -72,6 +72,16 @@ services:
         generateValue: true
       - key: ENCRYPTION_KEY
         generateValue: true
+      # The operator console opens without a login, and real people's contact
+      # details are masked in it. See docs/LIVE-SENDING.md, "The public demo".
+      - key: PUBLIC_DEMO
+        value: 'true'
+      # Email for the storefront when SEND_MODE is live: Brevo's HTTPS API, which
+      # works where SMTP ports are blocked. Set by hand; never committed.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM
+        sync: false
 
   - type: worker
     name: campaign-engine-worker

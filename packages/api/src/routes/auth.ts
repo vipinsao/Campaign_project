@@ -6,6 +6,7 @@ import type { AppEnv } from '../middleware/context.ts';
 import { operatorOf } from '../middleware/context.ts';
 import { conflict, unauthorized } from '../errors.ts';
 import { hashPassword, signOperatorToken, verifyPassword } from '../auth/tokens.ts';
+import { publicDemoEnabled } from '../middleware/public-demo.ts';
 
 const LoginBody = z.object({
   email: z.string().min(1).max(320),
@@ -110,6 +111,72 @@ export function authRoutes(deps: ApiDeps): Hono<AppEnv> {
     return c.json({
       token,
       expiresIn: deps.tokenTtlSeconds,
+      user: { id: user.id, email: user.email, role: user.role, tenantId: user.tenant_id },
+    });
+  });
+
+  return app;
+}
+
+/**
+ * A session for anybody, on a public-demo deployment only.
+ *
+ * See middleware/public-demo.ts for why this exists and what it costs. On any
+ * other deployment the route answers 404 exactly as an unknown path would, so a
+ * client cannot tell a real deployment that has it switched off from one that
+ * never had it — and the SPA falls back to the ordinary sign-in form.
+ *
+ * The account it signs is the seeded owner of the storefront's tenant, resolved by
+ * tenant NAME like everything else the storefront touches, never by a literal id.
+ * No password is checked because none is asked for; that is the whole feature.
+ */
+export function demoSessionRoutes(deps: ApiDeps): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
+  const enabled = publicDemoEnabled(deps.env);
+  const tenantName = deps.env['STOREFRONT_TENANT_NAME'] ?? 'Demo Store (seeded data)';
+
+  app.post('/auth/demo', async (c) => {
+    if (!enabled) {
+      return c.json(
+        {
+          error: {
+            code: 'not_found',
+            message: 'No route matches this request.',
+            details: { method: c.req.method, path: c.req.path },
+          },
+        },
+        404,
+      );
+    }
+
+    const user = (
+      await query<UserRow>(
+        deps.db,
+        `SELECT u.id, u.tenant_id, u.email::text AS email, u.password_hash, u.role
+           FROM users u JOIN tenants t ON t.id = u.tenant_id
+          WHERE t.name = $1
+          ORDER BY (u.role = 'owner') DESC, u.created_at, u.id`,
+        [tenantName],
+      )
+    )[0];
+    if (user === undefined) {
+      throw conflict(
+        'demo_not_seeded',
+        `The public demo has no operator for tenant '${tenantName}'. Run \`npm run seed:demo\`.`,
+        { tenantName },
+      );
+    }
+
+    const token = await signOperatorToken(
+      { userId: user.id, tenantId: user.tenant_id, email: user.email, role: user.role },
+      deps.jwtSecret,
+      deps.clock,
+      deps.tokenTtlSeconds,
+    );
+    return c.json({
+      token,
+      expiresIn: deps.tokenTtlSeconds,
+      demo: true,
       user: { id: user.id, email: user.email, role: user.role, tenantId: user.tenant_id },
     });
   });

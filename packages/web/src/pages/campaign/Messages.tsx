@@ -230,7 +230,8 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={!dirty || save.isPending}
+              disabled={!dirty || save.isPending || campaign.isStorefront}
+              title={campaign.isStorefront ? 'Locked — duplicate the campaign to edit' : undefined}
               onClick={() => {
                 save.mutate({
                   subjectTemplate: subject.length === 0 ? null : subject,
@@ -239,7 +240,13 @@ function MessageEditor({ message }: { message: CampaignMessage }) {
                 });
               }}
             >
-              {save.isPending ? 'Saving…' : dirty ? 'Save' : 'Saved'}
+              {campaign.isStorefront
+                ? 'Locked'
+                : save.isPending
+                  ? 'Saving…'
+                  : dirty
+                    ? 'Save'
+                    : 'Saved'}
             </button>
           </div>
         </div>

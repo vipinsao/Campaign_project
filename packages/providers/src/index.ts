@@ -7,6 +7,7 @@
  * show a bounce without anyone having to arrange a real one.
  */
 export * from './backoff.ts';
+export * from './brevo.ts';
 export * from './deps.ts';
 export * from './env-sender.ts';
 export * from './errors.ts';

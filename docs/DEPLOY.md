@@ -71,10 +71,11 @@ npm run rollups:rebuild
    | Key | Value |
    | --- | --- |
    | `DATABASE_URL` | the Neon string |
-   | `SEND_MODE` | `mock` |
+   | `SEND_MODE` | `mock` (`live` once email is set up — step 6) |
    | `JWT_SECRET` | `openssl rand -base64 48` |
    | `ENCRYPTION_KEY` | `openssl rand -hex 32` |
    | `PUBLIC_BASE_URL` | *(step 5)* |
+   | `PUBLIC_DEMO` | `true` — the operator console opens without a login |
 
 4. Deploy. Migrations run on boot, so a fresh database needs no extra step.
 5. Copy the service URL, set `PUBLIC_BASE_URL` to it, and redeploy.
@@ -101,6 +102,13 @@ Three workflows then run on their own:
 | `worker.yml` | every 5 min | every job once: drain queue, triggers, reclaim, rollups |
 | `demo-reset.yml` | 04:00 UTC | reseed, re-simulate, rebuild rollups |
 | `keep-warm.yml` | every 10 min | `GET /healthz` so the free service does not sleep |
+| `keep-alive.yml` | 1st and 15th | re-enables the three above through the API |
+
+GitHub disables scheduled workflows in a repository with no commits for 60 days
+— which happened to this one on 2026-11-08, and the demo stopped resetting.
+`keep-alive.yml` calls the "enable workflow" endpoint for each of them twice a
+month, the same mechanism the keepalive-workflow action uses. If the Actions tab
+ever shows them disabled anyway, enable them there by hand.
 
 Trigger `worker` manually once from the Actions tab to confirm the secret works.
 

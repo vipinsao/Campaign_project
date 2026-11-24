@@ -20,11 +20,20 @@ from those events rather than from counters.
 **[campaign-project-ke4v.onrender.com](https://campaign-project-ke4v.onrender.com)**.
 The sixty-second version is **[/shop](https://campaign-project-ke4v.onrender.com/shop)** —
 place an order and watch the engine enrol the contact, run the eight send-time gates and
-show you the decision log for everything it refused. The engine, the AI layer and the
-operator UI all build and run; 504 tests pass; the demo replays 30 days in about a minute.
-The public demo sends through the mock provider; the SMTP, Postmark and Twilio adapters are
-wired and configurable but the deployed instance is not sending live mail. See
-[TRACKER.md](TRACKER.md), which is accurate about what is not built.
+show you the decision log for everything it refused. When the deployment has a Brevo key
+configured the confirmation is a real email in your inbox; the shop says which before you
+order, from the server's own configuration rather than from this README.
+
+The **[operator console](https://campaign-project-ke4v.onrender.com/campaigns) needs no
+login**: it opens straight into the seeded store with full operator access. Other
+visitors' emails, phone numbers and IPs are masked, and the campaign the shop sends is
+locked, so the open console cannot be used to turn the checkout into a spam relay — see
+[`docs/LIVE-SENDING.md`](docs/LIVE-SENDING.md).
+
+The engine, the AI layer and the operator UI all build and run. CI runs 610 tests — unit,
+integration and the 24 invariants — and, since a fix described below, can actually fail.
+The demo replays 30 days in about a minute. See [TRACKER.md](TRACKER.md), which is
+accurate about what is not built.
 
 ---
 
@@ -125,6 +134,16 @@ api and worker processes and talks to them over HTTP — because "the tests pass
 and "the server starts" are different claims. It was written after a runtime
 check found the worker had no entry point at all: 519 passing tests, and the
 process could not start.
+
+And one found later, by accident: **CI could not fail.** `embedded-postgres`
+registers an exit hook that answers Node's `beforeExit` with `process.exit(0)`,
+which overwrote the exit code vitest sets when a test fails. Every job went green
+whatever the suite said, and one integration test had been failing under a green
+tick since August — it still expected an un-sendable promotional message to be
+accepted on save, which a stricter fix had since made impossible.
+`tests/support/global-setup.ts` now keeps the failing code, and the stale test is
+corrected. A green tick that cannot turn red is the same mistake as a guard that
+cannot refuse.
 
 ---
 
@@ -238,7 +257,8 @@ arrives in seconds rather than on the next queue tick. Then it shows you the
 decision log: every campaign considered, every message queued, and the named gate
 and sentence behind anything that was refused.
 
-With credentials configured it puts a real email in your inbox; with none, it says
+With a Brevo key configured it puts a real email in your inbox — sent over Brevo's
+HTTPS API, because Render's free tier blocks outbound SMTP — and with none it says
 so on the page before you fill the form in, and everything except the final
 provider call still happens. See [`docs/LIVE-SENDING.md`](docs/LIVE-SENDING.md) for
 what is achievable on free tiers and — more importantly — what is not.

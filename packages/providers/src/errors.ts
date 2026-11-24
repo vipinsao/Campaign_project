@@ -312,6 +312,121 @@ export const ERROR_TABLE: readonly ErrorRule[] = [
     meaning: 'The connection to Postmark was reset.',
   },
 
+  // -- Brevo ------------------------------------------------------------------
+  // Brevo's transactional API answers with a string `code` in the JSON body
+  // (https://developers.brevo.com/docs/how-it-works#error-codes). The body code is
+  // what `brevo.ts` stores; the HTTP_* entries cover a response with no body.
+  {
+    provider: 'brevo',
+    code: 'unauthorized',
+    class: 'transient',
+    meaning:
+      'Brevo rejected the API key, or blocked the request because it came from an IP address ' +
+      'the account has not authorised (Security → Authorised IPs).',
+    maxAttempts: CONFIG_MAX_ATTEMPTS,
+  },
+  {
+    provider: 'brevo',
+    code: 'permission_denied',
+    class: 'transient',
+    meaning:
+      'The Brevo account is not allowed to send this (sender not verified, or sending not yet activated).',
+    maxAttempts: CONFIG_MAX_ATTEMPTS,
+  },
+  {
+    provider: 'brevo',
+    code: 'account_under_validation',
+    class: 'transient',
+    meaning: 'Brevo is still reviewing this account and is not sending for it yet.',
+    maxAttempts: CONFIG_MAX_ATTEMPTS,
+  },
+  {
+    provider: 'brevo',
+    code: 'not_enough_credits',
+    class: 'transient',
+    meaning: 'The Brevo account has used its sending allowance (300/day on the free plan).',
+    maxAttempts: CONFIG_MAX_ATTEMPTS,
+  },
+  {
+    provider: 'brevo',
+    code: 'invalid_parameter',
+    class: 'terminal',
+    meaning: 'Brevo refused the request as invalid — usually the recipient or sender address.',
+  },
+  {
+    provider: 'brevo',
+    code: 'missing_parameter',
+    class: 'terminal',
+    meaning: 'Brevo refused the request because a required field was missing.',
+  },
+  {
+    provider: 'brevo',
+    code: 'out_of_range',
+    class: 'terminal',
+    meaning: 'Brevo refused a value as out of range.',
+  },
+  {
+    provider: 'brevo',
+    code: 'bad_request',
+    class: 'terminal',
+    meaning: 'Brevo refused the request as malformed.',
+  },
+  {
+    provider: 'brevo',
+    code: 'duplicate_request',
+    class: 'terminal',
+    meaning: 'Brevo reported this exact request as a duplicate; it is not sent twice.',
+  },
+  {
+    provider: 'brevo',
+    code: 'HTTP_401',
+    class: 'transient',
+    meaning: 'Brevo rejected the API key.',
+    maxAttempts: CONFIG_MAX_ATTEMPTS,
+  },
+  {
+    provider: 'brevo',
+    code: 'HTTP_429',
+    class: 'transient',
+    meaning: 'Brevo rate-limited this account.',
+  },
+  {
+    provider: 'brevo',
+    code: 'HTTP_500',
+    class: 'transient',
+    meaning: 'Brevo had an internal error.',
+  },
+  {
+    provider: 'brevo',
+    code: 'HTTP_502',
+    class: 'transient',
+    meaning: 'Brevo returned a bad gateway.',
+  },
+  {
+    provider: 'brevo',
+    code: 'HTTP_503',
+    class: 'transient',
+    meaning: 'Brevo is temporarily unavailable.',
+  },
+  {
+    provider: 'brevo',
+    code: 'HTTP_504',
+    class: 'transient',
+    meaning: 'The request to Brevo timed out at a gateway.',
+  },
+  {
+    provider: 'brevo',
+    code: 'ETIMEDOUT',
+    class: 'transient',
+    meaning: 'The request to Brevo timed out.',
+  },
+  {
+    provider: 'brevo',
+    code: 'ECONNRESET',
+    class: 'transient',
+    meaning: 'The connection to Brevo was reset.',
+  },
+
   // -- Twilio -----------------------------------------------------------------
   // Twilio codes are stable, documented and five digits, which makes them the best
   // argument in this file for classification-as-data: the mapping is a fact about

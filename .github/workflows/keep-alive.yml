@@ -1,0 +1,34 @@
+# Keeps the scheduled workflows switched on.
+#
+# GitHub disables `schedule:` workflows in a repository with no commits for 60
+# days. That happened here on 2026-11-08: the worker, the nightly demo reset and
+# the keep-warm ping all stopped, and the public demo quietly froze. Scheduled
+# runs do not count as activity, so nothing the demo did could prevent it.
+#
+# This calls the "enable a workflow" endpoint for each scheduled workflow —
+# itself included — twice a month, well inside the 60-day window. It is the same
+# mechanism the keepalive-workflow action uses, without the dependency.
+name: keep-alive
+
+on:
+  schedule:
+    - cron: '17 3 1,15 * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Re-enable every scheduled workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          for wf in worker.yml demo-reset.yml keep-warm.yml keep-alive.yml; do
+            gh api --method PUT "repos/$REPO/actions/workflows/$wf/enable"
+            echo "enabled $wf"
+          done

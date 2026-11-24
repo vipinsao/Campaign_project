@@ -18,6 +18,7 @@ import type { AppEnv } from '../middleware/context.ts';
 import { operatorOf, tenantOf } from '../middleware/context.ts';
 import { badRequest, conflict, notFound, unprocessable } from '../errors.ts';
 import {
+  assertNotStorefront,
   campaignJson,
   loadCampaign,
   loadCampaignMessages,
@@ -178,6 +179,7 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
   app.patch('/campaigns/:id', async (c) => {
     const tenantId = tenantOf(c);
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
+    assertNotStorefront(campaign);
     const body = CampaignPatch.parse(await c.req.json<unknown>());
 
     // Changing the category re-scopes every message under it. A template that is
@@ -242,6 +244,7 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
   app.delete('/campaigns/:id', async (c) => {
     const tenantId = tenantOf(c);
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
+    assertNotStorefront(campaign);
     const row = await queryOne<CampaignRow>(
       deps.db,
       `UPDATE campaigns SET status = 'archived', updated_at = $3
@@ -304,6 +307,7 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
   app.post('/campaigns/:id/pause', async (c) => {
     const tenantId = tenantOf(c);
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
+    assertNotStorefront(campaign);
     if (campaign.status === 'archived') {
       throw conflict('campaign_archived', 'An archived campaign cannot be paused.', {
         campaignId: campaign.id,
@@ -710,6 +714,7 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
   app.post('/campaigns/:id/messages', async (c) => {
     const tenantId = tenantOf(c);
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
+    assertNotStorefront(campaign);
     const body = MessageBody.parse(await c.req.json<unknown>());
 
     assertTemplateValid(
@@ -758,6 +763,7 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
   app.patch('/campaigns/:id/messages/:messageId', async (c) => {
     const tenantId = tenantOf(c);
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
+    assertNotStorefront(campaign);
     const body = MessagePatch.parse(await c.req.json<unknown>());
     const messageId = c.req.param('messageId');
 
@@ -840,6 +846,7 @@ export function campaignRoutes(deps: ApiDeps): Hono<AppEnv> {
   app.delete('/campaigns/:id/messages/:messageId', async (c) => {
     const tenantId = tenantOf(c);
     const campaign = await loadCampaign(deps.db, tenantId, c.req.param('id'));
+    assertNotStorefront(campaign);
     const messageId = c.req.param('messageId');
 
     // Queued rows reference this message, so a delete would cascade and take the

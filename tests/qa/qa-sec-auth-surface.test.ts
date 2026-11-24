@@ -23,6 +23,13 @@ const PUBLIC_PATHS = new Set([
   '/readyz',
   '/metrics',
   '/auth/login',
+  /**
+   * The public demo's session. No credential is asked for — handing one out IS the
+   * feature — and it answers 404 unless PUBLIC_DEMO is on. What makes an open
+   * console survivable lives elsewhere: real contacts are masked on the way out,
+   * and the storefront campaign is locked (tests/integration/public-demo.test.ts).
+   */
+  '/auth/demo',
   '/t/o/:trackingId',
   '/t/c/:shortCode',
   '/r/:shortCode',

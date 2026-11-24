@@ -205,7 +205,9 @@ export function ShopPage() {
           />
 
           <label className="label" htmlFor="shop-email">
-            Email — the receipt goes here
+            {config.data?.channels.email.live === true
+              ? 'Email — your confirmation is sent here'
+              : 'Email — addresses the simulated message'}
           </label>
           <input
             id="shop-email"
@@ -288,8 +290,9 @@ export function ShopPage() {
           )}
 
           <p className="mt-4 border-t border-line pt-3 text-[11px] leading-relaxed text-ink-faint">
-            Your address is used for this one message and nothing else. Every message carries a
-            working unsubscribe link, and the whole dataset is wiped and reseeded nightly.
+            Your address is used for this one order and nothing else. The order also appears in the
+            public operator console, with your email and phone masked, and the whole dataset is
+            wiped and reseeded nightly at 04:00 UTC.
           </p>
         </form>
       </div>
@@ -352,9 +355,7 @@ function Capabilities({ config }: { config: StorefrontConfigResponse | undefined
     <div className="panel mb-4 p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="panel-title">What this deployment will actually do</span>
-        <Pill tone={anyLive ? 'ok' : 'info'}>
-          {anyLive ? 'live sending' : `SEND_MODE=${config.sendMode}`}
-        </Pill>
+        <Pill tone={anyLive ? 'ok' : 'info'}>{anyLive ? 'live sending' : 'simulated sending'}</Pill>
         {config.budget.limit > 0 && anyLive && (
           <Pill tone={config.budget.remaining > 0 ? 'quiet' : 'held'} mono>
             {config.budget.remaining}/{config.budget.limit} sends left today
@@ -441,6 +442,90 @@ function ProductCard({
   );
 }
 
+const PROVIDER_LABEL: Record<string, string> = {
+  brevo: 'Brevo',
+  smtp: 'SMTP',
+  postmark: 'Postmark',
+  twilio: 'Twilio',
+  mock: 'the mock provider',
+};
+
+function providerLabel(provider: string | null): string {
+  if (provider === null) return 'no provider';
+  return PROVIDER_LABEL[provider] ?? provider;
+}
+
+type ReceiptMessage = {
+  readonly channel: string;
+  readonly status: string;
+  readonly to: string;
+  readonly provider: string | null;
+};
+
+/**
+ * The answer to "did I get an email?", before any of the detail.
+ *
+ * A visitor who orders and then checks their inbox has one question, and the
+ * decision log — the interesting part — is no use to them until it is answered.
+ * In mock mode the honest answer is "no, and here is what would have been sent";
+ * saying so first is what stops the page reading as broken.
+ */
+function DeliverySummary({ messages }: { messages: readonly ReceiptMessage[] }) {
+  const email = messages.find((message) => message.channel === 'email');
+  if (email === undefined) return null;
+
+  const sent = email.status === 'sent' || email.status === 'delivered';
+  const simulated = email.provider === 'mock';
+  const waiting = email.status === 'pending' || email.status === 'processing';
+
+  let tone: 'ok' | 'info' | 'held';
+  let text: React.ReactNode;
+  if (sent && !simulated) {
+    tone = 'ok';
+    text = (
+      <>
+        Confirmation email sent to <span className="font-medium text-ink">{email.to}</span> through{' '}
+        {providerLabel(email.provider)}. It usually arrives within a minute — if it is not in your
+        inbox, check spam: the demo sends from a free plan without its own domain.
+      </>
+    );
+  } else if (sent && simulated) {
+    tone = 'info';
+    text = (
+      <>
+        This deployment simulates sending, so nothing goes to a real inbox. The email below is
+        exactly what the engine rendered and recorded for{' '}
+        <span className="font-medium text-ink">{email.to}</span>.
+      </>
+    );
+  } else if (waiting) {
+    tone = 'held';
+    text = <>The confirmation email is queued and has not been handed to a provider yet.</>;
+  } else {
+    tone = 'held';
+    text = (
+      <>
+        The confirmation email was not sent. The message and the decision log below say exactly
+        which gate stopped it.
+      </>
+    );
+  }
+
+  const styles = {
+    ok: 'border-ok/35 bg-ok-wash',
+    info: 'border-accent-dim/50 bg-accent-wash',
+    held: 'border-held/35 bg-held-wash',
+  } as const;
+
+  return (
+    <div
+      className={`mt-3 rounded border px-3 py-2 text-[12px] leading-relaxed text-ink-dim ${styles[tone]}`}
+    >
+      {text}
+    </div>
+  );
+}
+
 /**
  * The receipt, and why it polls.
  *
@@ -470,8 +555,13 @@ function ReceiptView({
     queryFn: () => storefront.receipt(token),
     refetchInterval: (query) => {
       if (Date.now() - startedAt > 120_000) return false;
-      const settled = (query.state.data?.messages ?? []).every(
-        (message) => message.status !== 'sent' && message.status !== 'processing',
+      const data = query.state.data;
+      // `sent` is only unsettled when a delivery receipt can still arrive for it.
+      const settled = (data?.messages ?? []).every(
+        (message) =>
+          message.status !== 'processing' &&
+          message.status !== 'pending' &&
+          !(message.status === 'sent' && data?.deliveryReceiptsExpected === true),
       );
       return settled ? false : 3_000;
     },
@@ -515,6 +605,8 @@ function ReceiptView({
             ))}
           </ul>
         )}
+
+        <DeliverySummary messages={data.messages} />
 
         <p className="mt-3 text-[11px] leading-relaxed text-ink-faint">
           Keep this link to come back to it:{' '}
@@ -575,7 +667,9 @@ function ReceiptView({
                       <span>waiting for the provider&rsquo;s delivery receipt…</span>
                     ) : (
                       <span title="delivered_at is written only by a provider callback (I9), never inferred from a successful send">
-                        accepted by the mock provider — no delivery receipt in mock mode
+                        {message.provider === 'mock'
+                          ? 'accepted by the mock provider — simulated, so no delivery receipt'
+                          : `accepted by ${providerLabel(message.provider)} — this deployment does not receive its delivery receipts`}
                       </span>
                     ))}
                 </div>

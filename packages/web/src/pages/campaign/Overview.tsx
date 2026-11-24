@@ -86,7 +86,7 @@ export function OverviewTab() {
             <span className="panel-title">Definition</span>
             {patch.isPending && <span className="text-[11px] text-ink-faint">saving…</span>}
           </div>
-          <div className="space-y-3 p-4">
+          <fieldset disabled={campaign.isStorefront} className="min-w-0 space-y-3 p-4">
             <div>
               <label className="label" htmlFor="name">
                 Name
@@ -215,7 +215,7 @@ export function OverviewTab() {
                 </span>
               </span>
             </label>
-          </div>
+          </fieldset>
         </section>
 
         <div className="space-y-3">

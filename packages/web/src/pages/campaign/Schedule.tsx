@@ -374,8 +374,10 @@ export function ScheduleTab() {
                 !startValid ||
                 !endValid ||
                 inverted ||
-                days.length === 0
+                days.length === 0 ||
+                campaign.isStorefront
               }
+              title={campaign.isStorefront ? 'Locked — duplicate the campaign to edit' : undefined}
               onClick={() => {
                 save.mutate({
                   sendWindowStart: start === '' ? null : start,
@@ -384,7 +386,13 @@ export function ScheduleTab() {
                 });
               }}
             >
-              {save.isPending ? 'Saving…' : dirty ? 'Save window' : 'Saved'}
+              {campaign.isStorefront
+                ? 'Locked'
+                : save.isPending
+                  ? 'Saving…'
+                  : dirty
+                    ? 'Save window'
+                    : 'Saved'}
             </button>
           </div>
         </section>

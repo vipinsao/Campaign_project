@@ -76,6 +76,12 @@ export {
   type StorefrontConfig,
 } from './routes/storefront.ts';
 export {
+  publicDemoEnabled,
+  redactForPublicDemo,
+  redactString,
+  redactPublicDemoResponses,
+} from './middleware/public-demo.ts';
+export {
   armSchedulerTrap,
   disarmSchedulerTrap,
   assertNoSchedulerRegistered,

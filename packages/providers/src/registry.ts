@@ -1,5 +1,6 @@
 import type { Channel, MessageProvider } from '@campaign/shared';
 import type { Clock, Db, Rng } from './deps.ts';
+import { BrevoProvider, brevoConfigFromEnv } from './brevo.ts';
 import { MockEmailProvider, MockSmsProvider } from './mock/mock-provider.ts';
 import type { MockProviderOptions } from './mock/mock-provider.ts';
 import { PostmarkProvider, postmarkConfigFromEnv } from './postmark.ts';
@@ -19,7 +20,7 @@ import { TwilioProvider, twilioConfigFromEnv } from './twilio.ts';
  * clean clone runs the entire lifecycle with an empty environment.
  */
 
-export const PROVIDER_NAMES = ['mock', 'smtp', 'postmark', 'twilio'] as const;
+export const PROVIDER_NAMES = ['mock', 'smtp', 'postmark', 'brevo', 'twilio'] as const;
 export type ProviderName = (typeof PROVIDER_NAMES)[number];
 
 export function isProviderName(value: string): value is ProviderName {
@@ -50,6 +51,7 @@ const CHANNELS: Readonly<Record<ProviderName, readonly Channel[]>> = {
   mock: ['email', 'sms'],
   smtp: ['email'],
   postmark: ['email'],
+  brevo: ['email'],
   twilio: ['sms'],
 };
 
@@ -86,6 +88,8 @@ export function resolveProvider(
       return new SmtpProvider(smtpConfigFromEnv(env));
     case 'postmark':
       return new PostmarkProvider(postmarkConfigFromEnv(env), deps.clock, deps.fetchImpl ?? fetch);
+    case 'brevo':
+      return new BrevoProvider(brevoConfigFromEnv(env), deps.fetchImpl ?? fetch);
     case 'twilio':
       return new TwilioProvider(twilioConfigFromEnv(env), deps.clock, deps.fetchImpl ?? fetch);
   }

@@ -8,7 +8,8 @@ import { createRateLimiter, rateLimit, type RateLimiter } from './middleware/rat
 import { requireApiKey, requireOperator } from './middleware/auth.ts';
 import { flowRoutes } from './routes/flow.ts';
 import { operationsRoutes } from './routes/operations.ts';
-import { authRoutes, sessionRoutes } from './routes/auth.ts';
+import { authRoutes, demoSessionRoutes, sessionRoutes } from './routes/auth.ts';
+import { redactPublicDemoResponses } from './middleware/public-demo.ts';
 import { healthRoutes } from './routes/health.ts';
 import { publicRoutes } from './routes/public.ts';
 import { webhookRoutes } from './routes/webhooks.ts';
@@ -41,6 +42,7 @@ import { storefrontRoutes } from './routes/storefront.ts';
  *   /healthz /readyz /metrics            no auth, operational
  *   /t /r /u /webhooks                   no auth, reached by mail clients and providers
  *   /auth/login                          no auth, tightly rate limited
+ *   /auth/demo                           no auth, 404 unless PUBLIC_DEMO=true
  *   /events                              API key
  *   everything else                      operator session, tenant-scoped
  */
@@ -170,6 +172,20 @@ export function createApp(deps: ApiDeps, options: CreateAppOptions = {}): App {
   );
   app.route('/', authRoutes(deps));
 
+  // ── the public demo's session: no credentials, so the login budget applies ──
+  app.use(
+    '/auth/demo',
+    rateLimit({
+      limiter,
+      clock: deps.clock,
+      metrics,
+      bucket: 'demo-session',
+      limit: Math.max(deps.rateLimit.loginLimit, 30),
+      windowMs: deps.rateLimit.windowMs,
+    }),
+  );
+  app.route('/', demoSessionRoutes(deps));
+
   // ── API-key ingest ────────────────────────────────────────────────────────
   app.use('/events', requireApiKey(deps));
   app.route('/', eventRoutes(deps));
@@ -210,7 +226,8 @@ export function createApp(deps: ApiDeps, options: CreateAppOptions = {}): App {
     '/tenant',
     '/mock-outbox',
   ]) {
-    app.use(prefix, requireOperator(deps), operatorLimit);
+    // Redaction last, so it sees the handler's response; a no-op unless PUBLIC_DEMO.
+    app.use(prefix, requireOperator(deps), operatorLimit, redactPublicDemoResponses(deps.env));
   }
 
   app.route('/', sessionRoutes());

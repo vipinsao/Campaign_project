@@ -137,12 +137,21 @@ export function AudienceTab() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={!dirty || save.isPending}
+                disabled={!dirty || save.isPending || campaign.isStorefront}
+                title={
+                  campaign.isStorefront ? 'Locked — duplicate the campaign to edit' : undefined
+                }
                 onClick={() => {
                   save.mutate(definition);
                 }}
               >
-                {save.isPending ? 'Saving…' : dirty ? 'Save segment' : 'Saved'}
+                {campaign.isStorefront
+                  ? 'Locked'
+                  : save.isPending
+                    ? 'Saving…'
+                    : dirty
+                      ? 'Save segment'
+                      : 'Saved'}
               </button>
             </div>
           </div>

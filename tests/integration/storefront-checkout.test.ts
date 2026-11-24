@@ -66,6 +66,8 @@ async function seedShop(): Promise<{ tenantId: string; campaignId: string }> {
     triggerType: 'order_placed',
     status: 'active',
   });
+  // The seed marks its storefront campaign; the checkout sends nothing else.
+  await db.query(`UPDATE campaigns SET is_storefront = true WHERE id = $1`, [campaignId]);
   await seedCampaignMessage(db, tenantId, campaignId, {
     channel: 'email',
     sequenceOrder: 1,
@@ -283,6 +285,69 @@ describe('the guards on a public endpoint that can send real mail', () => {
       `SELECT status, attempts FROM message_queue`,
     );
     expect(rows[0]).toEqual({ status: 'pending', attempts: 0 });
+  });
+});
+
+describe('the public console cannot turn the checkout into a relay', () => {
+  it('flushes only the storefront campaign; another order_placed campaign is left queued', async () => {
+    const { tenantId } = await seedShop();
+    const db = testDb();
+    // What a visitor with the open console could build: an active order_placed
+    // campaign carrying text of their choosing.
+    const { campaignId: rogue } = await seedCampaign(db, tenantId, {
+      name: 'Visitor-made campaign',
+      category: 'transactional',
+      triggerType: 'order_placed',
+      status: 'active',
+    });
+    await seedCampaignMessage(db, tenantId, rogue, {
+      channel: 'email',
+      sequenceOrder: 1,
+      subject: 'Not from the shop',
+      body: 'Text a visitor chose for {{contact.first_name}}.',
+    });
+
+    const response = await checkout(app, {});
+    expect(response.status, await response.clone().text()).toBe(200);
+    const result = (await response.json()) as CheckoutResult;
+
+    expect(result.enrolled).toBe(2);
+    expect(result.queued, 'only the storefront email is flushed').toBe(1);
+    expect(result.flushed.sent).toBe(1);
+    expect(result.notes.join(' ')).toContain('other campaigns');
+
+    const { rows } = await db.query<{ status: string }>(
+      `SELECT status FROM message_queue WHERE campaign_id = $1`,
+      [rogue],
+    );
+    expect(rows.map((r) => r.status)).toEqual(['pending']);
+  });
+
+  it("refuses a name that could carry a link into a stranger's inbox", async () => {
+    await seedShop();
+    for (const name of [
+      'Visit evil.example/win',
+      'Visit evil.example',
+      'evil.com',
+      'Ada 4 you',
+      'ada@example.com',
+      'http://x',
+    ]) {
+      const response = await checkout(app, { name });
+      // 422: this API's answer to a body that parses but does not validate.
+      expect(response.status, name).toBe(422);
+    }
+    for (const name of [
+      "Ada O'Brien",
+      'José Álvarez',
+      'Jean-Luc Picard',
+      'Dr. Who',
+      'J. R. R. Tolkien',
+      'विपिन',
+    ]) {
+      const response = await checkout(app, { name, email: `n${String(name.length)}@example.com` });
+      expect(response.status, name).toBe(200);
+    }
   });
 });
 

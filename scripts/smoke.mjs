@@ -95,8 +95,17 @@ async function main() {
 
   check('worker process stays up', worker.exitCode === null, workerErr.slice(-400));
 
+  // The server mounts the API under /api (packages/api/src/server.ts) and leaves
+  // only the public surfaces unprefixed. This script predates that and called
+  // /auth/login at the root, so from 2026-08-31 it failed on a 404 every time it
+  // ran; it is not in CI, so nothing said so. Route the same way the SPA does.
+  const UNPREFIXED = ['/healthz', '/readyz', '/metrics', '/t/', '/r/', '/u/', '/webhooks/'];
+  const url = (path) =>
+    UNPREFIXED.some((p) => path === p || path.startsWith(p))
+      ? `${BASE}${path}`
+      : `${BASE}/api${path}`;
   const j = async (path, init) => {
-    const r = await fetch(`${BASE}${path}`, init);
+    const r = await fetch(url(path), init);
     let body = null;
     try {
       body = await r.json();
@@ -166,8 +175,9 @@ async function main() {
   const list = campaigns.body?.campaigns ?? campaigns.body?.data ?? campaigns.body;
   const count = Array.isArray(list) ? list.length : (list?.length ?? 0);
   check(
-    'GET /campaigns returns the five seeded campaigns',
-    campaigns.status === 200 && count === 5,
+    // Six since the storefront's "Order confirmation" joined the seed.
+    'GET /campaigns returns the six seeded campaigns',
+    campaigns.status === 200 && count === 6,
     `status=${campaigns.status} count=${count}`,
   );
 

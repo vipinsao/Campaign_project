@@ -4,6 +4,7 @@ import { PageHeader, Scroll } from '../components/Layout.tsx';
 import { Pill } from '../components/Pill.tsx';
 import { EmptyState } from '../components/States.tsx';
 import type { Tone } from '../components/Pill.tsx';
+import { Icon } from '../components/Icons.tsx';
 
 /**
  * The invariants, as a page rather than as a paragraph in a README.
@@ -342,8 +343,8 @@ export function InvariantsPage() {
                   setSearch(event.target.value);
                 }}
               />
-              <span className="pointer-events-none absolute top-1.5 left-2 text-[12px] text-ink-faint">
-                ⌕
+              <span className="pointer-events-none absolute top-2 left-2 text-ink-faint">
+                <Icon name="search" className="size-3.5" />
               </span>
               {search.length === 0 && (
                 <span className="kbd pointer-events-none absolute top-1.5 right-2">/</span>
@@ -416,7 +417,7 @@ export function InvariantsPage() {
 
           {shown === 0 ? (
             <EmptyState
-              glyph="⌕"
+              glyph="○"
               title="No invariant matches this filter"
               detail={`${String(ALL.length)} are defined; none of them match.`}
               action={
@@ -562,7 +563,7 @@ function Card({ entry }: { entry: Invariant }) {
         rel="noreferrer"
         className="mt-3 flex items-center gap-2 border-t border-line px-4 py-2.5 text-[11px] text-ink-faint transition-colors hover:bg-raised hover:text-accent"
       >
-        <span className="font-mono">⛨</span>
+        <Icon name="shield" className="size-3.5" />
         <span className="truncate font-mono">{file}</span>
         <span className="ml-auto opacity-0 transition-opacity group-hover:opacity-100">
           view on GitHub ↗

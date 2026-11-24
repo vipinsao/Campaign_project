@@ -20,7 +20,8 @@ npm run demo:simulate # replays 30 days in about a minute
 ```
 
 Sign in at http://localhost:5173 with `operator@example.com` /
-`demo-password-change-me`.
+`demo-password-change-me` — or start the stack with `PUBLIC_DEMO=true` and the
+console opens without a login, as it does on the deployed demo.
 
 ## What to look at, in order
 

@@ -3,7 +3,11 @@
 Updated in place after each phase. A box is only ticked when its tests pass —
 `npm run typecheck`, `npm run lint` and `npm test` must all be green.
 
-**Status as of 2026-08-25:** typecheck clean · lint clean (0 errors) · **504 tests across 40 files** · **all 24 invariants tested** · demo pipeline verified end to end
+**Status as of 2026-11-24:** typecheck clean · lint clean (0 errors) · **610 tests across 46 files in CI** (unit, integration, invariants) · **all 24 invariants tested** · demo pipeline verified end to end
+
+`tests/qa/` holds the adversarial QA pass. It is not in CI, and 21 of its tests fail on purpose: each is an open finding written as the test that will pass once it is fixed.
+
+Until 2026-11-24 CI could not fail: an exit hook in `embedded-postgres` turned every failing `vitest run` into exit code 0. See README, "What an adversarial review of it found".
 
 **The web UI builds and runs.** What is left is deployment and a handful of API gaps the UI reports honestly on screen.
 

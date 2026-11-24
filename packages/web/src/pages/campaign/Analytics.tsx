@@ -198,7 +198,7 @@ export function AnalyticsTab() {
             <ErrorState error={funnel.error} onRetry={() => void funnel.refetch()} />
           ) : funnel.data.stages.every((stage) => stage.count === 0) ? (
             <EmptyState
-              glyph="⌛"
+              glyph="◷"
               title="This campaign has not enrolled anybody yet"
               detail="Every stage is a genuine zero from the database — no rows exist, rather than the request having failed."
             />
