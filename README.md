@@ -296,19 +296,21 @@ Knowing what was left out matters as much as the list above.
 
 Distinct from the above, and tracked in [TRACKER.md](TRACKER.md):
 
-- **Not deployed.** The Dockerfile, `docker-compose.yml` and `render.yaml` exist
-  and the CI workflow is written, but nothing has been pushed or deployed, so there
-  is no live URL and no green badge yet.
-- **Five API endpoints the UI wants do not exist**, and the affected panels say so
-  on screen rather than inventing data: `GET /mock-outbox`, a tenant-settings
-  endpoint for the quiet-hours floor, `GET /campaigns/:id/timeseries`, contact
-  lookup by email, and per-channel campaign counts.
+- **SMS is not configured on the live demo.** No Twilio account is attached, so the
+  shop sends no text message, says so before you order, and the receipt records why.
+  Email is real (Brevo, free plan), which also means it can land in spam.
+- **The nightly demo reset is not yet proven on schedule.** Its bugs were fixed on
+  2026-11-24, but it runs from a GitHub Actions cron, and GitHub drops scheduled
+  runs; it has not run on schedule since the fix. The same applies to `keep-warm`,
+  so a first visit can meet a cold Render instance and wait about a minute.
+- **Per-channel campaign counts** are not exposed by the API, so that panel shows
+  an em dash rather than summing per-message uniques and double-counting contacts.
 - **`/queue` has no total count**, so every list built on it is a 200-row window.
   Each one says so.
-- **The web bundle is 1.07 MB** — Recharts and React Flow are both eagerly
+- **The web client asserts response shapes instead of parsing them.** The server
+  validates every request with zod; the client does not validate replies.
+- **The web bundle is about 1.07 MB**: Recharts and React Flow are both eagerly
   imported. Route-level lazy loading would roughly halve it.
-- **`packages/web` is excluded from ESLint**, so the UI has no lint gate; the
-  type-check is currently the only thing catching it.
 
 Saying this is cheaper than having a reviewer discover it.
 

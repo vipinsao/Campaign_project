@@ -9,7 +9,7 @@ Updated in place after each phase. A box is only ticked when its tests pass —
 
 Until 2026-11-24 CI could not fail: an exit hook in `embedded-postgres` turned every failing `vitest run` into exit code 0. See README, "What an adversarial review of it found".
 
-**The web UI builds and runs.** What is left is deployment and a handful of API gaps the UI reports honestly on screen.
+**The web UI builds and runs.** It is deployed; what is left is a handful of API gaps the UI reports honestly on screen.
 
 Boxes below are honest. Unticked means not built, not "mostly built".
 
@@ -127,7 +127,7 @@ AI invariants — all ten implemented and tested:
 - [~] P10.2 — `docs/DEMO.md` written; the click-through needs the UI to build first
 - [x] P10.3 — `docs/DECISIONS.md` (18 entries)
 - [x] P10.3b — five ADRs written (queue, event sourcing, consent ledger, clock, retention)
-- [ ] P10.4 — Deployed; live URL; nightly demo reset
+- [~] P10.4 — Deployed; live URL; nightly demo reset *(live on Render since Sep 2026, real email via Brevo verified 2026-11-25; the nightly reset is fixed but not yet seen running on schedule)*
 - [x] P10.5 — Clean-room checklist run: no employer/brand names, no credentials, reserved test data only
 - [ ] P10.6 — Coverage ≥85% on `core`; all CI jobs green
 
